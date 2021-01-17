@@ -8,7 +8,6 @@ import graphql.schema.DataFetchingEnvironment;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,8 +24,11 @@ import static calculator.engine.ExpCalculator.calExp;
 
 public class CalculateInstrumentation extends SimpleInstrumentation {
 
-    public static final CalculateInstrumentation CAL_INSTANCE = new CalculateInstrumentation();
+    private static final CalculateInstrumentation CAL_INSTANCE = new CalculateInstrumentation();
 
+    public static CalculateInstrumentation getCalInstance() {
+        return CAL_INSTANCE;
+    }
 
     // 改变字段的计算行为，可以搞 filter 和 mock
     @Override
@@ -68,20 +70,20 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
 
             // map 转换
             if (Objects.equals(map.getName(), directive.getName())) {
-                String mapper = (String) getArgumentFromDirective(directive, "mapper");
+                String mapper =  getArgumentFromDirective(directive, "mapper");
                 defaultDF = getMapperDF(defaultDF, mapper);
             }
 
             // 过滤列表
             if (Objects.equals(filter.getName(), directive.getName())) {
-                String predicate = (String) getArgumentFromDirective(directive, "predicate");
+                String predicate =  getArgumentFromDirective(directive, "predicate");
                 defaultDF = getFilterDF(defaultDF, predicate);
             }
 
             if (Objects.equals(sortBy.getName(), directive.getName())) {
-                String key = (String) getArgumentFromDirective(directive, "key");
+                String key =  getArgumentFromDirective(directive, "key");
                 // todo 其实获取不到默认值
-                Boolean reversed = (Boolean) getArgumentFromDirective(directive, "reversed");
+                Boolean reversed =  getArgumentFromDirective(directive, "reversed");
                 defaultDF = wrapSortByDF(defaultDF, key, reversed);
             }
         }
@@ -93,7 +95,7 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
                 Directive finalSkip = skip;
                 defaultDF = env -> {
                     Map<String, Object> arguments = environment.getArguments();
-                    String exp = (String) getArgumentFromDirective(finalSkip, "exp");
+                    String exp =  getArgumentFromDirective(finalSkip, "exp");
                     Boolean isSkip = (Boolean) calExp(exp, arguments);
 
                     if (true == isSkip) {

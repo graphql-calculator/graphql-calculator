@@ -26,13 +26,13 @@ public class CommonTools {
 
     public static final String PATH_SEPARATOR = "#";
 
-    public static Object getArgumentFromDirective(Directive directive, String argName) {
+    public static <T> T getArgumentFromDirective(Directive directive, String argName) {
         Argument argument = directive.getArgument(argName);
         if (argument == null) {
             return null;
         }
 
-        return parseValue(argument.getValue());
+        return (T) parseValue(argument.getValue());
     }
 
     /**
@@ -122,6 +122,23 @@ public class CommonTools {
                 sb.insert(0, segmentName + PATH_SEPARATOR);
             }
             tmpEnv = tmpEnv.getParent();
+        }
+
+        return sb.toString();
+    }
+
+    public static String pathForTraverse(QueryVisitorFieldEnvironment environment) {
+        StringBuilder sb = new StringBuilder();
+        QueryVisitorFieldEnvironment tmpEnv = environment;
+        while (tmpEnv != null) {
+            String pathSeg = getAliasOrName(tmpEnv.getField());
+            if (sb.length() == 0) {
+                sb.append(pathSeg);
+            } else {
+                sb.insert(0, pathSeg + PATH_SEPARATOR);
+            }
+
+            tmpEnv = tmpEnv.getParentEnvironment();
         }
 
         return sb.toString();

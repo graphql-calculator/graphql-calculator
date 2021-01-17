@@ -41,7 +41,8 @@ public class CalculateSchemaHolder {
         person.put("age", id * 10);
         person.put("name", id + "_name");
         person.put("email", id + "dugk@foxmail.com");
-        person.put("preferredItem", IntStream.range(id, id + 3).toArray());
+        person.put("preferredItemIdList", IntStream.range(id, id + 3).toArray());
+        person.put("acquiredCouponIdList", IntStream.range(id * 10, id * 10 + 3).toArray());
         return person;
     };
 

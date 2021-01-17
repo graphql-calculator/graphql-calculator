@@ -15,6 +15,7 @@ import java.util.Objects;
 
 import static calculator.CommonTools.isValidEleName;
 import static calculator.CommonTools.keyForFieldByQVFEnv;
+import static calculator.CommonTools.pathForTraverse;
 import static calculator.engine.CalculateDirectives.filter;
 import static calculator.engine.CalculateDirectives.mock;
 import static calculator.engine.CalculateDirectives.node;
@@ -63,8 +64,7 @@ public class BaseValidator extends QueryValidationVisitor {
             return;
         }
 
-        // TypeName.aliasOrName
-        String keyForField = keyForFieldByQVFEnv(environment);
+        String fieldPath = pathForTraverse(environment);
         SourceLocation location = environment.getField().getSourceLocation();
 
         for (Directive directive : environment.getField().getDirectives()) {
@@ -84,12 +84,12 @@ public class BaseValidator extends QueryValidationVisitor {
                 );
 
                 if (exp == null || exp.isEmpty()) {
-                    String errorMsg = String.format(" groovy script can't be empty, @%s ", keyForField);
+                    String errorMsg = String.format("groovy script can't be empty, @%s.", fieldPath);
                     addValidError(location, errorMsg);
                 }
 
                 if (!isValidExp(exp)) {
-                    String errorMsg = String.format(" invalidate groovy script for %s on %s ", exp, keyForField);
+                    String errorMsg = String.format("invalidate groovy script for %s on %s.", exp, fieldPath);
                     addValidError(location, errorMsg);
                 }
 
@@ -110,7 +110,7 @@ public class BaseValidator extends QueryValidationVisitor {
                  */
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
-                    String errorMsg = String.format(" predicate must define on list type, instead @%s.", keyForField);
+                    String errorMsg = String.format("predicate must define on list type, instead @%s.", fieldPath);
                     addValidError(location, errorMsg);
                 }
 
@@ -118,12 +118,12 @@ public class BaseValidator extends QueryValidationVisitor {
                         directive.getArgument("predicate").getValue()
                 );
                 if (predicate == null || predicate.isEmpty()) {
-                    String errorMsg = String.format(" groovy script can't be empty, @%s ", keyForField);
+                    String errorMsg = String.format("groovy script can't be empty, @%s.", fieldPath);
                     addValidError(location, errorMsg);
                 }
 
                 if (!isValidExp(predicate)) {
-                    String errorMsg = String.format(" invalidate groovy script for %s on %s ", predicate, keyForField);
+                    String errorMsg = String.format("invalidate groovy script for %s on %s.", predicate, fieldPath);
                     addValidError(location, errorMsg);
                 }
 
@@ -141,7 +141,7 @@ public class BaseValidator extends QueryValidationVisitor {
 
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
-                    String errorMsg = String.format(" key must define on list type, instead @%s.", keyForField);
+                    String errorMsg = String.format("key must define on list type, instead @%s.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -150,7 +150,7 @@ public class BaseValidator extends QueryValidationVisitor {
                         directive.getArgument("key").getValue()
                 );
                 if (key == null || key.isEmpty()) {
-                    String errorMsg = String.format(" key can't be null, @%s ", keyForField);
+                    String errorMsg = String.format("key can't be null, @%s.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -172,12 +172,14 @@ public class BaseValidator extends QueryValidationVisitor {
                 );
 
                 if (nodeNameMap.containsKey(nodeName)) {
-                    String errorMsg = String.format("duplicate node name for %s and %s ", nodeNameMap.get(nodeName), keyForField);
+                    String errorMsg = String.format("duplicate node name '%s' for %s and %s.",
+                            nodeName, nodeNameMap.get(nodeName), fieldPath
+                    );
                     addValidError(location, errorMsg);
                 } else {
-                    nodeNameMap.put(nodeName, keyForField);
+                    nodeNameMap.put(nodeName, fieldPath);
                     if (!isValidEleName(nodeName)) {
-                        String errorMsg = String.format(" invalid node name, @%s .", keyForField);
+                        String errorMsg = String.format("invalid node name 'nodeName' for %s.", fieldPath);
                         addValidError(location, errorMsg);
                     }
                 }

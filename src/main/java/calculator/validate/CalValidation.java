@@ -45,14 +45,14 @@ public class CalValidation {
         BaseValidator baseValidator = BaseValidator.newInstance();
         traverser.visitDepthFirst(baseValidator);
         if (!baseValidator.getErrors().isEmpty()) {
-            ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
+            return ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
         }
 
         LinkValidator linkValidator = LinkValidator.newInstance();
         linkValidator.setNodeNameMap(baseValidator.getNodeNameMap());
         traverser.visitDepthFirst(linkValidator);
         if (!linkValidator.getErrors().isEmpty()) {
-            ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
+            return ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
         }
 
         // 是否有未使用的node节点
@@ -66,6 +66,7 @@ public class CalValidation {
             return ParseAndValidateResult.newResult().validationErrors(Collections.singletonList(error)).build();
         }
 
+        // todo
         ScheduleValidator scheduleValidator = ScheduleValidator.newInstance();
 
 

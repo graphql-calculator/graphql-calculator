@@ -22,16 +22,16 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static calculator.CommonTools.fieldPath;
-import static calculator.CommonTools.findNodeByName;
 import static calculator.CommonTools.getArgumentFromDirective;
 import static java.util.stream.Collectors.toList;
+import static calculator.engine.CalculateDirectives.link;
 
 public class ScheduleInstrument extends SimpleInstrumentation {
 
-    private static final ScheduleInstrument scheduleInstrument = new ScheduleInstrument();
+    private static final ScheduleInstrument SCHEDULE_INSTRUMENT = new ScheduleInstrument();
 
-    public static ScheduleInstrument getInstance() {
-        return scheduleInstrument;
+    public static ScheduleInstrument getScheduleInstrument() {
+        return SCHEDULE_INSTRUMENT;
     }
 
     //  需要预分析，因为对于 person-> name @node("personName")，如果不预先分析、就不会知道person也是dag任务
@@ -101,11 +101,9 @@ public class ScheduleInstrument extends SimpleInstrumentation {
     @Override
     public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters) {
 
-        Directive linkDirective = findNodeByName(
-                parameters.getEnvironment().getField().getDirectives(), CalculateDirectives.link.getName()
-        );
+        List<Directive> linkDirectiveList = parameters.getEnvironment().getField().getDirectives(link.getName());
 
-        if (linkDirective != null) {
+        if (linkDirectiveList != null) {
             ScheduleState scheduleState = parameters.getInstrumentationState();
             Map<String, List<String>> sequenceTaskByNode = scheduleState.getSequenceTaskByNode();
             Map<String, CompletableFuture<Object>> taskByPath = scheduleState.getTaskByPath();
@@ -113,19 +111,19 @@ public class ScheduleInstrument extends SimpleInstrumentation {
             DataFetchingEnvironment oldDFEnvironment = parameters.getEnvironment();
             Map<String, Object> newArguments = new HashMap<>(oldDFEnvironment.getArguments());
 
-            String expression = (String) getArgumentFromDirective(linkDirective, "exp");
-            for (String kv : expression.split(";")) {
-                String[] kvArr = kv.split(":");
-                // 至少依赖一个任务
-                List<String> taskNameForNode = sequenceTaskByNode.get(kvArr[0]);
-
+            for (Directive linkDir : linkDirectiveList) {
+                // 获取当前依赖的任务列表
+                String nodeName = getArgumentFromDirective(linkDir, "node");
+                List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
                 List<CompletableFuture<Object>> taskForNode = taskNameForNode.stream().map(taskByPath::get).collect(toList());
+
                 CompletableFuture<Object> valueFuture = getValueFromTasks(taskForNode);
                 if (valueFuture.isCompletedExceptionally()) {
                     // 当前逻辑是如果参数获取失败，则该数据也不再进行解析
                     return env -> null;
                 } else {
-                    newArguments.put(kvArr[1], valueFuture.join());
+                    String argumentName = getArgumentFromDirective(linkDir, "argument");
+                    newArguments.put(argumentName, valueFuture.join());
                 }
             }
             DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
@@ -141,7 +139,6 @@ public class ScheduleInstrument extends SimpleInstrumentation {
     private CompletableFuture<Object> getValueFromTasks(List<CompletableFuture<Object>> taskForNodeValue) {
         CompletableFuture<Object> result = taskForNodeValue.get(taskForNodeValue.size() - 1);
 
-        // todo 确认是由外到里吗
         for (CompletableFuture<Object> completableFuture : taskForNodeValue) {
             if (completableFuture.isCompletedExceptionally()) {
                 completableFuture.whenComplete((ignore, ex) -> result.completeExceptionally(ex));

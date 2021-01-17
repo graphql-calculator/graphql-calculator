@@ -41,7 +41,7 @@ public class StateParseVisitor implements QueryVisitor {
         List<Directive> directives = environment.getField().getDirectives(CalculateDirectives.node.getName());
         if (directives != null && !directives.isEmpty()) {
             Directive nodeDir = directives.get(0);
-            String nodeName = (String) getArgumentFromDirective(nodeDir, "name");
+            String nodeName = getArgumentFromDirective(nodeDir, "name");
 
             Map<String, CompletableFuture<Object>> taskByPath = state.getTaskByPath();
 

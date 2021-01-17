@@ -3,18 +3,19 @@ package calculator.validate;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.language.Argument;
 import graphql.language.Directive;
-import graphql.language.SourceLocation;
 import graphql.util.TraverserContext;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
-import static calculator.CommonTools.keyForFieldByQVFEnv;
-import static calculator.engine.CalculateDirectives.link;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 
@@ -60,58 +61,51 @@ public class LinkValidator extends QueryValidationVisitor {
             return;
         }
 
-        String keyForField = keyForFieldByQVFEnv(environment);
 
-        Set<String> argumentsName = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
-        for (Directive directive : environment.getField().getDirectives()) {
-            String directiveName = directive.getName();
-            SourceLocation directiveLocation = directive.getSourceLocation();
+        List<Directive> linkDirList = environment.getField().getDirectives().stream()
+                .filter(dir -> Objects.equals("link", dir.getName())).collect(toList());
+        if (!linkDirList.isEmpty()) {
+            String aliasOrName = getAliasOrName(environment.getField());
+            Set<String> argumentsName = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
 
-            /**
-             * 1. 格式错误；
-             * 2. node节点不存在；
-             * 3. 指向的参数没有在field中定义；
-             * 4. 两个node指向同一个参数。
-             */
-            if (Objects.equals(directiveName, link.getName())) {
-                Map<String, String> argByNodeName = new HashMap<>();
-                String expString = (String) getArgumentFromDirective(directive, "exp");
-                for (String kvStr : expString.split(",")) {
-                    // nodeName:argName
-                    String[] split = kvStr.split(":");
-                    if (split.length != 2) {
-                        String errorMsg = String.format("wrong format exp on %s.", keyForField, kvStr);
-                        addValidError(directiveLocation, errorMsg);
-                        continue;
-                    }
-                    usedNodeName.add(split[1]);
+            Map<String, String> argByNodeName = new HashMap<>();
+            for (Directive linkDir : linkDirList) {
+                // argument 必须定义在查询语句中
+                String argumentName = getArgumentFromDirective(linkDir, "argument");
+                if (!argumentsName.contains(argumentName)) {
+                    String errorMsg = format("'%s' do not defined on '%s'@%s.",
+                            argumentName,
+                            aliasOrName,
+                            environment.getField().getSourceLocation()
+                    );
+                    addValidError(linkDir.getSourceLocation(), errorMsg);
+                    continue;
+                }
 
-                    // 如果没有这个node节点
-                    if (!nodeNameMap.containsKey(split[0])) {
-                        String errorMsg = String.format("the node '%s' used by %s do not exist.", split[0], kvStr);
-                        addValidError(directiveLocation, errorMsg);
-                        continue;
-                    }
 
-                    // 指向的参数没有在Field中显式定义
-                    if (argumentsName.contains(split[1])) {
-                        String errorMsg = String.format("the argument '%s' on %s do not exist.", split[1], kvStr);
-                        addValidError(directiveLocation, errorMsg);
-                        continue;
-                    }
+                // node必须存在
+                String nodeName =getArgumentFromDirective(linkDir, "node");
+                if (!nodeNameMap.containsKey(nodeName)) {
+                    String errorMsg = format("the node '%s' used by '%s'@%s do not exist.", nodeName, aliasOrName, environment.getField().getSourceLocation());
+                    addValidError(linkDir.getSourceLocation(), errorMsg);
+                    continue;
+                }
 
-                    // 两个node指向同一个参数
-                    if (argByNodeName.containsKey(split[1])) {
-                        String errorMsg = String.format("duplicate argument for same node, %s, exp fragment is '%s'.", keyForField, kvStr);
-                        addValidError(directiveLocation, errorMsg);
-                        continue;
-                    } else {
-                        argByNodeName.put(split[1], split[0]);
-                    }
+                // 两个node不能同一个参数
+                if (argByNodeName.containsKey(argumentName)) {
+                    String errorMsg = format("node must not linked to the same argument: '%s', @link defined on '%s'@%s is invalid.",
+                            argumentName,
+                            aliasOrName,
+                            environment.getField().getSourceLocation()
+                    );
+                    addValidError(linkDir.getSourceLocation(), errorMsg);
+                    continue;
+                } else {
+                    argByNodeName.put(argumentName, nodeName);
                 }
             }
 
-        }
 
+        }
     }
 }
