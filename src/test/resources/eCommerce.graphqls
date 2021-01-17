@@ -6,14 +6,41 @@ type Query {
     itemList(ids:[Int]): [Item]
 }
 
-
-#query {
-#    userInfo @node(name: "X"){
-#        id @node(name: "X")
+#query($userId:Int){
+#    userInfo(id:$userId){
+#        preferredItemIdList @node(name:"ids")
+#        acquiredCouponIdList @node(name:"ids")
 #    }
 #
-#    item @link()
+#    itemList(ids: 1) @link(argument:"ids",node:"ids"){
+#        name
+#    }
 #
+#    couponList(ids: 1) @link(argument:"ids",node:"ids"){
+#        price
+#    }
+#}
+
+
+#query($userId:Int){
+#    userInfo(id:$userId){
+#        age
+#        name
+#        preferredItemIdList @node(name:"itemIds")
+#        acquiredCouponIdList @node(name:"couponIds")
+#    }
+#
+#    itemList(ids:1) @link(argument:"ids",node:"itemIds"){
+#        name
+#        salePrice
+#        withCouponIdList
+#    }
+#
+#    couponList(ids:1) @link(argument:"ids",node:"couponIds"){
+#        id
+#        price
+#        changedPrice: price @map(mapper: "price +1")
+#    }
 #}
 
 
