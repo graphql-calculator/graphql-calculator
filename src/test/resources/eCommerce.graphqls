@@ -1,0 +1,49 @@
+type Query {
+    userInfo(id: Int):User
+    coupon(id: Int): Coupon
+    couponList(ids: [Int]): [Coupon]
+    item(id: Int): Item
+    itemList(ids:[Int]): [Item]
+}
+
+
+#query {
+#    userInfo @node(name: "X"){
+#        id @node(name: "X")
+#    }
+#
+#    item @link()
+#
+#}
+
+
+type User{
+    id: Int
+    age: Int
+    name: String
+    email: String
+    preferredItemIdList: [Int]
+    acquiredCouponIdList: [Int]
+}
+
+type Item{
+    id: Int
+    name: String
+    salePrice: Int
+    withCouponIdList: [Int]
+    skuList: [Sku]
+}
+
+type Coupon{
+    id: Int
+    price: Int
+    limitation: Int
+    couponText: String
+}
+
+type Sku{
+    id: Int
+    itemId:Int
+    color: String
+    size: Int
+}
