@@ -81,6 +81,9 @@ public class CalculateDirectives {
                     .type(GraphQLBoolean))
             .build();
 
+    /**
+     * todo 1. 怎样将list<Object> 中的一个字段、作为参数链接到另外一个field上
+     */
     public final static GraphQLDirective node = GraphQLDirective.newDirective()
             .name("node")
             .description("cal value for this field by trigger.")
@@ -89,6 +92,11 @@ public class CalculateDirectives {
                     .newArgument()
                     // 可能是基本类型、因此key是可选的
                     .name("name")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    // 可以从当前 实体/集合 通过表达式取值
+                    .name("path")
                     .type(GraphQLString))
             .build();
 

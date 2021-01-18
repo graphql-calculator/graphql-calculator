@@ -44,6 +44,18 @@ type Query {
 #}
 
 
+# fixme 通过node-path取值
+#query($itemIdList:[Int]){
+#    itemList(ids:$itemIdList) @node(name:"couponIds",path:"withCouponIdList"){
+#        withCouponIdList
+#    }
+#
+#    couponList(ids:1) @link(argument:"ids",node:"couponIds"){
+#        id
+#        price
+#    }
+#}
+
 type User{
     id: Int
     age: Int
