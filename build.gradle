@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group 'org.graphql-java'
+group 'org.graphql-java-calculator'
 version '1.0-SNAPSHOT'
 
 repositories {
