@@ -101,6 +101,7 @@ public class CalculateDirectives {
             .build();
 
     /**
+     * todo 1. 怎样将list<Object> 中的一个字段、作为参数链接到另外一个field上
      * <p>
      * 1. 格式是 nodeNameX:argA;nodeNameY:argB;
      * 2. 一个node可以对应到两个参数上，例如：nodeNameX:argA,nodeNameX:argA'。但是不能两个node指向统一额参数、因为不知道使用哪个node；
