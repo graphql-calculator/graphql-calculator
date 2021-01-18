@@ -186,35 +186,6 @@ public class CalculateDirectivesTest {
 
 
     @Test
-    public void getNodeByPathTest() {
-        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node));
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
-        String query = ""
-                + "query($itemIdList:[Int]){\n" +
-                "    itemList(ids:$itemIdList) @node(name:\"couponIds\",path:\"withCouponIdList\"){\n" +
-                "        withCouponIdList\n" +
-                "    }\n" +
-                "\n" +
-                "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
-                "        id\n" +
-                "        price\n" +
-                "    }\n" +
-                "}";
-
-
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("$itemIdList", 1);
-        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variables).build();
-        ExecutionResult result = graphQL.execute(input);
-
-        assert result != null;
-        assert result.getErrors().isEmpty();
-
-    }
-
-    @Test
     public void scheduleAndComputeTest() {
         Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node, CalculateDirectives.map));
         GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
@@ -266,5 +237,34 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(couponList,2),'id')", result.getData()), 12);
 
     }
+
+
+//    @Test
+//    public void getNodeByPathTest() {
+//        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node));
+//        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+//        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+//                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
+//        String query = ""
+//                + "query($itemIdList:[Int]){\n" +
+//                "    itemList(ids:$itemIdList) @node(name:\"couponIds\",path:\"withCouponIdList\"){\n" +
+//                "        withCouponIdList\n" +
+//                "    }\n" +
+//                "\n" +
+//                "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
+//                "        id\n" +
+//                "        price\n" +
+//                "    }\n" +
+//                "}";
+//
+//
+//        Map<String, Object> variables = new HashMap<>();
+//        variables.put("$itemIdList", 1);
+//        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variables).build();
+//        ExecutionResult result = graphQL.execute(input);
+//
+//        assert result != null;
+//        assert result.getErrors().isEmpty();
+//    }
 
 }

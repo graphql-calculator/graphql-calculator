@@ -117,7 +117,6 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
              */
             Object oriVal = defaultDF.get(environment);
             Map<String, Object> variable = environment.getSource();
-            ;
             variable.put(getAliasOrName(environment.getField()), oriVal);
             return calExp(mapper, variable);
         };
