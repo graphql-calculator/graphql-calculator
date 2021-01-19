@@ -8,6 +8,7 @@ import calculator.validate.CalValidation;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.ParseAndValidateResult;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
@@ -30,7 +31,9 @@ public class CalculateDirectivesTest {
 
     private ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnable(false).build();
 
-    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnable(true).build();
+    private ConfigImpl scheduleConfig = ConfigImpl.newConfig()
+            // 是否需要支持调度
+            .isScheduleEnable(true).build();
 
     @Test
     public void skipByTest() {
@@ -213,6 +216,8 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
+ // todo 修改
+//        assert !CalValidation.validateQuery(query, wrappedSchema).isFailure();
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("userId", 1);

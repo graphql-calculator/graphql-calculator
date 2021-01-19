@@ -1,40 +1,82 @@
 # graphql-java-calculate
 
-基于`graphql-java`的`Instrumentation`系统和指令机制，为graphql提供了更加丰富的动态计算和调度能力。
-
-TODO 社区。
+基于`graphql`指令机制，为graphql-java提供了丰富的动态计算和依赖调度能力。
 
 
 # 特性介绍
 
-1. 更加丰富的计算能力；
-2. 实现了数据之间的依赖，dag；
-3. 任务的异步执行；
+1. 丰富的动态计算能力：通过注解在元素上的指令，对元素数据进行转换、过滤、排序、跨类型计算等；
+2. 实现了数据之间的依赖关联：使用@node注解的元素，可以作为获取其他类型元素的参数；
+3. 工具：生成查询对应的java代码；数据血缘。
+
+
 
 
 # 使用举例
+### 引入依赖
+```
+<dependency>
+  <groupId>org.graphql-java-calculator</groupId>
+  <artifactId>graphql-java-calculator</artifactId>
+  <version>0.1-snapshot</version>
+</dependency>
+```
 
-// 把maven贴上来
-// 介绍重点的指令
-// 然后放一个 test 的链接。
+### 示例代码
 
- `@trigger`
-类似 fieldCal，但是是对字段定义的补全
+```
 
-`@require`
-即使不是非空字段，在这个查询里边也必须出现，否则就...
-
-`@mock(value)`
-
-`@cacheControl`
-
-`@runnable(exp)`
-表达式可获取到当前层级获取到的参数，该表达式作为一个异步任务执行，可用作数据的异步上报，或者数据更新时的对比分析。
+        // step_1：创建配置类
+        ConfigImpl scheduleConfig = ConfigImpl.newConfig()
+                // 是否需要支持依赖调度
+                .isScheduleEnable(true)
+                // 添加查询计算支持的函数
+                .functionList(functions)
+                // 指定计算引擎实例
+                .evaluatorInstance(instance)
+            .build();
 
 
-# 参考资料
+        // step_2：使用Wrapper对业务schema进行包装；
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, existingSchema);
 
-- apollo-graphql：https://www.apollographql.com/docs/apollo-server/federation/errors/
-- cacheControl：https://github.com/apollographql/apollo-server/blob/main/packages/apollo-cache-control/src/__tests__/cacheControlDirective.test.ts
-- todo：https://github.com/apollographql/apollo-server/blob/main/docs/source/schema/creating-directives.md#uppercasing-strings
-- https://spectrum.chat/graphql-java?tab=posts。
+        // step_3：将 CalculateInstrumentation 和 ScheduleInstrument 作为ChainedInstrumentation元素创建实体，
+        //         如果不需要支持依赖调度，则可省去ScheduleInstrument。
+        ChainedInstrumentation chainedInstrumentation = new ChainedInstrumentation(
+                Arrays.asList(CalculateInstrumentation.getCalInstance(), ScheduleInstrument.getScheduleInstrument())
+        );
+
+        // step_4：使用wrappedSchema和chainedInstrumentation创建GraphQL，运行跨类型调度的且带有计算的查询
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+                .instrumentation(chainedInstrumentation).build();
+        String query = ""
+                + "query($userId:Int){\n" +
+                "    userInfo(id:$userId){\n" +
+                "        age\n" +
+                "        name\n" +
+                "        preferredItemIdList @node(name:\"itemIds\")\n" +
+                "        acquiredCouponIdList @node(name:\"couponIds\")\n" +
+                "    }\n" +
+                "\n" +
+                "    itemList(ids:1) @link(argument:\"ids\",node:\"itemIds\"){\n" +
+                "        id\n" +
+                "        name\n" +
+                "        salePrice\n" +
+                "        withCouponIdList\n" +
+                "    }\n" +
+                "\n" +
+                "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
+                "        id\n" +
+                "        price\n" +
+                "        changedPrice: price @map(mapper: \"price +1\")\n" +
+                "    }\n" +
+                "}";
+        ExecutionInput input = ExecutionInput.newExecutionInput(query)
+                .variables(Collections.singletonMap("userId", 1))
+                .build();
+        ExecutionResult result = graphQL.execute(input);
+```
+
+
+
+

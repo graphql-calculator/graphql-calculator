@@ -49,11 +49,11 @@ public class Wrapper {
         if (config.isScheduleEnable()) {
             wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(node);
             wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(link);
-            AviatorEvaluator.getInstance().addFunction(new NodeFunction());
+            config.getAviatorEvaluator().addFunction(new NodeFunction());
         }
 
         for (AviatorFunction function : config.calFunctions()) {
-            AviatorEvaluator.getInstance().addFunction(function);
+            config.getAviatorEvaluator().addFunction(function);
         }
 
         return wrappedSchemaBuilder.build();
@@ -80,7 +80,7 @@ public class Wrapper {
         /**
          * 使用的是全局唯一执行器 {@link AviatorEvaluator.StaticHolder}
          */
-        Set<String> engineFunctions = AviatorEvaluator.getInstance().getFuncMap().keySet();
+        Set<String> engineFunctions = config.getAviatorEvaluator().getFuncMap().keySet();
         List<AviatorFunction> duplicateFunc = config.calFunctions().stream().filter(engineFunctions::contains).collect(toList());
         if (!duplicateDir.isEmpty()) {
             String errorMsg = String.format("function named %s is already exist in Aviator Engine.", duplicateFunc);

@@ -1,12 +1,13 @@
 package calculator.config;
 
-import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.AviatorEvaluatorInstance;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 默认配置实现
@@ -17,8 +18,11 @@ public class ConfigImpl implements Config {
 
     private List<AviatorFunction> functionList;
 
-    public ConfigImpl(boolean isScheduleEnable, List<AviatorFunction> functionList) {
+    private AviatorEvaluatorInstance evaluatorInstance;
+
+    public ConfigImpl(boolean isScheduleEnable, AviatorEvaluatorInstance evaluatorInstance, List<AviatorFunction> functionList) {
         this.isScheduleEnable = isScheduleEnable;
+        this.evaluatorInstance = Optional.ofNullable(evaluatorInstance).orElse(Config.DEFAULT_EVALUATOR);
         this.functionList = functionList;
     }
 
@@ -33,9 +37,8 @@ public class ConfigImpl implements Config {
     }
 
     @Override
-    public AviatorEvaluator getAviatorEvaluator() {
-        // todo
-        return null;
+    public AviatorEvaluatorInstance getAviatorEvaluator() {
+        return evaluatorInstance;
     }
 
     public static Builder newConfig() {
@@ -46,10 +49,18 @@ public class ConfigImpl implements Config {
 
         private boolean isScheduleEnable;
 
+        private AviatorEvaluatorInstance evaluatorInstance;
+
         private List<AviatorFunction> functionList = new LinkedList<>();
 
         public Builder isScheduleEnable(boolean val) {
             isScheduleEnable = val;
+            return this;
+        }
+
+
+        public Builder evaluatorInstance(AviatorEvaluatorInstance evaluatorInstance) {
+            this.evaluatorInstance = evaluatorInstance;
             return this;
         }
 
@@ -61,13 +72,15 @@ public class ConfigImpl implements Config {
 
         public Builder functionList(List<AviatorFunction> functionList) {
             Objects.requireNonNull(functionList, "functionList can't be null.");
-            this.functionList.addAll(Objects.requireNonNull(functionList));
+            for (AviatorFunction function : functionList) {
+                function(function);
+            }
             return this;
         }
 
 
         public ConfigImpl build() {
-            return new ConfigImpl(isScheduleEnable, functionList);
+            return new ConfigImpl(isScheduleEnable, evaluatorInstance, functionList);
         }
     }
 }
