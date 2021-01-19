@@ -21,7 +21,8 @@ import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
  */
 public class CalculateDirectives {
 
-    public static final Map<String, GraphQLDirective> calDirectiveByName;
+    private static final Map<String, GraphQLDirective> calDirectiveByName;
+
 
     // skip 的升级版
     public final static GraphQLDirective skipBy = GraphQLDirective.newDirective()
@@ -132,5 +133,10 @@ public class CalculateDirectives {
         tmpMap.put(link.getName(), link);
         tmpMap.put(node.getName(), node);
         calDirectiveByName = Collections.unmodifiableMap(tmpMap);
+    }
+
+    //todo 确认下是不是放到下边、就可以保证调用的时候一定执行了 static{}
+    public static Map<String, GraphQLDirective> getCalDirectiveByName() {
+        return calDirectiveByName;
     }
 }

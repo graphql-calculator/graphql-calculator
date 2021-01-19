@@ -1,6 +1,7 @@
 package calculator.validate;
 
 import calculator.config.Config;
+import calculator.config.ConfigImpl;
 import calculator.engine.CalculateDirectives;
 import calculator.engine.ScheduleInstrument;
 import calculator.engine.Wrapper;
@@ -17,12 +18,14 @@ import static calculator.directives.CalculateSchemaHolder.getCalSchema;
 
 public class CalValidationUtilTest {
 
+    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnable(true).build();
+
+
     // 验证 不能有同名的node
     // todo 解析片段
     @Test
     public void unusedNodeTest() {
-        Config config = () -> Collections.singleton(CalculateDirectives.node);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
 
         String query = "query { \n" +
                 "            userInfo @node(name: \"X\") {\n" +
@@ -43,8 +46,7 @@ public class CalValidationUtilTest {
 
     @Test
     public void duplicateNodeTest() {
-        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node));
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         String query = "query($userId:Int){\n" +
                 "    userInfo(id:$userId){\n" +
                 "        preferredItemIdList @node(name:\"ids\")\n" +

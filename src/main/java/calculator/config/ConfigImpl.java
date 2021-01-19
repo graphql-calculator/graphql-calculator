@@ -1,26 +1,41 @@
 package calculator.config;
 
-import graphql.schema.GraphQLDirective;
+import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.runtime.type.AviatorFunction;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * 默认配置实现
  */
 public class ConfigImpl implements Config {
 
-    private Set<GraphQLDirective> directives;
+    private boolean isScheduleEnable;
 
-    private ConfigImpl(Set<GraphQLDirective> directives) {
-        Objects.requireNonNull(directives);
-        this.directives = directives;
+    private List<AviatorFunction> functionList;
+
+    public ConfigImpl(boolean isScheduleEnable, List<AviatorFunction> functionList) {
+        this.isScheduleEnable = isScheduleEnable;
+        this.functionList = functionList;
     }
 
     @Override
-    public Set<GraphQLDirective> getDirectives() {
-        return directives;
+    public boolean isScheduleEnable() {
+        return isScheduleEnable;
+    }
+
+    @Override
+    public List<AviatorFunction> calFunctions() {
+        return Collections.unmodifiableList(functionList);
+    }
+
+    @Override
+    public AviatorEvaluator getAviatorEvaluator() {
+        // todo
+        return null;
     }
 
     public static Builder newConfig() {
@@ -28,16 +43,31 @@ public class ConfigImpl implements Config {
     }
 
     public static class Builder {
-        private Set<GraphQLDirective> directives = new HashSet<>();
 
-        public Builder directive(GraphQLDirective directive) {
-            Objects.requireNonNull(directive);
-            this.directives.add(directive);
+        private boolean isScheduleEnable;
+
+        private List<AviatorFunction> functionList = new LinkedList<>();
+
+        public Builder isScheduleEnable(boolean val) {
+            isScheduleEnable = val;
             return this;
         }
 
+        public Builder function(AviatorFunction function) {
+            Objects.requireNonNull(function, "function can't be null.");
+            this.functionList.add(function);
+            return this;
+        }
+
+        public Builder functionList(List<AviatorFunction> functionList) {
+            Objects.requireNonNull(functionList, "functionList can't be null.");
+            this.functionList.addAll(Objects.requireNonNull(functionList));
+            return this;
+        }
+
+
         public ConfigImpl build() {
-            return new ConfigImpl(directives);
+            return new ConfigImpl(isScheduleEnable, functionList);
         }
     }
 }

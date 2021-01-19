@@ -135,16 +135,23 @@ public class ScheduleInstrument extends SimpleInstrumentation {
         return dataFetcher;
     }
 
-    // 从异步任务获取
+    /**
+     * get result from node task.
+     * todo 抽象成公共方法。
+     *
+     * @param taskForNodeValue tasks which the node rely on
+     * @return
+     */
     private CompletableFuture<Object> getValueFromTasks(List<CompletableFuture<Object>> taskForNodeValue) {
-        CompletableFuture<Object> result = taskForNodeValue.get(taskForNodeValue.size() - 1);
+
+        CompletableFuture<Object> tailNodeTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
 
         for (CompletableFuture<Object> completableFuture : taskForNodeValue) {
             if (completableFuture.isCompletedExceptionally()) {
-                completableFuture.whenComplete((ignore, ex) -> result.completeExceptionally(ex));
-                return result;
+                completableFuture.whenComplete((ignore, ex) -> tailNodeTask.completeExceptionally(ex));
+                return tailNodeTask;
             }
         }
-        return result;
+        return tailNodeTask;
     }
 }

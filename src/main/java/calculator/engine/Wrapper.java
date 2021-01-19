@@ -2,12 +2,24 @@ package calculator.engine;
 
 import calculator.WrapperSchemaException;
 import calculator.config.Config;
+import calculator.engine.function.NodeFunction;
+import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.runtime.type.AviatorFunction;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
 
+import java.util.List;
 import java.util.Set;
 
-import static calculator.engine.CalculateDirectives.calDirectiveByName;
+import static calculator.engine.CalculateDirectives.getCalDirectiveByName;
+import static calculator.engine.CalculateDirectives.filter;
+import static calculator.engine.CalculateDirectives.link;
+import static calculator.engine.CalculateDirectives.map;
+import static calculator.engine.CalculateDirectives.mock;
+import static calculator.engine.CalculateDirectives.node;
+import static calculator.engine.CalculateDirectives.skipBy;
+import static calculator.engine.CalculateDirectives.sortBy;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -26,9 +38,22 @@ public class Wrapper {
         check(config, existingSchema);
 
         GraphQLSchema.Builder wrappedSchemaBuilder = GraphQLSchema.newSchema(existingSchema);
+
         // 将配置中的指令放到schema中
-        for (GraphQLDirective calDirective : config.getDirectives()) {
-            wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(calDirective);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(skipBy);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(mock);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(filter);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(map);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(sortBy);
+
+        if (config.isScheduleEnable()) {
+            wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(node);
+            wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(link);
+            AviatorEvaluator.getInstance().addFunction(new NodeFunction());
+        }
+
+        for (AviatorFunction function : config.calFunctions()) {
+            AviatorEvaluator.getInstance().addFunction(function);
         }
 
         return wrappedSchemaBuilder.build();
@@ -43,19 +68,29 @@ public class Wrapper {
      * @param existingSchema
      */
     private static void check(Config config, GraphQLSchema existingSchema) {
-        Set<String> schemaDirectivesName = existingSchema.getDirectives().stream().map(GraphQLDirective::getName).collect(toSet());
+        Set<String> schemaDirsName = existingSchema.getDirectives().stream().map(GraphQLDirective::getName).collect(toSet());
 
-        for (GraphQLDirective calDir : config.getDirectives()) {
-            if (calDir != calDirectiveByName.get(calDir.getName())) {
-                String errorMsg = String.format("directive named %s is not defined in cal engine.", calDir.getName());
-                throw new WrapperSchemaException(errorMsg);
-            }
+        List<String> duplicateDir = getCalDirectiveByName().keySet().stream().filter(schemaDirsName::contains).collect(toList());
 
-            String dirName = calDir.getName();
-            if (schemaDirectivesName.contains(dirName)) {
-                String errorMsg = String.format("directive named %s is already exist in schema.", dirName);
-                throw new WrapperSchemaException(errorMsg);
-            }
+        if (!duplicateDir.isEmpty()) {
+            String errorMsg = String.format("directive named %s is already exist in schema.", duplicateDir);
+            throw new WrapperSchemaException(errorMsg);
+        }
+
+        /**
+         * 使用的是全局唯一执行器 {@link AviatorEvaluator.StaticHolder}
+         */
+        Set<String> engineFunctions = AviatorEvaluator.getInstance().getFuncMap().keySet();
+        List<AviatorFunction> duplicateFunc = config.calFunctions().stream().filter(engineFunctions::contains).collect(toList());
+        if (!duplicateDir.isEmpty()) {
+            String errorMsg = String.format("function named %s is already exist in Aviator Engine.", duplicateFunc);
+            throw new WrapperSchemaException(errorMsg);
+        }
+
+
+        // @node 和 @link
+        if (config.isScheduleEnable()) {
+            // todo 应该也不需要做什么特殊的校验
         }
     }
 }

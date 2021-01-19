@@ -1,7 +1,6 @@
 package calculator.directives;
 
-import calculator.config.Config;
-import calculator.engine.CalculateDirectives;
+import calculator.config.ConfigImpl;
 import calculator.engine.CalculateInstrumentation;
 import calculator.engine.ScheduleInstrument;
 import calculator.engine.Wrapper;
@@ -16,7 +15,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,10 +28,13 @@ import static com.googlecode.aviator.AviatorEvaluator.execute;
 // todo 测试校验
 public class CalculateDirectivesTest {
 
+    private ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnable(false).build();
+
+    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnable(true).build();
+
     @Test
     public void skipByTest() {
-        Config config = () -> Collections.singleton(CalculateDirectives.skipBy);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(getCalInstance())
                 .build();
@@ -65,8 +66,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void mockTest() {
-        Config config = () -> Collections.singleton(CalculateDirectives.mock);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
 
         String query = "query{\n" +
@@ -84,8 +84,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void mapTest() {
-        Config config = () -> Collections.singleton(CalculateDirectives.map);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
 
         String query = "query {\n" +
@@ -105,8 +104,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void filterTest() {
-        Config config = () -> Collections.singleton(CalculateDirectives.filter);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getCalInstance()).build();
         String query = "query {\n" +
                 "    couponList(ids:[1,2,3,4]) @filter(predicate:\"id>=2\"){\n" +
@@ -125,8 +123,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void sortByDirective() {
-        Config config = () -> Collections.singleton(CalculateDirectives.sortBy);
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
         String query = "query {\n" +
                 "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"id\"){\n" +
@@ -148,8 +145,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void scheduleTest() {
-        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node));
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
         String query = ""
@@ -187,8 +183,7 @@ public class CalculateDirectivesTest {
 
     @Test
     public void scheduleAndComputeTest() {
-        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node, CalculateDirectives.map));
-        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         ChainedInstrumentation chainedInstrumentation = new ChainedInstrumentation(
                 Arrays.asList(getCalInstance(), getScheduleInstrument())
         );

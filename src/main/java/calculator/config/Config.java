@@ -1,14 +1,17 @@
 package calculator.config;
 
-import graphql.schema.GraphQLDirective;
 
-import java.util.Set;
+import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.runtime.type.AviatorFunction;
+
+import java.util.List;
 
 public interface Config {
 
-    /**
-     * @return 使用的指令列表
-     */
-    Set<GraphQLDirective> getDirectives();
+    boolean isScheduleEnable();
 
+    List<AviatorFunction> calFunctions();
+
+    // todo 使用指定的执行器
+    AviatorEvaluator getAviatorEvaluator();
 }
