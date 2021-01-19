@@ -8,7 +8,6 @@ import calculator.validate.CalValidation;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import graphql.ParseAndValidateResult;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;

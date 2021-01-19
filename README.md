@@ -25,12 +25,11 @@
 ### 示例代码
 
 ```
-
-        // step_1：创建配置类
+      // step_1：创建配置类
         ConfigImpl scheduleConfig = ConfigImpl.newConfig()
                 // 是否需要支持依赖调度
                 .isScheduleEnable(true)
-                // 添加查询计算支持的函数
+                 添加查询计算支持的函数
                 .functionList(functions)
                 // 指定计算引擎实例
                 .evaluatorInstance(instance)
@@ -38,7 +37,7 @@
 
 
         // step_2：使用Wrapper对业务schema进行包装；
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, existingSchema);
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
 
         // step_3：将 CalculateInstrumentation 和 ScheduleInstrument 作为ChainedInstrumentation元素创建实体，
         //         如果不需要支持依赖调度，则可省去ScheduleInstrument。
@@ -49,34 +48,59 @@
         // step_4：使用wrappedSchema和chainedInstrumentation创建GraphQL，运行跨类型调度的且带有计算的查询
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(chainedInstrumentation).build();
-        String query = ""
-                + "query($userId:Int){\n" +
-                "    userInfo(id:$userId){\n" +
-                "        age\n" +
-                "        name\n" +
-                "        preferredItemIdList @node(name:\"itemIds\")\n" +
-                "        acquiredCouponIdList @node(name:\"couponIds\")\n" +
-                "    }\n" +
-                "\n" +
-                "    itemList(ids:1) @link(argument:\"ids\",node:\"itemIds\"){\n" +
-                "        id\n" +
-                "        name\n" +
-                "        salePrice\n" +
-                "        withCouponIdList\n" +
-                "    }\n" +
-                "\n" +
-                "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
-                "        id\n" +
-                "        price\n" +
-                "        changedPrice: price @map(mapper: \"price +1\")\n" +
-                "    }\n" +
-                "}";
+        String query = "query(...){ ... }";
+
+        System.out.println(query);
         ExecutionInput input = ExecutionInput.newExecutionInput(query)
                 .variables(Collections.singletonMap("userId", 1))
                 .build();
         ExecutionResult result = graphQL.execute(input);
 ```
 
+### 示例查询
+
+```
+// 当 userId 小于0的时候，不再进行实际的查询
+query($userId:Int) { 
+    userInfo(id: $userId) @skipBy(exp:"id < 0"){ 
+        id        
+        name   
+    }
+}
+
+// 将价格字段转换为文案字段
+query($itemId:Int) {
+    item(id: $itemId){
+        id
+        name
+        priceText: name @map(mapper:"'售价'+str(salePrice/100)+'元'")
+    }
+}
+
+// 过滤掉满额大于2元的优惠券
+query {
+    couponList(ids:[1,2,3,4]) @filter(predicate:"limitation>200"){
+        id
+        price
+        limitation 
+    }  
+}
+
+// 获取用户的年龄、姓名还有喜欢的商品详情，
+// @link(node:"itemIds", argument:"ids") 表示将名称为'itemIds'的node值，替换参数'ids'，解析itemList。
+query($userId:Int){
+    userInfo(id:$userId){
+        age
+        name
+        preferredItemIdList @node(name:"itemIds")
+    }
+
+    itemList(ids:1) @link(node:"itemIds", argument:"ids"){
+        name
+        salePrice
+    }
+}
+```
 
 
 

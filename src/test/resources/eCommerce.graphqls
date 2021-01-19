@@ -56,6 +56,16 @@ type Query {
 #    }
 #}
 
+
+#query($itemId:Int) {
+#    item(id: $itemId){
+#        id
+#        name
+#        priceText: name @map(mapper:"'售价'+str(salePrice/100)+'元'")
+#    }
+#}
+
+
 type User{
     id: Int
     age: Int

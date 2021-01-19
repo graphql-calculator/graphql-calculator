@@ -40,4 +40,31 @@ public class CommonToolsForTest {
         }
     }
 
+
+    public static void println(Object object){
+        System.out.println(Objects.toString(object));
+    }
+
+
+    public static void main(String[] args) {
+        String query = ""
+                + "query($userId:Int){\n" +
+                "    userInfo(id:$userId){\n" +
+                "        age\n" +
+                "        name\n" +
+                "        preferredItemIdList @node(name:\"itemIds\")\n" +
+                "    }\n" +
+                "\n" +
+                "    itemList(ids:1) @link(argument:\"ids\",node:\"itemIds\"){\n" +
+                "        id\n" +
+                "        name\n" +
+                "        salePrice\n" +
+                "        withCouponIdList\n" +
+                "    }\n" +
+                "}";
+
+
+        System.out.println(query);
+
+    }
 }
