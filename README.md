@@ -60,7 +60,7 @@
 ### 示例查询
 
 ```
-// 当 userId 小于0的时候，不再进行实际的查询
+// 当userId小于0的时候跳过对用户信息的查询
 query($userId:Int) { 
     userInfo(id: $userId) @skipBy(exp:"id < 0"){ 
         id        
