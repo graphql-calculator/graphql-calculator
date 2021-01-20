@@ -64,8 +64,20 @@ public class ScheduleInstrument extends SimpleInstrumentation {
 
     private Optional<InstrumentationContext<ExecutionResult>> getContextOpt(InstrumentationFieldCompleteParameters parameters) {
         // 每次分析都会耗时，后续可以确认该方法是否是热点方法、提供异步分析
-        String fieldPath = fieldPath(parameters.getExecutionStepInfo().getPath());
+
         ScheduleState scheduleState = parameters.getInstrumentationState();
+
+        /**
+         * 如果 state中证明、就没有node
+         *
+         * todo 或者node已经被标记使用、则可以不再进行如下操作了
+         */
+        if(scheduleState.getTaskByPath().isEmpty()){
+            return Optional.empty();
+        }
+
+        String fieldPath = fieldPath(parameters.getExecutionStepInfo().getPath());
+
         if (scheduleState.getTaskByPath().containsKey(fieldPath)) {
             InstrumentationContext<ExecutionResult> instrumentationContext = new InstrumentationContext<ExecutionResult>() {
                 @Override

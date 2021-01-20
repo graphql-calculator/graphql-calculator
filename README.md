@@ -64,7 +64,7 @@
 query($userId:Int) { 
     userInfo(id: $userId) @skipBy(exp:"id < 0"){ 
         id        
-        name   
+        name   https://keys.openpgp.org/upload
     }
 }
 

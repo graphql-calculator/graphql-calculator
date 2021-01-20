@@ -1,5 +1,9 @@
 plugins {
     id 'java'
+    id 'java-library'
+    id 'maven-publish'
+    id 'maven'
+    id 'antlr'
 }
 
 group 'org.graphql-java-calculator'
@@ -15,3 +19,19 @@ dependencies {
     compile group: 'com.googlecode.aviator', name: 'aviator', version: '5.1.4'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
+
+publishing {
+    repositories {
+        maven {
+            name = "OSSRH"
+            url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            credentials {
+                username = ''
+                password = ''
+            }
+        }
+    }
+}
+
+
+
