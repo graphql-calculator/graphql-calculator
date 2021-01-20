@@ -1,7 +1,6 @@
 package calculator.engine;
 
 import com.googlecode.aviator.AviatorEvaluator;
-import org.codehaus.groovy.control.CompilationFailedException;
 
 import java.util.Map;
 
@@ -16,7 +15,7 @@ public class ExpCalculator {
         try {
             AviatorEvaluator.compile(scriptText, true);
             return true;
-        } catch (CompilationFailedException e) {
+        } catch (Exception e) {
             return false;
         }
     }

@@ -17,12 +17,14 @@ public interface Config {
 
     /**
      * todo 使用指定的执行器？
-     * 因为已经设定List<AviatorFunction>了，所以 BaseAviatorEvaluator + List<AviatorFunction> 就是我们的AviatorEvaluator，
-     * 可以不设定，也可以使用默认全局的、也可以使用新建的一个
      * <p>
-     * 最好别混淆、隔离开，防止公用的用问题。
+     *     因为已经设定list-aviatorFunction了，所以 'BaseAviatorEvaluator + list-aviatorFunction 就是我们的'AviatorEvaluator'，
+     *     可以不设定，也可以使用默认全局的、也可以使用新建的一个
      * <p>
-     * 也需要考虑到使用者就想公用，所以还是指定的好。
+     *     最好别混淆、隔离开，防止公用的用问题。
+     * <p>
+     *     也需要考虑到使用者就想公用，所以还是指定的好。
+     * @return value
      */
     AviatorEvaluatorInstance getAviatorEvaluator();
 }
