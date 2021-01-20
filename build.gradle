@@ -21,13 +21,23 @@ dependencies {
 }
 
 publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = group
+            artifactId = 'graphql-java-calculator'
+            version = version
+
+            from components.java
+        }
+    }
+
     repositories {
         maven {
             name = "OSSRH"
-            url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            url = "https://oss.sonatype.org/content/repositories/snapshots"
             credentials {
-                username = ''
-                password = ''
+                username = 'MAVEN_USERNAME'
+                password = 'MAVEN_PASSWORD'
             }
         }
     }
