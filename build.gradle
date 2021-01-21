@@ -30,7 +30,7 @@ javadoc {
 
 publishing {
     publications {
-        maven(MavenPublication) {
+        mavenJava(MavenPublication) {
             artifactId = 'graphql-java-calculator'
             from components.java
 
@@ -72,5 +72,12 @@ publishing {
                 password = System.getenv("MAVEN_PASSWORD")
             }
         }
+    }
+}
+
+if (project.hasProperty("signing.keyId")) {
+    apply plugin: 'signing'
+    signing {
+        sign configurations.archives
     }
 }
