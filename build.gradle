@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.graphql-java-calculator'
-version = '0.2-SNAPSHOT'
+version = '0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
