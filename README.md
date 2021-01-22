@@ -5,7 +5,7 @@
 <!--[📖 English Documentation](README-EN.md) | 📖 中文文档-->
 
 
-基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了动态计算和依赖编排的能力。
+基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了动态计算和依赖编排的能力。
 
 
 `graphql-java-calculator`基于[`graphql-java`](https://github.com/graphql-java/graphql-java)和[`aviatorscript`](https://github.com/killme2008/aviatorscript)开发，需要`java1.8`或更高版本。
