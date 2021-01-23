@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package calculator.validate;
 
 import graphql.analysis.QueryVisitorFieldEnvironment;
@@ -70,6 +86,16 @@ public class LinkValidator extends QueryValidationVisitor {
 
             Map<String, String> argByNodeName = new HashMap<>();
             for (Directive linkDir : linkDirList) {
+                // node必须存在
+                String nodeName =getArgumentFromDirective(linkDir, "node");
+                if (!nodeNameMap.containsKey(nodeName)) {
+                    String errorMsg = format("the node '%s' used by '%s'@%s do not exist.", nodeName, aliasOrName, environment.getField().getSourceLocation());
+                    addValidError(linkDir.getSourceLocation(), errorMsg);
+                    continue;
+                }
+                usedNodeName.add(nodeName);
+
+
                 // argument 必须定义在查询语句中
                 String argumentName = getArgumentFromDirective(linkDir, "argument");
                 if (!argumentsName.contains(argumentName)) {
@@ -82,14 +108,6 @@ public class LinkValidator extends QueryValidationVisitor {
                     continue;
                 }
 
-
-                // node必须存在
-                String nodeName =getArgumentFromDirective(linkDir, "node");
-                if (!nodeNameMap.containsKey(nodeName)) {
-                    String errorMsg = format("the node '%s' used by '%s'@%s do not exist.", nodeName, aliasOrName, environment.getField().getSourceLocation());
-                    addValidError(linkDir.getSourceLocation(), errorMsg);
-                    continue;
-                }
 
                 // 两个node不能同一个参数
                 if (argByNodeName.containsKey(argumentName)) {

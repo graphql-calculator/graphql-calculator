@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package calculator.directives;
 
 import calculator.config.ConfigImpl;
@@ -8,6 +24,7 @@ import calculator.validate.CalValidation;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.ParseAndValidateResult;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
@@ -49,6 +66,9 @@ public class CalculateDirectivesTest {
                 + "    }"
                 + "}";
 
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
         ExecutionInput skipInput = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("userId", -1))
@@ -60,7 +80,6 @@ public class CalculateDirectivesTest {
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("userId", 11))
                 .build();
-
         ExecutionResult invokeRes = graphQL.execute(normalInput);
         assert ((Map) invokeRes.getData()).get("userInfo") != null;
     }
@@ -76,7 +95,8 @@ public class CalculateDirectivesTest {
                 "        email @mock(value:\"dugk@foxmail.com\")\n" +
                 "    }\n" +
                 "}";
-        CalValidation.validateQuery(query, getCalSchema());
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
 
         ExecutionResult filterRes = graphQL.execute(query);
         assert filterRes.getErrors().isEmpty();
@@ -96,8 +116,10 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ExecutionResult mapResult = graphQL.execute(query);
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
 
+        ExecutionResult mapResult = graphQL.execute(query);
         assert mapResult != null;
         assert mapResult.getErrors().isEmpty();
         assert getFromNestedMap(mapResult.getData(), "userInfo.email").equals("5dugk@foxmail.com");
@@ -116,6 +138,9 @@ public class CalculateDirectivesTest {
                 "    }  \n" +
                 "}";
 
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
         ExecutionResult result = graphQL.execute(query);
         assert result != null;
         assert result.getErrors().isEmpty();
@@ -133,8 +158,11 @@ public class CalculateDirectivesTest {
                 "        name\n" +
                 "    }\n" +
                 "}";
-        ExecutionResult result = graphQL.execute(query);
 
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
+        ExecutionResult result = graphQL.execute(query);
         assert result != null;
         assert result.getErrors().isEmpty();
         assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 1);
@@ -166,13 +194,14 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("userId", 1);
         variables.put("couponId", 1);
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variables).build();
         ExecutionResult result = graphQL.execute(input);
-
         assert result != null;
         assert result.getErrors().isEmpty();
         assert Objects.equals(execute("seq.get(userInfo,'preferredItemIdList')", result.getData()), Arrays.asList(1, 2, 3));
@@ -215,8 +244,8 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
- // todo 修改
-//        assert !CalValidation.validateQuery(query, wrappedSchema).isFailure();
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("userId", 1);
@@ -236,34 +265,4 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(couponList,2),'id')", result.getData()), 12);
 
     }
-
-
-//    @Test
-//    public void getNodeByPathTest() {
-//        Config config = () -> new HashSet<>(Arrays.asList(CalculateDirectives.link, CalculateDirectives.node));
-//        GraphQLSchema wrappedSchema = Wrapper.wrap(config, getCalSchema());
-//        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-//                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
-//        String query = ""
-//                + "query($itemIdList:[Int]){\n" +
-//                "    itemList(ids:$itemIdList) @node(name:\"couponIds\",path:\"withCouponIdList\"){\n" +
-//                "        withCouponIdList\n" +
-//                "    }\n" +
-//                "\n" +
-//                "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
-//                "        id\n" +
-//                "        price\n" +
-//                "    }\n" +
-//                "}";
-//
-//
-//        Map<String, Object> variables = new HashMap<>();
-//        variables.put("$itemIdList", 1);
-//        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variables).build();
-//        ExecutionResult result = graphQL.execute(input);
-//
-//        assert result != null;
-//        assert result.getErrors().isEmpty();
-//    }
-
 }
