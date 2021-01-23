@@ -1,9 +1,6 @@
 # graphql-java-calculator
 
-<!--![Publish package to the Maven Central Repository](https://github.com/dugenkui03/graphql-java-calculator/workflows/Publish%20package%20to%20the%20Maven%20Central%20Repository/badge.svg)-->
-
-<!--[📖 English Documentation](README-EN.md) | 📖 中文文档-->
-
+![Build and Publish](https://github.com/dugenkui03/graphql-java-calculator/workflows/Build%20and%20Publish/badge.svg)
 
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了动态计算和依赖编排的能力。
 
