@@ -19,6 +19,7 @@ package calculator.validate;
 import calculator.CommonTools;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.language.Directive;
+import graphql.language.Field;
 import graphql.language.Selection;
 import graphql.language.SelectionSet;
 import graphql.language.SourceLocation;
@@ -29,8 +30,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.isValidEleName;
-import static calculator.CommonTools.keyForFieldByQVFEnv;
 import static calculator.CommonTools.pathForTraverse;
 import static calculator.engine.CalculateDirectives.filter;
 import static calculator.engine.CalculateDirectives.mock;
@@ -171,11 +172,16 @@ public class BaseValidator extends QueryValidationVisitor {
                     continue;
                 }
 
-                SelectionSet selectionSet = environment.getField().getSelectionSet();
-                for (Selection selection : selectionSet.getSelections()) {
-                    System.out.println(selection);
-                }
+                boolean validKey = environment.getField().getSelectionSet().getSelections().stream()
+                        .map(selection -> getAliasOrName((Field) selection))
+                        .anyMatch(key::equals);
 
+                // todo 报错信息；兼容片段
+                if (!validKey) {
+                    String errorMsg = String.format("invalid key name, @%s.", fieldPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
             } else if (Objects.equals(directiveName, node.getName())) {
                 /**
                  * node

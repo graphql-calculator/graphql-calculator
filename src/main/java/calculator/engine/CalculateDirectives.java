@@ -39,6 +39,9 @@ public class CalculateDirectives {
 
     private static final Map<String, GraphQLDirective> calDirectiveByName;
 
+    public static Map<String, GraphQLDirective> getCalDirectiveByName() {
+        return calDirectiveByName;
+    }
 
     // skip 的升级版
     public final static GraphQLDirective skipBy = GraphQLDirective.newDirective()
@@ -82,7 +85,6 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    // todo 只能用在List<SomeObject>上
     public final static GraphQLDirective sortBy = GraphQLDirective.newDirective()
             .name("sortBy")
             .description("cal value for this field by trigger.")
@@ -98,9 +100,8 @@ public class CalculateDirectives {
                     .type(GraphQLBoolean))
             .build();
 
-    /**
-     * todo 1. 怎样将list-Object 中的一个字段、作为参数链接到另外一个field上
-     */
+
+    // todo 当 node 放在嵌套的元素上时，value打平为list
     public final static GraphQLDirective node = GraphQLDirective.newDirective()
             .name("node")
             .description("cal value for this field by trigger.")
@@ -110,19 +111,8 @@ public class CalculateDirectives {
                     // 可能是基本类型、因此key是可选的
                     .name("name")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    // 可以从当前 实体/集合 通过表达式取值
-                    .name("path")
-                    .type(GraphQLString))
             .build();
 
-    /**
-     * todo 1. 怎样将list-object 中的一个字段、作为参数链接到另外一个field上
-     * <p>
-     * 1. 格式是 nodeNameX:argA;nodeNameY:argB;
-     * 2. 一个node可以对应到两个参数上，例如：nodeNameX:argA,nodeNameX:argA'。但是不能两个node指向统一额参数、因为不知道使用哪个node；
-     */
     public final static GraphQLDirective link = GraphQLDirective.newDirective()
             .name("link")
             .description("cal value for this field by trigger.")
@@ -149,10 +139,5 @@ public class CalculateDirectives {
         tmpMap.put(link.getName(), link);
         tmpMap.put(node.getName(), node);
         calDirectiveByName = Collections.unmodifiableMap(tmpMap);
-    }
-
-    //todo 确认下是不是放到下边、就可以保证调用的时候一定执行了 static{}
-    public static Map<String, GraphQLDirective> getCalDirectiveByName() {
-        return calDirectiveByName;
     }
 }

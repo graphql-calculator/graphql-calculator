@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * todo：通过threadLocal获取InstrumentState变量？
+ * todo: take ScheduleState as env.
  */
 public class NodeFunction extends AbstractFunction {
 
@@ -44,10 +44,7 @@ public class NodeFunction extends AbstractFunction {
             return AviatorNil.NIL;
         }
 
-        /**
-         * todo：等待任务异常结束或者执行完毕
-         */
-        CompletableFuture<Object> future = (CompletableFuture)env.get(javaArg.getName());
+        CompletableFuture<Object> future = (CompletableFuture) env.get(javaArg.getName());
         return null;
     }
 
