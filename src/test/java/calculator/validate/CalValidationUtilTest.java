@@ -27,7 +27,7 @@ import static calculator.directives.CalculateSchemaHolder.getCalSchema;
 
 public class CalValidationUtilTest {
 
-    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnable(true).build();
+    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnabled(true).build();
 
 
     // 验证 不能有同名的node

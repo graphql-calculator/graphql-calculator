@@ -13,7 +13,7 @@ type Query {
 #    }
 #
 #    itemList(ids: 1) @link(argument:"ids",node:"ids"){
-#        name
+#        name @cache()
 #    }
 #
 #    couponList(ids: 1) @link(argument:"ids",node:"ids"){

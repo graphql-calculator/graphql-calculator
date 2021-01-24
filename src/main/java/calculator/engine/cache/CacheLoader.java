@@ -14,18 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package calculator.engine.cache;
 
-import graphql.ExecutionResult;
+public interface CacheLoader<T, V> {
 
-public interface GraphQLErrorsHandle<T, V, R extends ExecutionResult> {
+    // 执行一次实际的请求
+    V load(T key) throws Exception;
 
-    /**
-     * 当有错误的时候，调用到这里
-     *
-     * @param key val
-     * @param result val
-     * @return val
-     */
-    V handle(T key, R result);
+//    V reLoad(T key) throws Exception;
 }

@@ -62,13 +62,13 @@ public class Wrapper {
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(map);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(sortBy);
 
-        if (config.isScheduleEnable()) {
+        if (config.isScheduleEnabled()) {
             wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(node);
             wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(link);
             config.getAviatorEvaluator().addFunction(new NodeFunction());
         }
 
-        for (AviatorFunction function : config.calFunctions()) {
+        for (AviatorFunction function : config.functions()) {
             config.getAviatorEvaluator().addFunction(function);
         }
 
@@ -97,7 +97,7 @@ public class Wrapper {
          * 使用的是全局唯一执行器 {@link AviatorEvaluator.StaticHolder}
          */
         Set<String> engineFunctions = config.getAviatorEvaluator().getFuncMap().keySet();
-        List<AviatorFunction> duplicateFunc = config.calFunctions().stream().filter(engineFunctions::contains).collect(toList());
+        List<AviatorFunction> duplicateFunc = config.functions().stream().filter(engineFunctions::contains).collect(toList());
         if (!duplicateDir.isEmpty()) {
             String errorMsg = String.format("function named %s is already exist in Aviator Engine.", duplicateFunc);
             throw new WrapperSchemaException(errorMsg);
@@ -105,7 +105,7 @@ public class Wrapper {
 
 
         // @node 和 @link
-        if (config.isScheduleEnable()) {
+        if (config.isScheduleEnabled()) {
             // todo 应该也不需要做什么特殊的校验
         }
     }

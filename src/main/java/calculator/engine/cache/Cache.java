@@ -16,18 +16,24 @@
  */
 package calculator.engine.cache;
 
-import graphql.ExecutionResult;
-
-public interface Cache<K, V, R extends ExecutionResult> {
+/**
+ * @param <K> 缓存key
+ * @param <V> 缓存value
+ */
+public interface Cache<K, V> {
 
     String getName();
 
+    /**
+     * 缓存没有数据、或者数据失效的时候，使用loader加载数据(
+     *
+     * @return 加载结果，可能为null（@Nullable）
+     */
+    CacheLoader<K, V> getCacheLoader();
+
+    //  get抛出异常时，对异常的处理
+    CacheErrorsHandle<K> getCacheErrorsHandle();
+
     // 对错误进行处理
-    V get(K key, GraphQLErrorsHandle<K, V, R> errorsHandle);
-
-    // V包含错误
     V get(K key);
-
-    // 执行一次实际的请求
-    R load(K key);
 }

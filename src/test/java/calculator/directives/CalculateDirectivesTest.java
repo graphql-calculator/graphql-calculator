@@ -45,11 +45,11 @@ import static com.googlecode.aviator.AviatorEvaluator.execute;
 // todo 测试校验
 public class CalculateDirectivesTest {
 
-    private ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnable(false).build();
+    private ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnabled(false).build();
 
     private ConfigImpl scheduleConfig = ConfigImpl.newConfig()
             // 是否需要支持调度
-            .isScheduleEnable(true).build();
+            .isScheduleEnabled(true).build();
 
     @Test
     public void skipByTest() {

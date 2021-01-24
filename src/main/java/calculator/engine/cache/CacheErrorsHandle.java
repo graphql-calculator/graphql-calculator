@@ -14,23 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.config;
+package calculator.engine.cache;
 
+public interface CacheErrorsHandle<K> {
 
-import com.googlecode.aviator.AviatorEvaluator;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.runtime.type.AviatorFunction;
-
-import java.util.List;
-
-public interface Config {
-
-    AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.newInstance();
-
-    boolean isScheduleEnabled();
-
-    List<AviatorFunction> functions();
-
-    // 指定 执行器 是为了防止公用的用问题，例如同名函数
-    AviatorEvaluatorInstance getAviatorEvaluator();
+    /**
+     * 当有错误的时候，调用到这里
+     *
+     * @param key key
+     * @param ex  exception
+     */
+    void handle(K key, Throwable ex);
 }

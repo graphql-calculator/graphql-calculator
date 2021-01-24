@@ -30,25 +30,25 @@ import java.util.Optional;
  */
 public class ConfigImpl implements Config {
 
-    private boolean isScheduleEnable;
+    private boolean isScheduleEnabled;
 
     private List<AviatorFunction> functionList;
 
     private AviatorEvaluatorInstance evaluatorInstance;
 
-    public ConfigImpl(boolean isScheduleEnable, AviatorEvaluatorInstance evaluatorInstance, List<AviatorFunction> functionList) {
-        this.isScheduleEnable = isScheduleEnable;
+    public ConfigImpl(boolean isScheduleEnabled, AviatorEvaluatorInstance evaluatorInstance, List<AviatorFunction> functionList) {
+        this.isScheduleEnabled = isScheduleEnabled;
         this.evaluatorInstance = Optional.ofNullable(evaluatorInstance).orElse(Config.DEFAULT_EVALUATOR);
         this.functionList = functionList;
     }
 
     @Override
-    public boolean isScheduleEnable() {
-        return isScheduleEnable;
+    public boolean isScheduleEnabled() {
+        return isScheduleEnabled;
     }
 
     @Override
-    public List<AviatorFunction> calFunctions() {
+    public List<AviatorFunction> functions() {
         return Collections.unmodifiableList(functionList);
     }
 
@@ -63,17 +63,16 @@ public class ConfigImpl implements Config {
 
     public static class Builder {
 
-        private boolean isScheduleEnable;
+        private boolean isScheduleEnabled;
 
         private AviatorEvaluatorInstance evaluatorInstance;
 
         private List<AviatorFunction> functionList = new LinkedList<>();
 
-        public Builder isScheduleEnable(boolean val) {
-            isScheduleEnable = val;
+        public Builder isScheduleEnabled(boolean val) {
+            isScheduleEnabled = val;
             return this;
         }
-
 
         public Builder evaluatorInstance(AviatorEvaluatorInstance evaluatorInstance) {
             this.evaluatorInstance = evaluatorInstance;
@@ -88,15 +87,12 @@ public class ConfigImpl implements Config {
 
         public Builder functionList(List<AviatorFunction> functionList) {
             Objects.requireNonNull(functionList, "functionList can't be null.");
-            for (AviatorFunction function : functionList) {
-                function(function);
-            }
+            this.functionList.addAll(functionList);
             return this;
         }
 
-
         public ConfigImpl build() {
-            return new ConfigImpl(isScheduleEnable, evaluatorInstance, functionList);
+            return new ConfigImpl(isScheduleEnabled, evaluatorInstance, functionList);
         }
     }
 }

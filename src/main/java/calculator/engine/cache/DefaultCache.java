@@ -16,13 +16,11 @@
  */
 package calculator.engine.cache;
 
-import graphql.ExecutionResult;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-public class DefaultCache implements Cache<String, String, ExecutionResult> {
-
+public class DefaultCache implements Cache<String, String> {
 
     Map<String, String> dataHolder = new HashMap<>();
 
@@ -32,21 +30,14 @@ public class DefaultCache implements Cache<String, String, ExecutionResult> {
     }
 
     @Override
-    public String get(String key, GraphQLErrorsHandle<String, String, ExecutionResult> errorsHandle) {
-        if (dataHolder.containsKey(key)) {
-            return dataHolder.get(key);
-        }
-
-        ExecutionResult result = load(key);
-        if (result.getErrors() != null && !result.getErrors().isEmpty()) {
-            String val = errorsHandle.handle(key, result);
-            dataHolder.put(key,val);
-            return val;
-        }
-
-        return result.getData();
+    public CacheLoader<String, String> getCacheLoader() {
+        return null;
     }
 
+    @Override
+    public CacheErrorsHandle<String> getCacheErrorsHandle() {
+        return null;
+    }
 
     @Override
     public String get(String key) {
@@ -54,11 +45,13 @@ public class DefaultCache implements Cache<String, String, ExecutionResult> {
             return dataHolder.get(key);
         }
 
-        return load(key).getData();
-    }
+        String value = null;
+        try {
+            value = getCacheLoader().load(key);
+        } catch (Exception e) {
+            getCacheErrorsHandle().handle(key, e);
+        }
 
-    @Override
-    public ExecutionResult load(String key) {
-        return null;
+        return Optional.of(value).orElse(null);
     }
 }
