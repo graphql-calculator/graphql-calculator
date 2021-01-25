@@ -16,6 +16,8 @@
  */
 package calculator.engine;
 
+import calculator.engine.metadata.FutureTask;
+import calculator.engine.metadata.ScheduleState;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
 import graphql.execution.instrumentation.InstrumentationContext;
@@ -32,6 +34,7 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -88,7 +91,7 @@ public class ScheduleInstrument extends SimpleInstrumentation {
          *
          * todo 或者node已经被标记使用、则可以不再进行如下操作了
          */
-        if(scheduleState.getTaskByPath().isEmpty()){
+        if (scheduleState.getTaskByPath().isEmpty()) {
             return Optional.empty();
         }
 
@@ -98,19 +101,42 @@ public class ScheduleInstrument extends SimpleInstrumentation {
             InstrumentationContext<ExecutionResult> instrumentationContext = new InstrumentationContext<ExecutionResult>() {
                 @Override
                 public void onDispatched(CompletableFuture<ExecutionResult> future) {
-                    CompletableFuture task = scheduleState.getTaskByPath().get(fieldPath);
 
                     future.whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            task.completeExceptionally(ex);
-                        } else {
-                            if (result.getData() != null) {
-                                task.complete(result.getData());
-                            } else {
-                                // 对于没有结果的情况、仍然抛出异常，来终止程序运行
-                                // 这里是否需要让调度器感知异常信息？不需要，包含在结果中了
-                                task.completeExceptionally(new Throwable("empty result for " + fieldPath));
+                        FutureTask<Object> futureTask = scheduleState.getTaskByPath().get(fieldPath);
+                        // 已经有异常的元素，也中止执行
+                        if (futureTask.getFuture().isCompletedExceptionally()) {
+                            // 保存已有的异常信息
+                            if (ex != null) {
+                                futureTask.getFuture().whenComplete((ignore, existEx) -> {
+                                    existEx.addSuppressed(ex);
+                                });
                             }
+                            return;
+                        }
+
+                        if (ex != null) {
+                            futureTask.getFuture().completeExceptionally(ex);
+                            return;
+                        }
+
+                        if (result.getData() != null) {
+                            if (futureTask.isList()) {
+                                if (futureTask.getFuture().isDone()) {
+                                    List prevRes = (List) futureTask.getFuture().join();
+                                    prevRes.add(result.getData());
+                                } else {
+                                    List list = new LinkedList();
+                                    list.add(result.getData());
+                                    futureTask.getFuture().complete(list);
+                                }
+                            } else {
+                                futureTask.getFuture().complete(result.getData());
+                            }
+                        } else {
+                            // 对于没有结果的情况、仍然抛出异常，来终止程序运行
+                            // 这里是否需要让调度器感知异常信息？不需要，包含在结果中了
+                            futureTask.getFuture().completeExceptionally(new Throwable("empty result for " + fieldPath));
                         }
                     });
                 }
@@ -134,7 +160,7 @@ public class ScheduleInstrument extends SimpleInstrumentation {
         if (linkDirectiveList != null) {
             ScheduleState scheduleState = parameters.getInstrumentationState();
             Map<String, List<String>> sequenceTaskByNode = scheduleState.getSequenceTaskByNode();
-            Map<String, CompletableFuture<Object>> taskByPath = scheduleState.getTaskByPath();
+            Map<String, FutureTask<Object>> taskByPath = scheduleState.getTaskByPath();
 
             DataFetchingEnvironment oldDFEnvironment = parameters.getEnvironment();
             Map<String, Object> newArguments = new HashMap<>(oldDFEnvironment.getArguments());
@@ -143,15 +169,15 @@ public class ScheduleInstrument extends SimpleInstrumentation {
                 // 获取当前依赖的任务列表
                 String nodeName = getArgumentFromDirective(linkDir, "node");
                 List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
-                List<CompletableFuture<Object>> taskForNode = taskNameForNode.stream().map(taskByPath::get).collect(toList());
+                List<FutureTask<Object>> taskList = taskNameForNode.stream().map(taskByPath::get).collect(toList());
 
-                CompletableFuture<Object> valueFuture = getValueFromTasks(taskForNode);
-                if (valueFuture.isCompletedExceptionally()) {
+                FutureTask<Object> valueTask = getValueFromTasks(taskList);
+                if (valueTask.getFuture().isCompletedExceptionally()) {
                     // 当前逻辑是如果参数获取失败，则该数据也不再进行解析
                     return env -> null;
                 } else {
                     String argumentName = getArgumentFromDirective(linkDir, "argument");
-                    newArguments.put(argumentName, valueFuture.join());
+                    newArguments.put(argumentName, valueTask.getFuture().join());
                 }
             }
             DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
@@ -170,16 +196,21 @@ public class ScheduleInstrument extends SimpleInstrumentation {
      * @param taskForNodeValue tasks which the node rely on
      * @return
      */
-    private CompletableFuture<Object> getValueFromTasks(List<CompletableFuture<Object>> taskForNodeValue) {
+    private FutureTask<Object> getValueFromTasks(List<FutureTask<Object>> taskForNodeValue) {
+        FutureTask<Object> futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
 
-        CompletableFuture<Object> tailNodeTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
+        for (FutureTask<Object> task : taskForNodeValue) {
+            task.getFuture().whenComplete((ignore, ex) -> {
+                if (ex != null) {
+                    futureTask.getFuture().completeExceptionally(ex);
+                }
+            }).join();
 
-        for (CompletableFuture<Object> completableFuture : taskForNodeValue) {
-            if (completableFuture.isCompletedExceptionally()) {
-                completableFuture.whenComplete((ignore, ex) -> tailNodeTask.completeExceptionally(ex));
-                return tailNodeTask;
+            // 如果有异常，则中断执行
+            if (futureTask.getFuture().isCompletedExceptionally()) {
+                return futureTask;
             }
         }
-        return tailNodeTask;
+        return futureTask;
     }
 }

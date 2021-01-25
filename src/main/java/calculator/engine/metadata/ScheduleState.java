@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine;
+package calculator.engine.metadata;
 
 import graphql.execution.instrumentation.InstrumentationState;
 
@@ -26,29 +26,29 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * fixme 有状态的、保存执行信息
- *
- *  2021/1/7
+ * <p>
+ * 2021/1/7
  **/
 public class ScheduleState implements InstrumentationState {
 
 
     /**
      * 字段路径，对应的异步任务
-     *
+     * <p>
      * fixme 刚开始都是 DUMMY_TASK；
      */
-    private final Map<String, CompletableFuture<Object>> taskByPath = new ConcurrentHashMap<>();
+    private final Map<String, FutureTask<Object>> taskByPath = new ConcurrentHashMap<>();
 
     /**
      * 一个节点依赖的字段绝对路径、从外到内
      *
      * <p>
-     *     通过taskByPath可间接获取到该节点依赖的异步任务。
+     * 通过taskByPath可间接获取到该节点依赖的异步任务。
      */
     private final Map<String, List<String>> sequenceTaskByNode = new HashMap<>();
 
 
-    public Map<String, CompletableFuture<Object>> getTaskByPath() {
+    public Map<String, FutureTask<Object>> getTaskByPath() {
         return taskByPath;
     }
 

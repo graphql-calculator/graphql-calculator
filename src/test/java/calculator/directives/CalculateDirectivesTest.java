@@ -263,6 +263,37 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(couponList,0),'id')", result.getData()), 10);
         assert Objects.equals(execute("seq.get(seq.get(couponList,1),'id')", result.getData()), 11);
         assert Objects.equals(execute("seq.get(seq.get(couponList,2),'id')", result.getData()), 12);
+    }
 
+    @Test
+    public void nestedScheduleTest() {
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
+        String query = "" +
+                "query($userIds: [Int]){\n" +
+                "    userInfoList(ids:$userIds){\n" +
+                "        id  \n" +
+                "        name\n" +
+                "        favoriteItemId @node(name:\"itemIds\")\n" +
+                "    }\n" +
+                "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +
+                "        id\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
+
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userIds", Arrays.asList(1, 2, 3))).build();
+        ExecutionResult result = graphQL.execute(input);
+        assert result != null;
+        assert result.getErrors().isEmpty();
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,0),'id')", result.getData()), 1);
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,1),'id')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,2),'id')", result.getData()), 3);
+
+        assert ((Map<String, List>) result.getData()).get("itemList").size() == 3;
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'id')", result.getData()), 4);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'id')", result.getData()), 6);
     }
 }

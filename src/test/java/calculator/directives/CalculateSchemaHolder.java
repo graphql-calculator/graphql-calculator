@@ -57,10 +57,32 @@ public class CalculateSchemaHolder {
         person.put("age", id * 10);
         person.put("name", id + "_name");
         person.put("email", id + "dugk@foxmail.com");
+        person.put("favoriteItemId", id * 2);
         person.put("preferredItemIdList", IntStream.range(id, id + 3).toArray());
         person.put("acquiredCouponIdList", IntStream.range(id * 10, id * 10 + 3).toArray());
         return person;
     };
+
+    private static DataFetcher userListDF = environment -> {
+        Map<String, Object> arguments = environment.getArguments();
+        List<Integer> ids = (List<Integer>) arguments.get("ids");
+
+        List<Map<String, Object>> userInfoList = new LinkedList<>();
+        for (Integer id : ids) {
+            Map<String, Object> person = new HashMap<>();
+            person.put("id", id);
+            person.put("age", id * 10);
+            person.put("name", id + "_name");
+            person.put("email", id + "dugk@foxmail.com");
+            person.put("favoriteItemId", id * 2);
+            person.put("preferredItemIdList", IntStream.range(id, id + 3).toArray());
+            person.put("acquiredCouponIdList", IntStream.range(id * 10, id * 10 + 3).toArray());
+            userInfoList.add(person);
+        }
+
+        return userInfoList;
+    };
+
 
     private static DataFetcher itemListDF = environment -> {
         Map<String, Object> arguments = environment.getArguments();
@@ -116,6 +138,7 @@ public class CalculateSchemaHolder {
                 if (calSchema == null) {
                     Map<String, DataFetcher> queryFetcher = new HashMap<>();
                     queryFetcher.put("userInfo", userDF);
+                    queryFetcher.put("userInfoList", userListDF);
                     queryFetcher.put("coupon", couponDF);
                     queryFetcher.put("couponList", couponListDF);
                     queryFetcher.put("itemList", itemListDF);

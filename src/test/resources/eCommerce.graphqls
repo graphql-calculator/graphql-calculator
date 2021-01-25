@@ -1,10 +1,44 @@
 type Query {
     userInfo(id: Int):User
+    userInfoList(ids: [Int]): [User]
     coupon(id: Int): Coupon
     couponList(ids: [Int]): [Coupon]
     item(id: Int): Item
     itemList(ids:[Int]): [Item]
 }
+
+type User{
+    id: Int
+    age: Int
+    name: String
+    email: String
+    favoriteItemId: Int
+    preferredItemIdList: [Int]
+    acquiredCouponIdList: [Int]
+}
+
+type Item{
+    id: Int
+    name: String
+    salePrice: Int
+    withCouponIdList: [Int]
+    skuList: [Sku]
+}
+
+type Coupon{
+    id: Int
+    price: Int
+    limitation: Int
+    couponText: String
+}
+
+type Sku{
+    id: Int
+    itemId:Int
+    color: String
+    size: Int
+}
+
 
 #query($userId:Int){
 #    userInfo(id:$userId){
@@ -56,7 +90,6 @@ type Query {
 #    }
 #}
 
-
 #query($itemId:Int) {
 #    item(id: $itemId){
 #        id
@@ -65,34 +98,14 @@ type Query {
 #    }
 #}
 
-
-type User{
-    id: Int
-    age: Int
-    name: String
-    email: String
-    preferredItemIdList: [Int]
-    acquiredCouponIdList: [Int]
-}
-
-type Item{
-    id: Int
-    name: String
-    salePrice: Int
-    withCouponIdList: [Int]
-    skuList: [Sku]
-}
-
-type Coupon{
-    id: Int
-    price: Int
-    limitation: Int
-    couponText: String
-}
-
-type Sku{
-    id: Int
-    itemId:Int
-    color: String
-    size: Int
-}
+#query($userIds: [Int]){
+#    userInfoList(ids:$userIds){
+#        id
+#        name
+#        favoriteItemId @node(name:"itemIds")
+#    }
+#    itemList(ids: 1)@link(argument:"ids",node:"itemIds"){
+#        id
+#        name
+#    }
+#}

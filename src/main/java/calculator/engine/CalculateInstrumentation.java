@@ -86,20 +86,20 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
 
             // map 转换
             if (Objects.equals(map.getName(), directive.getName())) {
-                String mapper =  getArgumentFromDirective(directive, "mapper");
+                String mapper = getArgumentFromDirective(directive, "mapper");
                 defaultDF = getMapperDF(defaultDF, mapper);
             }
 
             // 过滤列表
             if (Objects.equals(filter.getName(), directive.getName())) {
-                String predicate =  getArgumentFromDirective(directive, "predicate");
+                String predicate = getArgumentFromDirective(directive, "predicate");
                 defaultDF = getFilterDF(defaultDF, predicate);
             }
 
             if (Objects.equals(sortBy.getName(), directive.getName())) {
-                String key =  getArgumentFromDirective(directive, "key");
+                String key = getArgumentFromDirective(directive, "key");
                 // todo 其实获取不到默认值
-                Boolean reversed =  getArgumentFromDirective(directive, "reversed");
+                Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 defaultDF = wrapSortByDF(defaultDF, key, reversed);
             }
         }
@@ -111,7 +111,7 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
                 Directive finalSkip = skip;
                 defaultDF = env -> {
                     Map<String, Object> arguments = environment.getArguments();
-                    String exp =  getArgumentFromDirective(finalSkip, "exp");
+                    String exp = getArgumentFromDirective(finalSkip, "exp");
                     Boolean isSkip = (Boolean) calExp(exp, arguments);
 
                     if (true == isSkip) {
@@ -146,6 +146,7 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
         return environment -> {
             // 元素必须是序列化为Map的数据
             // todo 对于 Collection<基本类型> 有没有坑
+            // todo 非常重要：考虑到使用的是 AsyncDataFetcher，结果可能包装成CompletableFuture中了
             Collection<Map<String, Object>> collection = (Collection) defaultDF.get(environment);
             return collection.stream().filter(ele -> (Boolean) calExp(predicate, ele)).collect(Collectors.toList());
         };
