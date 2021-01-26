@@ -47,23 +47,4 @@ public abstract class QueryValidationVisitor implements QueryVisitor {
                 .build();
         errors.add(error);
     }
-
-
-    @Override
-    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
-        // 不是进入该节点则返回
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-
-    }
-
-    @Override
-    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
-        // 不是进入该节点则返回
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-    }
-
 }

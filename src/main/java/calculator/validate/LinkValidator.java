@@ -17,6 +17,8 @@
 package calculator.validate;
 
 import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
+import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.util.TraverserContext;
@@ -125,5 +127,24 @@ public class LinkValidator extends QueryValidationVisitor {
 
 
         }
+    }
+
+    @Override
+    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
+
+    }
+
+    @Override
+    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
     }
 }

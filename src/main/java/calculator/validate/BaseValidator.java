@@ -18,10 +18,10 @@ package calculator.validate;
 
 import calculator.CommonTools;
 import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
+import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
 import graphql.language.Field;
-import graphql.language.Selection;
-import graphql.language.SelectionSet;
 import graphql.language.SourceLocation;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
@@ -41,25 +41,25 @@ import static calculator.engine.CalculateDirectives.sortBy;
 import static calculator.engine.ExpCalculator.isValidExp;
 
 
+
 /**
- * 校验逻辑：
- * - skipBy：表达式是否可编译 -
- * - mock：表达式是否为空
- * - filter：表达式是否可编译，是不是放在数组上的
- * - map：
- * - sortBy
- * - node
- * - link
- * <p>
- * todo：表达式返回值类型必须是boolean，但是很难校验、比如 "a"、a可能是任意类型、还必须要分析a表示的字段类型。
+ * 基本校验：
+ *      skipBy 表达式不为空且合法；
+ *      filter 表达式不为空且合法；
+ *      filter 必须放在list节点；
+ *      sortBy 必须定义在list上；
+ *      sortBy 的key必须存在于子元素中；
+ *      node 名称必须有效；
+ *      node 名称不能重复；
+ * todo 别名的判断和出错信息打印；
+ *      片段的判断和出错信息打印；
+ *      sortBy支持自定义函数；
  */
 public class BaseValidator extends QueryValidationVisitor {
 
     // 1. @node是否重名;
     private Map<String, String> nodeNameMap;
 
-
-    // todo 是否需要考虑并发
     public BaseValidator() {
         super();
         this.nodeNameMap = new HashMap<>();
@@ -89,73 +89,46 @@ public class BaseValidator extends QueryValidationVisitor {
             // 如果是node、则查看是否已经在中保存过
 
             if (Objects.equals(directiveName, skipBy.getName())) {
-                /**
-                 * skipBy
-                 *
-                 * 1. 表达式不为空；
-                 * 2. 表达式合法；
-                 */
-
                 String exp = (String) CommonTools.parseValue(
                         directive.getArgument("exp").getValue()
                 );
 
                 if (exp == null || exp.isEmpty()) {
-                    String errorMsg = String.format("groovy script can't be empty, @%s.", fieldPath);
+                    String errorMsg = String.format("exp can't be empty, @%s.", fieldPath);
                     addValidError(location, errorMsg);
                 }
 
                 if (!isValidExp(exp)) {
-                    String errorMsg = String.format("invalidate groovy script for %s on %s.", exp, fieldPath);
+                    String errorMsg = String.format("invalid exp for %s on %s.", exp, fieldPath);
                     addValidError(location, errorMsg);
                 }
 
-
             } else if (Objects.equals(directiveName, mock.getName())) {
-                /**
-                 * mock：
-                 *      fixme：注意，value可以为空串、模拟返回结果为空的情况；
-                 */
-            } else if (Objects.equals(directiveName, filter.getName())) {
+                //注意，value可以为空串、模拟返回结果为空的情况；
 
-                /**
-                 * filter
-                 *
-                 * 1. 放在的位置是不是非叶子节点；
-                 * 2. 表达式不为空；
-                 * 3. 表达式合法；
-                 */
+            } else if (Objects.equals(directiveName, filter.getName())) {
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
                     String errorMsg = String.format("predicate must define on list type, instead @%s.", fieldPath);
                     addValidError(location, errorMsg);
+                    continue;
                 }
 
                 String predicate = (String) CommonTools.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
                 if (predicate == null || predicate.isEmpty()) {
-                    String errorMsg = String.format("groovy script can't be empty, @%s.", fieldPath);
+                    String errorMsg = String.format("script can't be empty, @%s.", fieldPath);
                     addValidError(location, errorMsg);
+                    continue;
                 }
 
                 if (!isValidExp(predicate)) {
-                    String errorMsg = String.format("invalidate groovy script for %s on %s.", predicate, fieldPath);
+                    String errorMsg = String.format("invalidate script for %s on %s.", predicate, fieldPath);
                     addValidError(location, errorMsg);
                 }
 
-
             } else if (Objects.equals(directiveName, sortBy.getName())) {
-                /**
-                 * filter
-                 *
-                 * 1. 放在的位置是不是非叶子节点；
-                 * 2. key名称不为空；
-                 * 3. todo 指定的key是否包含在查询的子列表中；
-                 *         考虑到别名；
-                 *         key名称和真正执行排序的时候使用的名称是否相同；
-                 */
-
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
                     String errorMsg = String.format("key must define on list type, instead @%s.", fieldPath);
@@ -183,12 +156,6 @@ public class BaseValidator extends QueryValidationVisitor {
                     continue;
                 }
             } else if (Objects.equals(directiveName, node.getName())) {
-                /**
-                 * node
-                 *
-                 * 1. 名称合法；
-                 * 2. 名称不重复；
-                 */
                 String nodeName = (String) CommonTools.parseValue(
                         directive.getArgument("name").getValue()
                 );
@@ -207,6 +174,25 @@ public class BaseValidator extends QueryValidationVisitor {
                 }
             }
         }
+    }
 
+
+    @Override
+    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
+
+    }
+
+    @Override
+    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
     }
 }

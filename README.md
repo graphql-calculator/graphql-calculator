@@ -22,12 +22,10 @@
 # 快速开始
 #### 1、引入依赖
 ```
-<!-- release版本将在几周后发布 -->
-
 <dependency>
   <groupId>com.graphql-java-calculator</groupId>
   <artifactId>graphql-java-calculator</artifactId>
-  <version>0.1-snapshot</version>
+  <version>1.0-beta-1</version>
 </dependency>
 ```
 

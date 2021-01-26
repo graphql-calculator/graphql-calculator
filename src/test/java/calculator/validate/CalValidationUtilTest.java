@@ -29,9 +29,6 @@ public class CalValidationUtilTest {
 
     private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnabled(true).build();
 
-
-    // 验证 不能有同名的node
-    // todo 解析片段
     @Test
     public void unusedNodeTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());

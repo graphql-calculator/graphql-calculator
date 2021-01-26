@@ -26,15 +26,8 @@ import java.util.Map;
 
 import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
-import static graphql.introspection.Introspection.DirectiveLocation.*;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
-/**
- * todo
- * 1. 非空参数
- * 2. 自定义的指令实现一个mask接口？不要了，将这些指令收集起来是最简单的
- * 3. 校验指令；
- */
 public class CalculateDirectives {
 
     private static final Map<String, GraphQLDirective> calDirectiveByName;
@@ -101,7 +94,6 @@ public class CalculateDirectives {
             .build();
 
 
-    // todo 当 node 放在嵌套的元素上时，value打平为list
     public final static GraphQLDirective node = GraphQLDirective.newDirective()
             .name("node")
             .description("cal value for this field by trigger.")

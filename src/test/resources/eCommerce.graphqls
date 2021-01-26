@@ -40,6 +40,13 @@ type Sku{
 }
 
 
+#query($itemId:Int) {
+#    item(id: $itemId){
+#        id @filter(predicate:"1==1")
+#        name
+#    }
+#}
+
 #query($userId:Int){
 #    userInfo(id:$userId){
 #        preferredItemIdList @node(name:"ids")

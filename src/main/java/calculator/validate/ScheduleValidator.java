@@ -17,12 +17,16 @@
 package calculator.validate;
 
 import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
+import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
+import graphql.util.TraverserContext;
 
 
 /**
- * todo
- *      不能有环、还是dag；
- *      node和参数类型必须兼容；
+ * 校验内容：
+ * <ul>
+ *     <li>todo 如果使用了@link，则编排后的图必须还是DAG；</li>
+ * </ul>
  */
 public class ScheduleValidator extends QueryValidationVisitor {
 
@@ -34,5 +38,24 @@ public class ScheduleValidator extends QueryValidationVisitor {
     @Override
     public void visitField(QueryVisitorFieldEnvironment queryVisitorFieldEnvironment) {
 
+    }
+
+    @Override
+    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
+
+    }
+
+    @Override
+    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
+        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
+
+        // todo
     }
 }
