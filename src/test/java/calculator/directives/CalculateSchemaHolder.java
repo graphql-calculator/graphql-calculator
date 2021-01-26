@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import static graphql.schema.AsyncDataFetcher.async;
+
 /**
  * 缓存：
  * 1. 某个字段级别的缓存；
@@ -137,11 +139,16 @@ public class CalculateSchemaHolder {
             synchronized (CalculateSchemaHolder.class) {
                 if (calSchema == null) {
                     Map<String, DataFetcher> queryFetcher = new HashMap<>();
-                    queryFetcher.put("userInfo", userDF);
-                    queryFetcher.put("userInfoList", userListDF);
-                    queryFetcher.put("coupon", couponDF);
-                    queryFetcher.put("couponList", couponListDF);
-                    queryFetcher.put("itemList", itemListDF);
+                    queryFetcher.put("userInfo", async(userDF));
+                    queryFetcher.put("userInfoList", async(userListDF));
+                    queryFetcher.put("coupon", async(couponDF));
+                    queryFetcher.put("couponList", async(couponListDF));
+                    queryFetcher.put("itemList", async(itemListDF));
+//                    queryFetcher.put("userInfo", userDF);
+//                    queryFetcher.put("userInfoList", (userListDF));
+//                    queryFetcher.put("coupon", (couponDF));
+//                    queryFetcher.put("couponList", (couponListDF));
+//                    queryFetcher.put("itemList", (itemListDF));
 
                     Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
                     dataFetcherInfo.put("Query", queryFetcher);

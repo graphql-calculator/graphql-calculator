@@ -27,6 +27,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static calculator.CommonTools.getAliasOrName;
@@ -37,6 +39,7 @@ import static calculator.engine.CalculateDirectives.mock;
 import static calculator.engine.CalculateDirectives.skipBy;
 import static calculator.engine.CalculateDirectives.sortBy;
 import static calculator.engine.ExpCalculator.calExp;
+import static graphql.execution.Async.toCompletableFuture;
 
 public class CalculateInstrumentation extends SimpleInstrumentation {
 
@@ -147,8 +150,15 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
             // 元素必须是序列化为Map的数据
             // todo 对于 Collection<基本类型> 有没有坑
             // todo 非常重要：考虑到使用的是 AsyncDataFetcher，结果可能包装成CompletableFuture中了
-            Collection<Map<String, Object>> collection = (Collection) defaultDF.get(environment);
-            return collection.stream().filter(ele -> (Boolean) calExp(predicate, ele)).collect(Collectors.toList());
+            CompletableFuture<Object> resultFuture = toCompletableFuture(defaultDF.get(environment));
+
+            return resultFuture.handle((res, ex) -> {
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+                Collection<Map<String, Object>> collection = (Collection) res;
+                return collection.stream().filter(ele -> (Boolean) calExp(predicate, ele)).collect(Collectors.toList());
+            });
         };
     }
 
@@ -157,17 +167,25 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
      */
     private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF, String key, Boolean reversed) {
         return environment -> {
-            Collection<Map<String, Object>> collection = (Collection<Map<String, Object>>) defaultDF.get(environment);
-            if (reversed != null && reversed) {
-                return collection.stream().sorted(
-                        Comparator.comparing(entry -> (Comparable) ((Map) entry).get(key)).reversed()
-                ).collect(Collectors.toList());
-            } else {
-                return collection.stream().sorted(
-                        Comparator.comparing(entry -> (Comparable) entry.get(key))
-                ).collect(Collectors.toList());
-            }
+
+
+            CompletableFuture<?> resultFuture = toCompletableFuture(defaultDF.get(environment));
+            return resultFuture.handle((res, ex) -> {
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Collection<Map<String, Object>> collection = (Collection<Map<String, Object>>) res;
+                if (reversed != null && reversed) {
+                    return collection.stream().sorted(
+                            Comparator.comparing(entry -> (Comparable) ((Map) entry).get(key)).reversed()
+                    ).collect(Collectors.toList());
+                } else {
+                    return collection.stream().sorted(
+                            Comparator.comparing(entry -> (Comparable) entry.get(key))
+                    ).collect(Collectors.toList());
+                }
+            });
         };
     }
-
 }

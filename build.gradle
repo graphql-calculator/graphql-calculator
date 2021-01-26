@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.graphql-java-calculator'
-version = '0.1-SNAPSHOT'
+version = '1.0-beta-1'
 
 repositories {
     mavenCentral()
@@ -101,7 +101,7 @@ publishing {
 //            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 //
 //            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-//                authentication(userName: '', password: '@')
+//                authentication(userName: '', password: '')
 //            }
 //
 //            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
