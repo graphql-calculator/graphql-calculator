@@ -4,7 +4,7 @@ type Query {
     coupon(id: Int): Coupon
     couponList(ids: [Int]): [Coupon]
     item(id: Int): Item
-    itemList(ids:[Int]): [Item]
+    itemList(ids:[Int], ignore: String): [Item]
 }
 
 type User{
@@ -114,5 +114,13 @@ type Sku{
 #    itemList(ids: 1)@link(argument:"ids",node:"itemIds"){
 #        id
 #        name
+#    }
+#}
+
+#query{
+#    userInfoList(ids: [1,2,3]) @sortBy(key: "id"){
+#        id
+#        name
+#        favoriteItemId
 #    }
 #}

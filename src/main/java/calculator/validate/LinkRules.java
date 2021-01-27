@@ -38,16 +38,15 @@ import static java.util.stream.Collectors.toSet;
 
 
 /**
- * link使用的node必须存在； -
- * link指向的参数必须存在； -
- * link不能指向同一个参数；-
- * <p>
+ * 校验规则：
+ *      link使用的node节点必须存在；
+ *      node指向的参数必须存在；
+ *      两个node不能链接到同一个参数上；
+ *
  * todo
- * node和参数类型必须兼容；
- * 定义的node是否被使用了；
- * 不能有环、还是dag；
+ *     node指向的参数类型必须兼容注册的节点类型;
  */
-public class LinkValidator extends QueryValidationVisitor {
+public class LinkRules extends AbstractTraverRule {
 
     private Map<String, String> nodeNameMap;
 
@@ -55,13 +54,13 @@ public class LinkValidator extends QueryValidationVisitor {
     private Set<String> usedNodeName;
 
     // todo 是否需要考虑并发
-    public LinkValidator() {
+    public LinkRules() {
         super();
         usedNodeName = new LinkedHashSet<>();
     }
 
-    public static LinkValidator newInstance() {
-        return new LinkValidator();
+    public static LinkRules newInstance() {
+        return new LinkRules();
     }
 
     public void setNodeNameMap(Map<String, String> nodeNameMap) {
@@ -78,7 +77,6 @@ public class LinkValidator extends QueryValidationVisitor {
         if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
             return;
         }
-
 
         List<Directive> linkDirList = environment.getField().getDirectives().stream()
                 .filter(dir -> Objects.equals("link", dir.getName())).collect(toList());

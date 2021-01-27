@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CalValidation {
+public class Validator {
 
     /**
      * fixme 使用场景，在第一次执行的时候检测一次即可。
@@ -58,17 +58,17 @@ public class CalValidation {
                 .variables(Collections.emptyMap()).build();
 
         // skipBy、mock、filter、map、sortBy、node 和 link的基本校验
-        BaseValidator baseValidator = BaseValidator.newInstance();
+        BaseRules baseValidator = BaseRules.newInstance();
         traverser.visitDepthFirst(baseValidator);
         if (!baseValidator.getErrors().isEmpty()) {
             return ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
         }
 
-        LinkValidator linkValidator = LinkValidator.newInstance();
+        LinkRules linkValidator = LinkRules.newInstance();
         linkValidator.setNodeNameMap(baseValidator.getNodeNameMap());
         traverser.visitDepthFirst(linkValidator);
         if (!linkValidator.getErrors().isEmpty()) {
-            return ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
+            return ParseAndValidateResult.newResult().validationErrors(linkValidator.getErrors()).build();
         }
 
         // 是否有未使用的node节点
@@ -83,7 +83,7 @@ public class CalValidation {
         }
 
         // todo
-        ScheduleValidator scheduleValidator = ScheduleValidator.newInstance();
+        ScheduleRules scheduleValidator = ScheduleRules.newInstance();
 
 
         return ParseAndValidateResult.newResult().build();

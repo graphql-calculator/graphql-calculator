@@ -20,7 +20,7 @@ import calculator.config.ConfigImpl;
 import calculator.engine.CalculateInstrumentation;
 import calculator.engine.ScheduleInstrument;
 import calculator.engine.Wrapper;
-import calculator.validate.CalValidation;
+import calculator.validate.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -66,7 +66,7 @@ public class CalculateDirectivesTest {
                 + "    }"
                 + "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         ExecutionInput skipInput = ExecutionInput
@@ -95,7 +95,7 @@ public class CalculateDirectivesTest {
                 "        email @mock(value:\"dugk@foxmail.com\")\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         ExecutionResult filterRes = graphQL.execute(query);
@@ -116,7 +116,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         ExecutionResult mapResult = graphQL.execute(query);
@@ -138,7 +138,7 @@ public class CalculateDirectivesTest {
                 "    }  \n" +
                 "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         ExecutionResult result = graphQL.execute(query);
@@ -159,7 +159,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         ExecutionResult result = graphQL.execute(query);
@@ -194,7 +194,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         Map<String, Object> variables = new HashMap<>();
@@ -244,7 +244,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
         Map<String, Object> variables = new HashMap<>();

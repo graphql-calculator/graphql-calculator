@@ -55,12 +55,12 @@ import static calculator.engine.ExpCalculator.isValidExp;
  *      片段的判断和出错信息打印；
  *      sortBy支持自定义函数；
  */
-public class BaseValidator extends QueryValidationVisitor {
+public class BaseRules extends AbstractTraverRule {
 
     // 1. @node是否重名;
     private Map<String, String> nodeNameMap;
 
-    public BaseValidator() {
+    public BaseRules() {
         super();
         this.nodeNameMap = new HashMap<>();
     }
@@ -70,8 +70,8 @@ public class BaseValidator extends QueryValidationVisitor {
         return nodeNameMap;
     }
 
-    public static BaseValidator newInstance() {
-        return new BaseValidator();
+    public static BaseRules newInstance() {
+        return new BaseRules();
     }
 
     @Override

@@ -39,7 +39,7 @@ public class CalValidationUtilTest {
                 "                name\n" +
                 "            } \n" +
                 "        }";
-        ParseAndValidateResult parseAndValidateResult = CalValidation.validateQuery(
+        ParseAndValidateResult parseAndValidateResult = Validator.validateQuery(
                 query, wrappedSchema
         );
 
@@ -68,7 +68,7 @@ public class CalValidationUtilTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult parseAndValidateResult = CalValidation.validateQuery(
+        ParseAndValidateResult parseAndValidateResult = Validator.validateQuery(
                 query, wrappedSchema
         );
 

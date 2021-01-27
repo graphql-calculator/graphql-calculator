@@ -16,46 +16,35 @@
  */
 package calculator.validate;
 
-import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.analysis.QueryVisitor;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
+import graphql.language.SourceLocation;
 import graphql.util.TraverserContext;
+import graphql.validation.ValidationError;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public abstract class AbstractTraverRule implements QueryVisitor {
+
+    // fixme 校验结果
+    private List<ValidationError> errors;
 
 
-/**
- * 校验内容：
- * <ul>
- *     <li>todo 如果使用了@link，则编排后的图必须还是DAG；</li>
- * </ul>
- */
-public class ScheduleValidator extends QueryValidationVisitor {
-
-
-    public static ScheduleValidator newInstance() {
-        return new ScheduleValidator();
+    public AbstractTraverRule() {
+        this.errors = new LinkedList<>();
     }
 
-    @Override
-    public void visitField(QueryVisitorFieldEnvironment queryVisitorFieldEnvironment) {
-
+    public List<ValidationError> getErrors() {
+        return errors;
     }
 
-    @Override
-    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-
-        // todo
-
-    }
-
-    @Override
-    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-
-        // todo
+    public void addValidError(SourceLocation location, String errorMsg) {
+        ValidationError error = ValidationError.newValidationError()
+                .sourceLocation(location)
+                .description(errorMsg)
+                .build();
+        errors.add(error);
     }
 }
