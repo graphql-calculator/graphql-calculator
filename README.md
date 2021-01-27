@@ -5,17 +5,16 @@
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了动态计算和依赖编排的能力。
 
 
-`graphql-java-calculator`基于[`graphql-java`](https://github.com/graphql-java/graphql-java)和[`aviatorscript`](https://github.com/killme2008/aviatorscript)开发，需要`java1.8`或更高版本。
+`graphql-java-calculator`基于[`graphql-java`](https://github.com/graphql-java/graphql-java)开发，需要`jdk1.8`或更高版本。
 
 
 # 特性介绍
 
-1. `@map(mapper:String)` 可将同源数据作为参数、计算返回结果；
-2. `@skipBy(if:String)`拓展了[`@skip`](https://spec.graphql.org/draft/#sec--skip)指令的能力，使用`aviator`表达式判断是否跳过注解元素的解析，可用来实现灰度、ab等逻辑；
-3. `@sortBy(key:String)` 和 `@skipBy(exp)` 用于对集合进行排序和过滤；
-4. 支持全局范围的依赖编排，使用`@node(name:String)`将指定元素注册为全局可获取的数据，可作为其他字段查询、计算的参数；
+1. `@map(mapper:String)` 可将同源数据作为参数、计算注解字段的结果；
+2. `@skipBy(exp:String)`拓展了[`@skip`](https://spec.graphql.org/draft/#sec--skip)指令的能力，使用表达式判断是否跳过注解元素的解析，可用来实现灰度、ab等逻辑；
+3. `@sortBy(key:String)` 和 `@filter(predicate:String)` 用于对集合进行排序和过滤；
+4. 支持全局范围的依赖编排，使用`@node(name:String)`将指定元素注册为全局可链接的节点，可作为其他字段查询、计算的参数；
 5. 轻量级，使用简单，基于[`graphql-java`](https://github.com/graphql-java/graphql-java)的经验即可轻松上手
-
 
 
 
@@ -55,9 +54,12 @@
         // step_4：使用wrappedSchema和chainedInstrumentation创建GraphQL，运行跨类型调度的且带有计算的查询
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(chainedInstrumentation).build();
+        
+        // step_5: 校验查询
         String query = "query(...){ ... }";
+        ParseAndValidateResult validateResult = CalValidation.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
 
-        System.out.println(query);
         ExecutionInput input = ExecutionInput.newExecutionInput(query)
                 .variables(Collections.singletonMap("userId", 1))
                 .build();
@@ -69,7 +71,7 @@
 以下查询基于[电子商务schema](https://github.com/dugenkui03/graphql-java-calculator/blob/main/src/test/resources/eCommerce.graphqls)。
 
  **`@skipBy(exp:String)`**
-使用表达式判断是否跳过对注解信息的查询。
+使用表达式判断是否跳过对注解元素的查询。
 
 - 过滤非法参数。
 ```
@@ -86,24 +88,27 @@ query($userId: Int) {
 ```
 query($itemId: Int, $couponId: Int) { 
     itemInfo: itemInfo_X(id: $itemId) @skipBy(exp:"abMethod(itemId)!=1"){ 
-        size
-        color 
+       ...itemFragment 
     }
     
     itemInfo: itemInfo_Y(id: $itemId) @skipBy(exp:"abMethod(itemId)!=2"){ 
-        size
-        color 
+        ...itemFragment
     }
     
     itemInfo: itemInfo_Z(id: $itemId) @skipBy(exp:"abMethod(itemId)!=3"){ 
-        size
-        color 
+        ...itemFragment
     }
+}
+
+fragment itemFragment on Item{
+    id
+    name
+    salePrice
 }
 ```
 
 
-**`@map(exp:String)`**
+**`@map(mapper:String)`**
 
 使用同源数据作为参数，计算所注解元素的值。
 
@@ -123,7 +128,7 @@ query($itemId:Int) {
 }
 ```
 
-**`@skipBy(predicate:String)`**
+**`@filter(predicate:String)`**
 
 只能用在列表上。
 ```
@@ -139,10 +144,10 @@ query {
 
 **`@node(name:String)`和`@link(node:String,argument:String)`**
 
-- 使用`@node`可将指定节点注册为全局可获取的数据，**依赖该节点的操作会阻塞指导该节点解析完成**；
-- `@link`可将指定`@node`链接到请求参数上；
-- 此外，还可以通过`node(nodeName: String)` 获取指定名称的节点数据；
-- ⚠️：连接后的图仍然必须是`DAG`。
+使用`@node`可将指定元素注册为全局可获取的节点，`@link`可将指定`@node`链接到请求参数上；
+
+
+注意：连接后的图仍然必须是`DAG`。
 
 
 获取指定用户的个人信息和收藏的商品详情：
@@ -151,6 +156,7 @@ query($userId:Int){
     userInfo(id:$userId){
         age
         name
+        # 将 preferredItemIdList 注册为全局可链接的节点
         preferredItemIdList @node(name:"itemIds")
     }
 
