@@ -5,16 +5,12 @@
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了动态计算和依赖编排的能力。
 
 
-`graphql-java-calculator`基于[`graphql-java`](https://github.com/graphql-java/graphql-java)开发，需要`jdk1.8`或更高版本。
-
-
 # 特性介绍
 
-1. `@map(mapper:String)` 可将同源数据作为参数、计算注解字段的结果；
-2. `@skipBy(exp:String)`拓展了[`@skip`](https://spec.graphql.org/draft/#sec--skip)指令的能力，使用表达式判断是否跳过注解元素的解析，可用来实现灰度、ab等逻辑；
-3. `@sortBy(key:String)` 和 `@filter(predicate:String)` 用于对集合进行排序和过滤；
-4. 支持全局范围的依赖编排，使用`@node(name:String)`将指定元素注册为全局可链接的节点，可作为其他字段查询、计算的参数；
-5. 轻量级，使用简单，基于[`graphql-java`](https://github.com/graphql-java/graphql-java)的经验即可轻松上手
+1. 支持数据的依赖编排，使用`@link(node:String,argument:String)`可将指定字段的查询结果作为另外一个字段的fetch结果的参数；
+2. `@map(mapper:String)` 可将同源数据作为参数、计算注解字段的结果，包括对集合的排序和过滤；
+3. 其他：`@skipBy(exp:String)`拓展了[`@skip`](https://spec.graphql.org/draft/#sec--skip)指令的能力，使用表达式判断是否跳过注解元素的解析，可用来实现灰度、ab等逻辑；
+5. 轻量级，使用简单，基于[`graphql-java`](https://github.com/graphql-java/graphql-java)的经验即可轻松上手。
 
 
 
