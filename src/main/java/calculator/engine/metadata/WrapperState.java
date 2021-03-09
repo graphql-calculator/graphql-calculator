@@ -21,37 +21,32 @@ import graphql.execution.instrumentation.InstrumentationState;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * fixme 有状态的、保存执行信息
- * <p>
- * 2021/1/7
+ * Keep task for schedule.
  **/
-public class ScheduleState implements InstrumentationState {
+public class WrapperState implements InstrumentationState {
 
+    public static final String FUNCTION_KEY = "wrapperState";
 
     /**
      * 字段路径，对应的异步任务
-     * <p>
-     * fixme 刚开始都是 DUMMY_TASK；
+     *
+     * task by field absolute path.
      */
     private final Map<String, FutureTask<Object>> taskByPath = new ConcurrentHashMap<>();
 
     /**
-     * 一个节点依赖的字段绝对路径、从外到内
+     * 一个节点依赖的字段绝对路径、从外到内<nodeName,List<absolutePath>>
      *
-     * <p>
-     * 通过taskByPath可间接获取到该节点依赖的异步任务。
+     * Keys of tasks which the node depends on.
      */
     private final Map<String, List<String>> sequenceTaskByNode = new HashMap<>();
-
 
     public Map<String, FutureTask<Object>> getTaskByPath() {
         return taskByPath;
     }
-
 
     public Map<String, List<String>> getSequenceTaskByNode() {
         return sequenceTaskByNode;

@@ -117,7 +117,7 @@ public class CalculateDirectives {
             .argument(GraphQLArgument
                     .newArgument()
                     .name("argument")
-                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+                    .type(GraphQLString))
             .build();
 
 

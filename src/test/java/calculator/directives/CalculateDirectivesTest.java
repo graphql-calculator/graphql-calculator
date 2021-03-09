@@ -18,8 +18,10 @@ package calculator.directives;
 
 import calculator.config.ConfigImpl;
 import calculator.engine.CalculateInstrumentation;
-import calculator.engine.ScheduleInstrument;
+import calculator.engine.ExecutionEngineWrapper;
 import calculator.engine.Wrapper;
+import calculator.engine.function.FindOneFunction;
+import calculator.engine.function.NodeFunction;
 import calculator.validate.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -39,8 +41,9 @@ import java.util.Objects;
 import static calculator.directives.CalculateSchemaHolder.getCalSchema;
 import static calculator.TestUtil.getFromNestedMap;
 import static calculator.engine.CalculateInstrumentation.getCalInstance;
-import static calculator.engine.ScheduleInstrument.getScheduleInstrument;
+import static calculator.engine.ExecutionEngineWrapper.getEngineWrapper;
 import static com.googlecode.aviator.AviatorEvaluator.execute;
+
 
 // todo 测试校验
 public class CalculateDirectivesTest {
@@ -49,7 +52,11 @@ public class CalculateDirectivesTest {
 
     private ConfigImpl scheduleConfig = ConfigImpl.newConfig()
             // 是否需要支持调度
-            .isScheduleEnabled(true).build();
+            .isScheduleEnabled(true)
+            // todo 这两个应该是自动添加的
+            .function(new NodeFunction())
+            .function(new FindOneFunction())
+            .build();
 
     @Test
     public void skipByTest() {
@@ -61,7 +68,7 @@ public class CalculateDirectivesTest {
         String query = ""
                 + "query($userId:Int) { "
                 + "    userInfo(id: $userId) @skipBy(exp:\"id < 0\"){"
-                + "        id "
+                + "        userId "
                 + "        name"
                 + "    }"
                 + "}";
@@ -131,8 +138,8 @@ public class CalculateDirectivesTest {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getCalInstance()).build();
         String query = "query {\n" +
-                "    couponList(ids:[1,2,3,4]) @filter(predicate:\"id>=2\"){\n" +
-                "        id\n" +
+                "    couponList(ids:[1,2,3,4]) @filter(predicate:\"couponId>=2\"){\n" +
+                "        couponId\n" +
                 "        price\n" +
                 "        limitation \n" +
                 "    }  \n" +
@@ -153,8 +160,8 @@ public class CalculateDirectivesTest {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
         String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"id\"){\n" +
-                "        id\n" +
+                "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"itemId\"){\n" +
+                "        itemId\n" +
                 "        name\n" +
                 "    }\n" +
                 "}";
@@ -165,11 +172,11 @@ public class CalculateDirectivesTest {
         ExecutionResult result = graphQL.execute(query);
         assert result != null;
         assert result.getErrors().isEmpty();
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 1);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'id')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'id')", result.getData()), 3);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,3),'id')", result.getData()), 4);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,4),'id')", result.getData()), 5);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 1);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,3),'itemId')", result.getData()), 4);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,4),'itemId')", result.getData()), 5);
     }
 
 
@@ -177,7 +184,7 @@ public class CalculateDirectivesTest {
     public void scheduleTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
+                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
         String query = ""
                 + "query($userId:Int){\n" +
                 "    userInfo(id:$userId){\n" +
@@ -187,7 +194,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "\n" +
                 "    itemList(ids:1) @link(argument:\"ids\",node:\"itemIds\"){\n" +
-                "        id\n" +
+                "        itemId\n" +
                 "        name\n" +
                 "        salePrice\n" +
                 "        withCouponIdList\n" +
@@ -205,9 +212,9 @@ public class CalculateDirectivesTest {
         assert result != null;
         assert result.getErrors().isEmpty();
         assert Objects.equals(execute("seq.get(userInfo,'preferredItemIdList')", result.getData()), Arrays.asList(1, 2, 3));
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 1);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'id')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'id')", result.getData()), 3);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 1);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
 
     }
 
@@ -216,7 +223,7 @@ public class CalculateDirectivesTest {
     public void scheduleAndComputeTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         ChainedInstrumentation chainedInstrumentation = new ChainedInstrumentation(
-                Arrays.asList(getCalInstance(), getScheduleInstrument())
+                Arrays.asList(getCalInstance(), getEngineWrapper())
         );
 
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
@@ -231,14 +238,14 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "\n" +
                 "    itemList(ids:1) @link(argument:\"ids\",node:\"itemIds\"){\n" +
-                "        id\n" +
+                "        itemId\n" +
                 "        name\n" +
                 "        salePrice\n" +
                 "        withCouponIdList\n" +
                 "    }\n" +
                 "\n" +
                 "    couponList(ids:1) @link(argument:\"ids\",node:\"couponIds\"){\n" +
-                "        id\n" +
+                "        couponId\n" +
                 "        price\n" +
                 "        changedPrice: price @map(mapper: \"price +1\")\n" +
                 "    }\n" +
@@ -255,30 +262,30 @@ public class CalculateDirectivesTest {
         assert result != null;
         assert result.getErrors().isEmpty();
         assert Objects.equals(execute("seq.get(userInfo,'preferredItemIdList')", result.getData()), Arrays.asList(1, 2, 3));
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 1);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'id')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'id')", result.getData()), 3);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 1);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
 
         assert Objects.equals(execute("seq.get(userInfo,'acquiredCouponIdList')", result.getData()), Arrays.asList(10, 11, 12));
-        assert Objects.equals(execute("seq.get(seq.get(couponList,0),'id')", result.getData()), 10);
-        assert Objects.equals(execute("seq.get(seq.get(couponList,1),'id')", result.getData()), 11);
-        assert Objects.equals(execute("seq.get(seq.get(couponList,2),'id')", result.getData()), 12);
+        assert Objects.equals(execute("seq.get(seq.get(couponList,0),'couponId')", result.getData()), 10);
+        assert Objects.equals(execute("seq.get(seq.get(couponList,1),'couponId')", result.getData()), 11);
+        assert Objects.equals(execute("seq.get(seq.get(couponList,2),'couponId')", result.getData()), 12);
     }
 
     @Test
     public void nestedScheduleTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ScheduleInstrument.getScheduleInstrument()).build();
+                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
         String query = "" +
                 "query($userIds: [Int]){\n" +
                 "    userInfoList(ids:$userIds){\n" +
-                "        id  \n" +
+                "        userId  \n" +
                 "        name\n" +
                 "        favoriteItemId @node(name:\"itemIds\")\n" +
                 "    }\n" +
                 "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +
-                "        id\n" +
+                "        itemId\n" +
                 "        name\n" +
                 "    }\n" +
                 "}";
@@ -287,13 +294,46 @@ public class CalculateDirectivesTest {
         ExecutionResult result = graphQL.execute(input);
         assert result != null;
         assert result.getErrors().isEmpty();
-        assert Objects.equals(execute("seq.get(seq.get(userInfoList,0),'id')", result.getData()), 1);
-        assert Objects.equals(execute("seq.get(seq.get(userInfoList,1),'id')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(userInfoList,2),'id')", result.getData()), 3);
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,0),'userId')", result.getData()), 1);
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,1),'userId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(userInfoList,2),'userId')", result.getData()), 3);
 
         assert ((Map<String, List>) result.getData()).get("itemList").size() == 3;
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'id')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'id')", result.getData()), 4);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'id')", result.getData()), 6);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
     }
+
+    @Test
+    public void testNodeFunction() {
+        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
+        // todo itemList 和 itemStockList 互换位置、解析失败
+        String query = "" +
+                "query ($itemIds:[Int]){\n" +
+                "    itemStockList(ids: $itemIds) @node(name:\"stockInfoList\",transform: \"toMap(itemId)\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        stockAmount\n" +
+                "    }\n" +
+                // todo node放在了列表上、每执行完其一个元素、就会调用一次
+                "    itemList(ids: $itemIds){\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "        stockAmount @map(mapper: \" seq.get(findOne(node('stockInfoList'),'itemId','itemId'),'stockAmount') \")\n"+
+                "    }\n" +
+                "\n" +
+                "}";
+        System.out.println(query);
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        //  unused node: [stockInfoList].
+//        assert !validateResult.isFailure();
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3))).build();
+        ExecutionResult result = graphQL.execute(input);
+
+        System.out.println(result);
+    }
+
 }

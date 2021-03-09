@@ -35,7 +35,7 @@ public class CalValidationUtilTest {
 
         String query = "query { \n" +
                 "            userInfo @node(name: \"X\") {\n" +
-                "                id\n" +
+                "                userId\n" +
                 "                name\n" +
                 "            } \n" +
                 "        }";

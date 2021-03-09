@@ -1,14 +1,21 @@
+
+# 指令定义
+#directive @map(mapper: String) on FIELD
+#directive @node(name: String, transform: String) on FIELD
+#directive @link(node:String, argument:String) on FIELD
+
 type Query {
     userInfo(id: Int):User
     userInfoList(ids: [Int]): [User]
     coupon(id: Int): Coupon
     couponList(ids: [Int]): [Coupon]
-    item(id: Int): Item
-    itemList(ids:[Int], ignore: String): [Item]
+    item(id: Int): ItemBaseInfo
+    itemList(ids:[Int], ignore: String): [ItemBaseInfo]
+    itemStockList(ids:[Int]):  [ItemStockInfo]
 }
 
 type User{
-    id: Int
+    userId: Int
     age: Int
     name: String
     email: String
@@ -17,32 +24,40 @@ type User{
     acquiredCouponIdList: [Int]
 }
 
-type Item{
-    id: Int
+type ItemBaseInfo{
+    itemId: Int
     name: String
     salePrice: Int
     withCouponIdList: [Int]
-    skuList: [Sku]
+    skuList: [Int]
+    # 数据源默认没有该字段返回
+    # 需要使用itemId从ItemStockInfoMap中获取
+    stockAmount: Int
 }
 
-type Coupon{
-    id: Int
-    price: Int
-    limitation: Int
-    couponText: String
+type ItemStockInfo{
+    itemId: Int
+    stockAmount: Int
 }
 
 type Sku{
-    id: Int
+    skuId: Int
     itemId:Int
     color: String
     size: Int
 }
 
+type Coupon{
+    couponId: Int
+    price: Int
+    limitation: Int
+    couponText: String
+}
+
 
 #query($itemId:Int) {
 #    item(id: $itemId){
-#        id @filter(predicate:"1==1")
+#        itemId @filter(predicate:"1==1")
 #        name
 #    }
 #}
@@ -78,7 +93,7 @@ type Sku{
 #    }
 #
 #    couponList(ids:1) @link(argument:"ids",node:"couponIds"){
-#        id
+#        couponId
 #        price
 #        changedPrice: price @map(mapper: "price +1")
 #    }
@@ -99,7 +114,7 @@ type Sku{
 
 #query($itemId:Int) {
 #    item(id: $itemId){
-#        id
+#        itemId
 #        name
 #        priceText: name @map(mapper:"'售价'+str(salePrice/100)+'元'")
 #    }
@@ -107,20 +122,35 @@ type Sku{
 
 #query($userIds: [Int]){
 #    userInfoList(ids:$userIds){
-#        id
+#        userId
 #        name
 #        favoriteItemId @node(name:"itemIds")
 #    }
 #    itemList(ids: 1)@link(argument:"ids",node:"itemIds"){
-#        id
+#        itemId
 #        name
 #    }
 #}
 
 #query{
 #    userInfoList(ids: [1,2,3]) @sortBy(key: "id"){
-#        id
+#        userId
 #        name
 #        favoriteItemId
 #    }
+#}
+
+# 跨数据源计算例子
+#query ($itemIds:[Int]){
+#    itemStockList(ids: $itemIds) @node(name:"stockInfoList",transform: "toMap(itemId)")
+#    {
+#        itemId
+#        stockAmount
+#    }
+#    itemList(ids: $itemIds){
+#        itemId
+#        name
+#        stockAmount @map(mapper: " seq.get(findOne(node('stockInfoList'),'itemId','itemId'),'stockAmount') ")
+#    }
+#
 #}

@@ -16,13 +16,20 @@
  */
 package calculator.engine.function;
 
+import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
+
 import com.googlecode.aviator.runtime.function.AbstractFunction;
 import com.googlecode.aviator.runtime.type.AviatorJavaType;
 import com.googlecode.aviator.runtime.type.AviatorNil;
 import com.googlecode.aviator.runtime.type.AviatorObject;
+import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
 
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+
+import calculator.engine.metadata.FutureTask;
+import calculator.engine.metadata.WrapperState;
+import com.googlecode.aviator.runtime.type.AviatorString;
 
 /**
  * todo: take ScheduleState as env.
@@ -36,16 +43,24 @@ public class NodeFunction extends AbstractFunction {
         return FUNCTION_NAME;
     }
 
+    // todo 调用了三次
     @Override
     public AviatorObject call(Map<String, Object> env, AviatorObject arg) {
-        AviatorJavaType javaArg = (AviatorJavaType) arg;
-
-        if (!env.containsKey(javaArg.getName())) {
+        if (env == null || env.isEmpty() || !env.containsKey(FUNCTION_KEY)) {
             return AviatorNil.NIL;
         }
 
-        CompletableFuture<Object> future = (CompletableFuture) env.get(javaArg.getName());
-        return null;
+        String nodeName = ((AviatorString) arg).getLexeme(Collections.emptyMap());
+        WrapperState state = (WrapperState) env.get(FUNCTION_KEY);
+        if (!state.getSequenceTaskByNode().containsKey(nodeName)) {
+            return AviatorNil.NIL;
+        }
+
+        String taskPath = state.getSequenceTaskByNode().get(nodeName).get(0);
+        FutureTask<Object> futureTask = state.getTaskByPath().get(taskPath);
+        Object taskResult = futureTask.getFuture().join();
+
+        return AviatorRuntimeJavaType.valueOf(taskResult);
     }
 
 }

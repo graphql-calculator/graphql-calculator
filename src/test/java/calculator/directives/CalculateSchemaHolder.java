@@ -55,7 +55,7 @@ public class CalculateSchemaHolder {
     private static DataFetcher userDF = environment -> {
         int id = (int) environment.getArguments().get("id");
         Map<String, Object> person = new HashMap<>();
-        person.put("id", id);
+        person.put("userId", id);
         person.put("age", id * 10);
         person.put("name", id + "_name");
         person.put("email", id + "dugk@foxmail.com");
@@ -72,7 +72,7 @@ public class CalculateSchemaHolder {
         List<Map<String, Object>> userInfoList = new LinkedList<>();
         for (Integer id : ids) {
             Map<String, Object> person = new HashMap<>();
-            person.put("id", id);
+            person.put("userId", id);
             person.put("age", id * 10);
             person.put("name", id + "_name");
             person.put("email", id + "dugk@foxmail.com");
@@ -93,7 +93,7 @@ public class CalculateSchemaHolder {
         List<Map<String, Object>> itemInfoList = new LinkedList<>();
         for (Integer id : ids) {
             Map<String, Object> itemInfo = new HashMap<>();
-            itemInfo.put("id", id);
+            itemInfo.put("itemId", id);
             itemInfo.put("name", id + "_item_name");
             itemInfo.put("salePrice", id * 20);
             // 商品绑定的消费券id
@@ -105,12 +105,26 @@ public class CalculateSchemaHolder {
         return itemInfoList;
     };
 
+    private static DataFetcher itemStockListDF = environment -> {
+        Map<String, Object> arguments = environment.getArguments();
+        List<Integer> ids = (List<Integer>) arguments.get("ids");
+
+        List<Map<String, Object>> stockInfoList = new LinkedList<>();
+        for (Integer id : ids) {
+            Map<String, Object> itemInfo = new HashMap<>();
+            itemInfo.put("itemId", id);
+            itemInfo.put("stockAmount", id * 20);
+            stockInfoList.add(itemInfo);
+        }
+        return stockInfoList;
+    };
+
     private static DataFetcher couponDF = environment -> {
         Map<String, Object> arguments = environment.getArguments();
         Integer id = (Integer) arguments.get("id");
 
         Map<String, Object> couponInfo = new HashMap<>();
-        couponInfo.put("id", id);
+        couponInfo.put("couponId", id);
         couponInfo.put("price", id * 10);
         couponInfo.put("couponText", "面额" + id * 10 + "元");
         return couponInfo;
@@ -123,7 +137,7 @@ public class CalculateSchemaHolder {
         List<Map> couponListInfo = new ArrayList<>();
         for (Integer id : ids) {
             Map<String, Object> couponInfo = new HashMap<>();
-            couponInfo.put("id", id);
+            couponInfo.put("couponId", id);
             couponInfo.put("price", id * 10);
             couponInfo.put("couponText", "面额" + id * 10 + "元");
 
@@ -144,6 +158,7 @@ public class CalculateSchemaHolder {
                     queryFetcher.put("coupon", async(couponDF));
                     queryFetcher.put("couponList", async(couponListDF));
                     queryFetcher.put("itemList", async(itemListDF));
+                    queryFetcher.put("itemStockList", async(itemStockListDF));
 //                    queryFetcher.put("userInfo", userDF);
 //                    queryFetcher.put("userInfoList", (userListDF));
 //                    queryFetcher.put("coupon", (couponDF));

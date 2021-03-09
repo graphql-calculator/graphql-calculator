@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static calculator.CommonTools.getAliasOrName;
@@ -91,12 +90,14 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
             if (Objects.equals(map.getName(), directive.getName())) {
                 String mapper = getArgumentFromDirective(directive, "mapper");
                 defaultDF = getMapperDF(defaultDF, mapper);
+                continue;
             }
 
             // 过滤列表
             if (Objects.equals(filter.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
                 defaultDF = getFilterDF(defaultDF, predicate);
+                continue;
             }
 
             if (Objects.equals(sortBy.getName(), directive.getName())) {
@@ -104,6 +105,7 @@ public class CalculateInstrumentation extends SimpleInstrumentation {
                 // todo 其实获取不到默认值
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 defaultDF = wrapSortByDF(defaultDF, key, reversed);
+                continue;
             }
         }
 

@@ -47,7 +47,7 @@ class BaseValidatorTest extends Specification {
         def query = """
             query(\$itemId: Int) {
                 item(id: \$itemId){
-                    id @filter(predicate:"1==1")
+                    itemId @filter(predicate:"1==1")
                     name
                 }
             }
@@ -58,7 +58,7 @@ class BaseValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "predicate must define on list type, instead @item#id."
+        result.errors[0].description == "predicate must define on list type, instead @item#itemId."
     }
 
 
@@ -67,7 +67,7 @@ class BaseValidatorTest extends Specification {
         def query = """
             query{
                 userInfoList(ids: [1,2,3]) @sortBy(key: "idx"){
-                    id
+                    userId
                     name
                     favoriteItemId
                 }
@@ -89,7 +89,7 @@ class BaseValidatorTest extends Specification {
         def query = """
             query(\$itemId: Int) {
                 item(id: \$itemId){
-                    id @sortBy(key:"id")
+                    itemId @sortBy(key:"id")
                     name
                 }
             }
@@ -100,7 +100,7 @@ class BaseValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "key must define on list type, instead @item#id."
+        result.errors[0].description == "key must define on list type, instead @item#itemId."
     }
 
     def "the node used by @link must exist"() {
@@ -108,12 +108,12 @@ class BaseValidatorTest extends Specification {
         def query = """
         query(\$userIds: [Int]){
             userInfoList(ids:\$userIds){
-                id
+                userId
                 name
                 favoriteItemId
             }
             itemList(ids: 1)@link(argument:"ids",node:"nonExist"){
-                id
+                itemId
                 name
             }
         }
@@ -132,12 +132,12 @@ class BaseValidatorTest extends Specification {
         def query = """
         query(\$userIds: [Int]){
             userInfoList(ids:\$userIds){
-                id
+                userId
                 name
                 favoriteItemId  @node(name:"itemIds")
             }
             itemList(ids: 1)@link(argument:"nonExist",node:"itemIds"){
-                id
+                itemId
                 name
             }
         }
@@ -157,7 +157,7 @@ class BaseValidatorTest extends Specification {
         def query = """
             query(\$userIds: [Int]){
                 userInfoList(ids:\$userIds){
-                    id
+                    userId
                     name 
                     favoriteItemId  @node(name:"itemId_x")
                     fId: favoriteItemId  @node(name:"itemId_y")
@@ -166,7 +166,7 @@ class BaseValidatorTest extends Specification {
                 @link(argument:"ids",node:"itemId_x")
                 @link(argument:"ids",node:"itemId_y")
                 {
-                    id
+                    itemId
                     name
                 }
             }
@@ -186,7 +186,7 @@ class BaseValidatorTest extends Specification {
         def query = """
             query(\$userIds: [Int]){
                 userInfoList(ids:\$userIds){
-                    id
+                    userId
                     name @node(name:"userName")
                     favoriteItemId  @node(name:"itemIds")
                 }
@@ -194,7 +194,7 @@ class BaseValidatorTest extends Specification {
                 @link(argument:"ids",node:"itemIds")
                 @link(argument:"ignore",node:"userName")
                 {
-                    id
+                    itemId
                     name
                 }
             }

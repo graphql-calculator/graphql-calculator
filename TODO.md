@@ -18,3 +18,9 @@
 - cacheControl：https://github.com/apollographql/apollo-server/blob/main/packages/apollo-cache-control/src/__tests__/cacheControlDirective.test.ts
 - todo：https://github.com/apollographql/apollo-server/blob/main/docs/source/schema/creating-directives.md#uppercasing-strings
 - https://spectrum.chat/graphql-java?tab=posts。
+
+# 跨数据源计算todo
+1. 环校验；
+2. 互换位置后的线程阻塞；
+3. list元素的n+1次解析（函数+instrument）；
+4. findOne定义细节、函数边界条件；

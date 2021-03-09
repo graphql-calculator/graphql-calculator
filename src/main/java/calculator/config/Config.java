@@ -25,7 +25,7 @@ import java.util.List;
 
 public interface Config {
 
-    AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.newInstance();
+    AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
 
     boolean isScheduleEnabled();
 

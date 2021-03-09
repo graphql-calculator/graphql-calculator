@@ -17,20 +17,31 @@
 package calculator.engine;
 
 import calculator.engine.metadata.FutureTask;
-import calculator.engine.metadata.ScheduleState;
+import calculator.engine.metadata.WrapperState;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
+import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
+import graphql.execution.instrumentation.Instrumentation;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
-import graphql.execution.instrumentation.SimpleInstrumentation;
+import graphql.execution.instrumentation.SimpleInstrumentationContext;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperationParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationFieldParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationValidationParameters;
 import graphql.language.Directive;
+import graphql.language.Document;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
+import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.validation.ValidationError;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,24 +52,36 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static calculator.CommonTools.fieldPath;
+import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
+import static calculator.engine.CalculateDirectives.map;
+import static calculator.engine.ExpCalculator.calExp;
+import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
+import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
 import static java.util.stream.Collectors.toList;
 import static calculator.engine.CalculateDirectives.link;
 
-public class ScheduleInstrument extends SimpleInstrumentation {
+public class ExecutionEngineWrapper implements Instrumentation {
 
-    private static final ScheduleInstrument SCHEDULE_INSTRUMENT = new ScheduleInstrument();
+    // ============================================== getSingleInstance =================================================================
+    private static final ExecutionEngineWrapper ENGINE_WRAPPER = new ExecutionEngineWrapper();
 
-    public static ScheduleInstrument getScheduleInstrument() {
-        return SCHEDULE_INSTRUMENT;
+    public static ExecutionEngineWrapper getInstance() {
+        return ENGINE_WRAPPER;
     }
+
+    public static ExecutionEngineWrapper getEngineWrapper() {
+        return ENGINE_WRAPPER;
+    }
+
+    // ============================================== create dataHolder for engine wrapper ==============================================
 
     //  需要预分析，因为对于 person-> name @node("personName")，如果不预先分析、就不会知道person也是dag任务
     @Override
     public InstrumentationState createState(InstrumentationCreateStateParameters parameters) {
-        ScheduleState state = new ScheduleState();
-        String query = parameters.getExecutionInput().getQuery();
+        WrapperState state = new WrapperState();
 
+        String query = parameters.getExecutionInput().getQuery();
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
                 .schema(parameters.getSchema())
                 .document(Parser.parse(query))
@@ -69,22 +92,66 @@ public class ScheduleInstrument extends SimpleInstrumentation {
         return state;
     }
 
+    @Override
+    public InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
+    @Override
+    public InstrumentationContext<Document> beginParse(InstrumentationExecutionParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
+    @Override
+    public InstrumentationContext<List<ValidationError>> beginValidation(InstrumentationValidationParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
+    @Override
+    public InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
+    @Override
+    public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
+        return new ExecutionStrategyInstrumentationContext() {
+            @Override
+            public void onDispatched(CompletableFuture<ExecutionResult> result) {
+
+            }
+
+            @Override
+            public void onCompleted(ExecutionResult result, Throwable t) {
+
+            }
+        };
+    }
+
+    @Override
+    public InstrumentationContext<ExecutionResult> beginField(InstrumentationFieldParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
+    @Override
+    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+        return new SimpleInstrumentationContext<>();
+    }
+
     // 如果是 调度任务节点，则在完成时更新state中对应的任务状态
     // todo 这里抛出异常了可能会影响调度执行计划
     @Override
     public InstrumentationContext<ExecutionResult> beginFieldComplete(InstrumentationFieldCompleteParameters parameters) {
-        return getContextOpt(parameters).orElse(super.beginFieldComplete(parameters));
+        return getContextOpt(parameters).orElse(noOp());
     }
 
     @Override
     public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
-        return getContextOpt(parameters).orElse(super.beginFieldListComplete(parameters));
+        return getContextOpt(parameters).orElse(noOp());
     }
 
     private Optional<InstrumentationContext<ExecutionResult>> getContextOpt(InstrumentationFieldCompleteParameters parameters) {
         // 每次分析都会耗时，后续可以确认该方法是否是热点方法、提供异步分析
-
-        ScheduleState scheduleState = parameters.getInstrumentationState();
+        WrapperState scheduleState = parameters.getInstrumentationState();
 
         /**
          * 如果 state中证明、就没有node
@@ -98,6 +165,7 @@ public class ScheduleInstrument extends SimpleInstrumentation {
         String fieldPath = fieldPath(parameters.getExecutionStepInfo().getPath());
 
         if (scheduleState.getTaskByPath().containsKey(fieldPath)) {
+
             InstrumentationContext<ExecutionResult> instrumentationContext = new InstrumentationContext<ExecutionResult>() {
                 @Override
                 public void onDispatched(CompletableFuture<ExecutionResult> future) {
@@ -158,7 +226,7 @@ public class ScheduleInstrument extends SimpleInstrumentation {
         List<Directive> linkDirectiveList = parameters.getEnvironment().getField().getDirectives(link.getName());
 
         if (linkDirectiveList != null) {
-            ScheduleState scheduleState = parameters.getInstrumentationState();
+            WrapperState scheduleState = parameters.getInstrumentationState();
             Map<String, List<String>> sequenceTaskByNode = scheduleState.getSequenceTaskByNode();
             Map<String, FutureTask<Object>> taskByPath = scheduleState.getTaskByPath();
 
@@ -183,8 +251,32 @@ public class ScheduleInstrument extends SimpleInstrumentation {
             DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                     .newDataFetchingEnvironment(oldDFEnvironment).arguments(newArguments).build();
 
-            return environment -> dataFetcher.get(newEnvironment);
+            DataFetcher<?> finalDataFetcher = dataFetcher;
+            dataFetcher = environment -> finalDataFetcher.get(newEnvironment);
         }
+
+        List<Directive> mapDirectives = parameters.getEnvironment().getField().getDirectives(map.getName());
+        if (mapDirectives != null && !mapDirectives.isEmpty()) {
+            Directive mapDirective = mapDirectives.get(0);
+            String mapper = getArgumentFromDirective(mapDirective, "mapper");
+            DataFetcher<?> finalDataFetcher1 = dataFetcher;
+            return environment -> {
+                /**
+                 * 也可能是普通值：不能用在list上、但是可以用在list的元素上
+                 */
+
+                Object oriVal = finalDataFetcher1.get(environment);
+                Map<String, Object> variable = environment.getSource();
+                variable.put(getAliasOrName(environment.getField()), oriVal);
+
+                WrapperState wrapperState = parameters.getInstrumentationState();
+                variable.put(FUNCTION_KEY,wrapperState);
+
+                return calExp(mapper, variable);
+            };
+        }
+
+
 
         return dataFetcher;
     }

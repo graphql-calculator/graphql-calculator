@@ -25,14 +25,18 @@ public class FutureTask<T> {
     // for debug
     private String path;
 
+    // 是否是list下的元素
     private boolean isList;
 
     private CompletableFuture<T> future;
 
-    private FutureTask(String path, boolean isList, CompletableFuture<T> future) {
+    private String transform;
+
+    private FutureTask(String path, boolean isList, CompletableFuture<T> future, String transform) {
         this.path = path;
         this.isList = isList;
         this.future = future;
+        this.transform = transform;
     }
 
 
@@ -60,6 +64,8 @@ public class FutureTask<T> {
 
         private CompletableFuture future;
 
+        private String transform;
+
 
         public FutureTaskBuilder path(String path) {
             this.path = path;
@@ -76,12 +82,17 @@ public class FutureTask<T> {
             return this;
         }
 
+        public FutureTaskBuilder transform(String transform) {
+            this.transform = transform;
+            return this;
+        }
+
         public FutureTask build() {
             Objects.requireNonNull(path);
             Objects.requireNonNull(isList);
             Objects.requireNonNull(future);
 
-            return new FutureTask(path, isList, future);
+            return new FutureTask(path, isList, future, transform);
         }
 
     }

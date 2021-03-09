@@ -17,7 +17,8 @@
 package calculator.engine;
 
 import calculator.engine.metadata.FutureTask;
-import calculator.engine.metadata.ScheduleState;
+import calculator.engine.metadata.WrapperState;
+import graphql.Internal;
 import graphql.analysis.QueryVisitor;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
@@ -36,15 +37,16 @@ import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
 
 
+@Internal
 public class StateParseVisitor implements QueryVisitor {
 
-    private ScheduleState state;
+    private WrapperState state;
 
-    private StateParseVisitor(ScheduleState state) {
+    private StateParseVisitor(WrapperState state) {
         this.state = state;
     }
 
-    public static StateParseVisitor newInstanceWithState(ScheduleState state) {
+    public static StateParseVisitor newInstanceWithState(WrapperState state) {
         return new StateParseVisitor(state);
     }
 
@@ -69,7 +71,7 @@ public class StateParseVisitor implements QueryVisitor {
 
             Map<String, FutureTask<Object>> taskByPath = state.getTaskByPath();
 
-            List<String> pathList = new LinkedList<>();
+            LinkedList<String> pathList = new LinkedList<>();
             handle(environment, pathList, taskByPath);
             state.getSequenceTaskByNode().put(nodeName, pathList);
         }
@@ -93,10 +95,14 @@ public class StateParseVisitor implements QueryVisitor {
     }
 
     /**
-     * fixme 直接嵌套便利o(N^2)算法，
-     * 该优化为o(N)算法(因为一般层级很浅、所以此优化也没必要)
+     * 获取 environment 对应节点
+     * @param environment
+     * @param pathList 保存父节点、祖父节点... 的绝对路径。
+     * @param taskByPath
+     * @return
      */
-    private String handle(QueryVisitorFieldEnvironment environment, List<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+    private String handle(QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+        // Query root
         if (environment.getParentEnvironment() == null) {
             String resultKey = getAliasOrName(environment.getField());
             pathList.add(resultKey);
