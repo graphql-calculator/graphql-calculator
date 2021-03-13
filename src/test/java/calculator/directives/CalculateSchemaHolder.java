@@ -29,7 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import static graphql.schema.AsyncDataFetcher.async;
+import static calculator.engine.AsyncDataFetcherWithGetter.async;
+
 
 /**
  * 缓存：
