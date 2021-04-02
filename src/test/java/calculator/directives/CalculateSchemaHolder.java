@@ -16,11 +16,16 @@
  */
 package calculator.directives;
 
+import static calculator.engine.AsyncDataFetcher.async;
+
 import calculator.TestUtil;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.PropertyDataFetcher;
+import graphql.schema.idl.FieldWiringEnvironment;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
+import graphql.schema.idl.WiringFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,8 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
-
-import static calculator.engine.AsyncDataFetcherWithGetter.async;
 
 
 /**
@@ -97,12 +100,9 @@ public class CalculateSchemaHolder {
             itemInfo.put("itemId", id);
             itemInfo.put("name", id + "_item_name");
             itemInfo.put("salePrice", id * 20);
-            // 商品绑定的消费券id
             itemInfo.put("withCouponIdList", ids);
-
             itemInfoList.add(itemInfo);
         }
-
         return itemInfoList;
     };
 
@@ -149,6 +149,14 @@ public class CalculateSchemaHolder {
     };
 
 
+    private static WiringFactory wiringFactory = new WiringFactory() {
+        @Override
+        public DataFetcher getDefaultDataFetcher(FieldWiringEnvironment environment) {
+            String fieldName = environment.getFieldDefinition().getName();
+            return async(new PropertyDataFetcher<Object>(fieldName));
+        }
+    };
+
     public static GraphQLSchema getCalSchema() {
         if (calSchema == null) {
             synchronized (CalculateSchemaHolder.class) {
@@ -160,16 +168,13 @@ public class CalculateSchemaHolder {
                     queryFetcher.put("couponList", async(couponListDF));
                     queryFetcher.put("itemList", async(itemListDF));
                     queryFetcher.put("itemStockList", async(itemStockListDF));
-//                    queryFetcher.put("userInfo", userDF);
-//                    queryFetcher.put("userInfoList", (userListDF));
-//                    queryFetcher.put("coupon", (couponDF));
-//                    queryFetcher.put("couponList", (couponListDF));
-//                    queryFetcher.put("itemList", (itemListDF));
 
                     Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
                     dataFetcherInfo.put("Query", queryFetcher);
 
-                    RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+                    RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring()
+                            .wiringFactory(wiringFactory)
+                            ;
                     for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {
                         TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
                         runtimeWiring.type(typeWiring);

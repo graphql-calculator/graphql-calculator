@@ -43,7 +43,6 @@ public class NodeFunction extends AbstractFunction {
         return FUNCTION_NAME;
     }
 
-    // todo 调用了三次
     @Override
     public AviatorObject call(Map<String, Object> env, AviatorObject arg) {
         if (env == null || env.isEmpty() || !env.containsKey(FUNCTION_KEY)) {

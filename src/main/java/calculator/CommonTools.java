@@ -164,4 +164,16 @@ public class CommonTools {
         return null;
     }
 
+    public static String visitPath(QueryVisitorFieldEnvironment environment) {
+        if (environment == null) {
+            return "";
+        }
+
+        if (environment.getParentEnvironment() == null) {
+            return getAliasOrName(environment.getField());
+        }
+
+        return visitPath(environment.getParentEnvironment()) + PATH_SEPARATOR + getAliasOrName(environment.getField());
+    }
+
 }

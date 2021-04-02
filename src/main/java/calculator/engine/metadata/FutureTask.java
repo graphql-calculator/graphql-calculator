@@ -30,13 +30,13 @@ public class FutureTask<T> {
 
     private CompletableFuture<T> future;
 
-    private String transform;
+    private FutureTask parent;
 
-    private FutureTask(String path, boolean isList, CompletableFuture<T> future, String transform) {
+    private FutureTask(String path, boolean isList, CompletableFuture<T> future, FutureTask parent) {
         this.path = path;
         this.isList = isList;
         this.future = future;
-        this.transform = transform;
+        this.parent = parent;
     }
 
 
@@ -64,7 +64,7 @@ public class FutureTask<T> {
 
         private CompletableFuture future;
 
-        private String transform;
+        private FutureTask parent;
 
 
         public FutureTaskBuilder path(String path) {
@@ -82,8 +82,8 @@ public class FutureTask<T> {
             return this;
         }
 
-        public FutureTaskBuilder transform(String transform) {
-            this.transform = transform;
+        public FutureTaskBuilder parent(FutureTask parent) {
+            this.parent = parent;
             return this;
         }
 
@@ -92,7 +92,7 @@ public class FutureTask<T> {
             Objects.requireNonNull(isList);
             Objects.requireNonNull(future);
 
-            return new FutureTask(path, isList, future, transform);
+            return new FutureTask(path, isList, future, parent);
         }
 
     }

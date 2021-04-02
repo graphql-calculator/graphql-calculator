@@ -17,7 +17,6 @@
 package calculator.directives;
 
 import calculator.config.ConfigImpl;
-import calculator.engine.CalculateInstrumentation;
 import calculator.engine.ExecutionEngineWrapper;
 import calculator.engine.Wrapper;
 import calculator.engine.function.FindOneFunction;
@@ -40,7 +39,6 @@ import java.util.Objects;
 
 import static calculator.directives.CalculateSchemaHolder.getCalSchema;
 import static calculator.TestUtil.getFromNestedMap;
-import static calculator.engine.CalculateInstrumentation.getCalInstance;
 import static calculator.engine.ExecutionEngineWrapper.getEngineWrapper;
 import static com.googlecode.aviator.AviatorEvaluator.execute;
 
@@ -48,9 +46,9 @@ import static com.googlecode.aviator.AviatorEvaluator.execute;
 // todo 测试校验
 public class CalculateDirectivesTest {
 
-    private ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnabled(false).build();
+    private static ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnabled(false).build();
 
-    private ConfigImpl scheduleConfig = ConfigImpl.newConfig()
+    private static ConfigImpl scheduleConfig = ConfigImpl.newConfig()
             // 是否需要支持调度
             .isScheduleEnabled(true)
             // todo 这两个应该是自动添加的
@@ -62,7 +60,7 @@ public class CalculateDirectivesTest {
     public void skipByTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(getCalInstance())
+                .instrumentation(getEngineWrapper())
                 .build();
 
         String query = ""
@@ -95,7 +93,7 @@ public class CalculateDirectivesTest {
     @Test
     public void mockTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
 
         String query = "query{\n" +
                 "    userInfo(id:1){\n" +
@@ -114,7 +112,7 @@ public class CalculateDirectivesTest {
     @Test
     public void mapTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
 
         String query = "query {\n" +
                 "    userInfo(id:5){\n" +
@@ -136,7 +134,7 @@ public class CalculateDirectivesTest {
     @Test
     public void filterTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getCalInstance()).build();
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "query {\n" +
                 "    couponList(ids:[1,2,3,4]) @filter(predicate:\"couponId>=2\"){\n" +
                 "        couponId\n" +
@@ -158,7 +156,7 @@ public class CalculateDirectivesTest {
     @Test
     public void sortByDirective() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(new CalculateInstrumentation()).build();
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "query {\n" +
                 "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"itemId\"){\n" +
                 "        itemId\n" +
@@ -223,7 +221,7 @@ public class CalculateDirectivesTest {
     public void scheduleAndComputeTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
         ChainedInstrumentation chainedInstrumentation = new ChainedInstrumentation(
-                Arrays.asList(getCalInstance(), getEngineWrapper())
+                Arrays.asList( getEngineWrapper())
         );
 
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
@@ -275,22 +273,21 @@ public class CalculateDirectivesTest {
     @Test
     public void nestedScheduleTest() {
         GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "" +
                 "query($userIds: [Int]){\n" +
+                "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
                 "    userInfoList(ids:$userIds){\n" +
                 "        userId  \n" +
                 "        name\n" +
                 "        favoriteItemId @node(name:\"itemIds\")\n" +
                 "    }\n" +
-                "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +
-                "        itemId\n" +
-                "        name\n" +
-                "    }\n" +
                 "}";
 
-        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userIds", Arrays.asList(1, 2, 3))).build();
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userIds", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))).build();
         ExecutionResult result = graphQL.execute(input);
         assert result != null;
         assert result.getErrors().isEmpty();
@@ -298,7 +295,8 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(userInfoList,1),'userId')", result.getData()), 2);
         assert Objects.equals(execute("seq.get(seq.get(userInfoList,2),'userId')", result.getData()), 3);
 
-        assert ((Map<String, List>) result.getData()).get("itemList").size() == 3;
+        System.out.println(((Map<String, List>) result.getData()).get("itemList"));
+        assert ((Map<String, List>) result.getData()).get("itemList").size() == 10;
         assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 2);
         assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
@@ -312,16 +310,15 @@ public class CalculateDirectivesTest {
         // todo itemList 和 itemStockList 互换位置、解析失败
         String query = "" +
                 "query ($itemIds:[Int]){\n" +
-                "    itemStockList(ids: $itemIds) @node(name:\"stockInfoList\",transform: \"toMap(itemId)\")\n" +
-                "    {\n" +
-                "        itemId\n" +
-                "        stockAmount\n" +
-                "    }\n" +
-                // todo node放在了列表上、每执行完其一个元素、就会调用一次
                 "    itemList(ids: $itemIds){\n" +
                 "        itemId\n" +
                 "        name\n" +
                 "        stockAmount @map(mapper: \" seq.get(findOne(node('stockInfoList'),'itemId','itemId'),'stockAmount') \")\n"+
+                "    }\n" +
+                "    itemStockList(ids: $itemIds) @node(name:\"stockInfoList\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        stockAmount\n" +
                 "    }\n" +
                 "\n" +
                 "}";

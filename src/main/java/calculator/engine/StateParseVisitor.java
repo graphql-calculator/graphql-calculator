@@ -25,6 +25,8 @@ import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
 import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLScalarType;
 import graphql.util.TraverserContext;
 
 import java.util.LinkedList;
@@ -32,9 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static calculator.CommonTools.PATH_SEPARATOR;
 import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
+import static calculator.CommonTools.visitPath;
+import static graphql.schema.GraphQLTypeUtil.unwrapAll;
 
 
 @Internal
@@ -56,10 +59,10 @@ public class StateParseVisitor implements QueryVisitor {
             return;
         }
 
-        boolean isList = isList(environment);
+//        boolean isList = isList(environment);
         // TODO 指的仅仅是父亲吗？
         //      在tag 1 处重置该值应该可以，因为是深度递归遍历
-        environment.getTraverserContext().setAccumulate(isList);
+//        environment.getTraverserContext().setAccumulate(isList);
 
         /**
          * 该节点被node注解，保存该节点及其父亲节点
@@ -77,21 +80,12 @@ public class StateParseVisitor implements QueryVisitor {
         }
     }
 
-    // 当前字段是否是嵌套在list中
+    // 当前字段是否是list 并且不是叶子节点
     private boolean isList(QueryVisitorFieldEnvironment environment) {
-        QueryVisitorFieldEnvironment parentEnv = environment.getParentEnvironment();
+        GraphQLOutputType fieldType = environment.getFieldDefinition().getType();
 
-        // query 的子字段
-        if (parentEnv == null) {
-            environment.getTraverserContext().setAccumulate(false);
-            return false;
-        }
-
-        if (parentEnv.getFieldDefinition().getType() instanceof GraphQLList) {
-            return true;
-        }
-
-        return environment.getTraverserContext().getCurrentAccumulate();
+        return fieldType instanceof GraphQLList
+                && !(unwrapAll(fieldType) instanceof GraphQLScalarType);
     }
 
     /**
@@ -101,33 +95,42 @@ public class StateParseVisitor implements QueryVisitor {
      * @param taskByPath
      * @return
      */
-    private String handle(QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+    private void handle(QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+        Object currentAccumulate = environment.getTraverserContext().getCurrentAccumulate();
+        if(currentAccumulate!=null && currentAccumulate instanceof FutureTask){
+            return;
+        }
         // Query root
         if (environment.getParentEnvironment() == null) {
             String resultKey = getAliasOrName(environment.getField());
             pathList.add(resultKey);
+            // 现在可能会重复创建
             FutureTask task = FutureTask.newBuilder()
                     .isList(isList(environment))
                     .path(resultKey)
                     .future(new CompletableFuture())
                     .build();
+            // kp: 将当前节点的任务作为其上下文累计值
+            environment.getTraverserContext().setAccumulate(task);
             taskByPath.put(resultKey, task);
-            return resultKey;
+            return;
         }
+        handle(environment.getParentEnvironment(), pathList, taskByPath);
 
-        String nestedKey = handle(environment.getParentEnvironment(), pathList, taskByPath)
-                + PATH_SEPARATOR + getAliasOrName(environment.getField());
-
+        // handle不返回nestedKey因为
+        String nestedKey = visitPath(environment);
         FutureTask task = FutureTask.newBuilder()
                 .isList(isList(environment))
                 .path(nestedKey)
+                .parent(environment.getParentEnvironment().getTraverserContext().getCurrentAccumulate())
                 .future(new CompletableFuture())
                 .build();
+        // kp: 将当前节点的任务作为其上下文累计值
+        environment.getTraverserContext().setAccumulate(task);
         taskByPath.put(nestedKey, task);
-
         pathList.add(nestedKey);
-        return nestedKey;
     }
+
 
     @Override
     public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment queryVisitorInlineFragmentEnvironment) {
