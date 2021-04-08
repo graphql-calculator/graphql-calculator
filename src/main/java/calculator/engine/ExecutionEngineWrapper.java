@@ -20,7 +20,6 @@ import calculator.engine.metadata.FutureTask;
 import calculator.engine.metadata.WrapperState;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
-import graphql.execution.ResultPath;
 import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
 import graphql.execution.instrumentation.Instrumentation;
 import graphql.execution.instrumentation.InstrumentationContext;
@@ -40,7 +39,6 @@ import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import graphql.schema.GraphQLFieldDefinition;
 import graphql.validation.ValidationError;
 
 import java.util.Collection;
@@ -58,7 +56,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
 import static calculator.CommonTools.fieldPath;
-import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
 import static calculator.engine.CalculateDirectives.filter;
 import static calculator.engine.CalculateDirectives.map;
@@ -66,7 +63,6 @@ import static calculator.engine.CalculateDirectives.mock;
 import static calculator.engine.CalculateDirectives.skipBy;
 import static calculator.engine.CalculateDirectives.sortBy;
 import static calculator.engine.ExpCalculator.calExp;
-import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
 import static graphql.execution.Async.toCompletableFuture;
 import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
 import static graphql.schema.AsyncDataFetcher.async;
@@ -143,7 +139,7 @@ public class ExecutionEngineWrapper implements Instrumentation {
 
     @Override
     public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
-        return new InstrumentationContext(){
+        return new InstrumentationContext() {
 
             @Override
             public void onDispatched(CompletableFuture result) {
@@ -214,7 +210,7 @@ public class ExecutionEngineWrapper implements Instrumentation {
                     }
 
                     if (result.getData() != null) {
-                        if (futureTask.isList()) {
+                        if (isInListPath(futureTask)) {
                             if (futureTask.getFuture().isDone()) {
                                 List prevRes = (List) futureTask.getFuture().join();
                                 prevRes.add(result.getData());
@@ -270,7 +266,6 @@ public class ExecutionEngineWrapper implements Instrumentation {
 
         Executor threadPool = ForkJoinPool.commonPool();
         final DataFetcher finalFetcher;
-
         if (dataFetcher instanceof AsyncDataFetcher) {
             finalFetcher = ((AsyncDataFetcher) dataFetcher).getWrappedDataFetcher();
             threadPool = ((AsyncDataFetcher) dataFetcher).getExecutor();
@@ -443,8 +438,21 @@ public class ExecutionEngineWrapper implements Instrumentation {
              */
             Object oriVal = defaultDF.get(environment);
             Map<String, Object> variable = environment.getSource();
-            variable.put(getAliasOrName(environment.getField()), oriVal);
+            variable.put(environment.getField().getResultKey(), oriVal);
             return calExp(mapper, variable);
         };
+    }
+
+    private boolean isInListPath(FutureTask task) {
+        FutureTask tmp = task;
+        while (true && tmp != null) {
+            if (tmp.isList()) {
+                return true;
+            }
+
+            tmp = tmp.getParent();
+        }
+
+        return false;
     }
 }

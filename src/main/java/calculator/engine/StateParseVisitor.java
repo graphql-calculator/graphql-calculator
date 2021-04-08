@@ -24,6 +24,8 @@ import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
+import graphql.language.Field;
+import graphql.language.Node;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLScalarType;
@@ -34,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
 import static calculator.CommonTools.visitPath;
 import static graphql.schema.GraphQLTypeUtil.unwrapAll;
@@ -44,6 +45,8 @@ import static graphql.schema.GraphQLTypeUtil.unwrapAll;
 public class StateParseVisitor implements QueryVisitor {
 
     private WrapperState state;
+
+    private static final String SEPARATOR = "#";
 
     private StateParseVisitor(WrapperState state) {
         this.state = state;
@@ -59,11 +62,6 @@ public class StateParseVisitor implements QueryVisitor {
             return;
         }
 
-//        boolean isList = isList(environment);
-        // TODO 指的仅仅是父亲吗？
-        //      在tag 1 处重置该值应该可以，因为是深度递归遍历
-//        environment.getTraverserContext().setAccumulate(isList);
-
         /**
          * 该节点被node注解，保存该节点及其父亲节点
          */
@@ -76,6 +74,7 @@ public class StateParseVisitor implements QueryVisitor {
 
             LinkedList<String> pathList = new LinkedList<>();
             handle(environment, pathList, taskByPath);
+            environment.getTraverserContext().setAccumulate(null);
             state.getSequenceTaskByNode().put(nodeName, pathList);
         }
     }
@@ -96,13 +95,16 @@ public class StateParseVisitor implements QueryVisitor {
      * @return
      */
     private void handle(QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
-        Object currentAccumulate = environment.getTraverserContext().getCurrentAccumulate();
-        if(currentAccumulate!=null && currentAccumulate instanceof FutureTask){
+        TraverserContext<Node> traverserContext = environment.getTraverserContext();
+        if (traverserContext.getNewAccumulate() != null) {
+            String nestedKey = visitPath(environment);
+            pathList.add(nestedKey);
             return;
         }
+
         // Query root
         if (environment.getParentEnvironment() == null) {
-            String resultKey = getAliasOrName(environment.getField());
+            String resultKey = environment.getField().getResultKey();
             pathList.add(resultKey);
             // 现在可能会重复创建
             FutureTask task = FutureTask.newBuilder()
@@ -117,12 +119,13 @@ public class StateParseVisitor implements QueryVisitor {
         }
         handle(environment.getParentEnvironment(), pathList, taskByPath);
 
+        QueryVisitorFieldEnvironment parentEnv = environment.getParentEnvironment();
         // handle不返回nestedKey因为
         String nestedKey = visitPath(environment);
         FutureTask task = FutureTask.newBuilder()
                 .isList(isList(environment))
                 .path(nestedKey)
-                .parent(environment.getParentEnvironment().getTraverserContext().getCurrentAccumulate())
+                .parent(parentEnv.getTraverserContext().getNewAccumulate())
                 .future(new CompletableFuture())
                 .build();
         // kp: 将当前节点的任务作为其上下文累计值

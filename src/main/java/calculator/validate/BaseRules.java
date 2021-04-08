@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.isValidEleName;
 import static calculator.CommonTools.pathForTraverse;
 import static calculator.engine.CalculateDirectives.filter;
@@ -146,7 +145,7 @@ public class BaseRules extends AbstractTraverRule {
                 }
 
                 boolean validKey = environment.getField().getSelectionSet().getSelections().stream()
-                        .map(selection -> getAliasOrName((Field) selection))
+                        .map(selection -> ((Field) selection).getResultKey())
                         .anyMatch(key::equals);
 
                 // todo 报错信息；兼容片段

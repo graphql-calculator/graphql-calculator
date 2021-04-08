@@ -52,6 +52,9 @@ public class FutureTask<T> {
         return future;
     }
 
+    public FutureTask getParent() {
+        return parent;
+    }
 
     public static FutureTaskBuilder newBuilder() {
         return new FutureTaskBuilder();

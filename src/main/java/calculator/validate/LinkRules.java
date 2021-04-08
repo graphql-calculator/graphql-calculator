@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static calculator.CommonTools.getAliasOrName;
 import static calculator.CommonTools.getArgumentFromDirective;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
@@ -81,7 +80,7 @@ public class LinkRules extends AbstractTraverRule {
         List<Directive> linkDirList = environment.getField().getDirectives().stream()
                 .filter(dir -> Objects.equals("link", dir.getName())).collect(toList());
         if (!linkDirList.isEmpty()) {
-            String aliasOrName = getAliasOrName(environment.getField());
+            String aliasOrName = environment.getField().getResultKey();
             Set<String> argumentsName = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
 
             Map<String, String> argByNodeName = new HashMap<>();

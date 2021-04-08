@@ -32,7 +32,6 @@ import graphql.schema.GraphQLUnmodifiedType;
 import java.util.List;
 import java.util.Objects;
 
-// todo 名字不好，应该用 组建CommonTools
 public class CommonTools {
 
     public static final String PATH_SEPARATOR = "#";
@@ -65,21 +64,6 @@ public class CommonTools {
     }
 
 
-    /**
-     * 获取字段的别名或者名称
-     *
-     * @param field val
-     * @return val
-     */
-    public static String getAliasOrName(Field field) {
-        if (field.getAlias() != null) {
-            return field.getAlias();
-        }
-
-        return field.getName();
-    }
-
-
     public static boolean isValidEleName(String name) {
         try {
             Assert.assertValidName(name);
@@ -87,19 +71,6 @@ public class CommonTools {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    /**
-     * todo 查询中的坐标不可以使用 类型.字段名称，是可能重复的，比如
-     *
-     * @param environment val
-     * @return val
-     */
-    public static String keyForFieldByQVFEnv(final QueryVisitorFieldEnvironment environment) {
-        // 考虑接口、联合类型、片段等因素
-        GraphQLUnmodifiedType namedType = GraphQLTypeUtil.unwrapAll(environment.getParentType());
-        String aliasOrName = getAliasOrName(environment.getField());
-        return namedType.getName() + "." + aliasOrName;
     }
 
     /**
@@ -141,7 +112,7 @@ public class CommonTools {
         StringBuilder sb = new StringBuilder();
         QueryVisitorFieldEnvironment tmpEnv = environment;
         while (tmpEnv != null) {
-            String pathSeg = getAliasOrName(tmpEnv.getField());
+            String pathSeg = tmpEnv.getField().getResultKey();
             if (sb.length() == 0) {
                 sb.append(pathSeg);
             } else {
@@ -155,25 +126,16 @@ public class CommonTools {
     }
 
 
-    public static <T extends NamedNode<T>> T findNodeByName(List<T> namedNodes, String name) {
-        for (T namedNode : namedNodes) {
-            if (Objects.equals(namedNode.getName(), name)) {
-                return namedNode;
-            }
-        }
-        return null;
-    }
-
     public static String visitPath(QueryVisitorFieldEnvironment environment) {
         if (environment == null) {
             return "";
         }
 
         if (environment.getParentEnvironment() == null) {
-            return getAliasOrName(environment.getField());
+            return environment.getField().getResultKey();
         }
 
-        return visitPath(environment.getParentEnvironment()) + PATH_SEPARATOR + getAliasOrName(environment.getField());
+        return visitPath(environment.getParentEnvironment()) + PATH_SEPARATOR + environment.getField().getResultKey();
     }
 
 }

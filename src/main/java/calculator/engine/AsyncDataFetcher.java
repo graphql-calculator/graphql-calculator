@@ -28,12 +28,12 @@ import static graphql.Assert.assertNotNull;
 
 public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>> {
 
-    public static <T> graphql.schema.AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {
-        return new graphql.schema.AsyncDataFetcher<>(wrappedDataFetcher);
+    public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {
+        return new AsyncDataFetcher<>(wrappedDataFetcher);
     }
 
-    public static <T> graphql.schema.AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher, Executor executor) {
-        return new graphql.schema.AsyncDataFetcher<>(wrappedDataFetcher, executor);
+    public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher, Executor executor) {
+        return new AsyncDataFetcher<>(wrappedDataFetcher, executor);
     }
 
     private final DataFetcher<T> wrappedDataFetcher;

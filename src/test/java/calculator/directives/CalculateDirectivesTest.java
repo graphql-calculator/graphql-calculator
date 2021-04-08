@@ -204,7 +204,6 @@ public class CalculateDirectivesTest {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("userId", 1);
-        variables.put("couponId", 1);
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variables).build();
         ExecutionResult result = graphQL.execute(input);
         assert result != null;
