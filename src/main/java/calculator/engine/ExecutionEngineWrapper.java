@@ -45,7 +45,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -211,19 +210,12 @@ public class ExecutionEngineWrapper implements Instrumentation {
 
                     if (result.getData() != null) {
                         if (isInListPath(futureTask)) {
-                            if (futureTask.getFuture().isDone()) {
-                                List prevRes = (List) futureTask.getFuture().join();
-                                prevRes.add(result.getData());
-                            } else {
-                                List list = new LinkedList();
-                                list.add(result.getData());
-                                // todo 这里 complete 后影响
-                                futureTask.getFuture().complete(list);
-                            }
+                            // fixme 防止 @link 指令可能获取的是解析了一半的数据
+                            futureTask.getTmpResult().add(result.getData());
                         } else {
                             futureTask.getFuture().complete(result.getData());
+                            completeSubTask(futureTask);
                         }
-
                     } else {
                         // 对于没有结果的情况、仍然抛出异常，来终止程序运行
                         // 这里是否需要让调度器感知异常信息？不需要，包含在结果中了
@@ -237,6 +229,19 @@ public class ExecutionEngineWrapper implements Instrumentation {
             }
         };
         return Optional.of(instrumentationContext);
+    }
+
+    private void completeSubTask(FutureTask<Object> futureTask) {
+        if (futureTask == null || futureTask.getSubTaskList().isEmpty()) {
+            return;
+        }
+
+        for (FutureTask subTask : futureTask.getSubTaskList()) {
+            if (isInListPath(subTask) && !subTask.getFuture().isDone()) {
+                subTask.getFuture().complete(subTask.getTmpResult());
+            }
+            completeSubTask(subTask);
+        }
     }
 
     // 如果有link节点，则分析其每一个依赖的任务，并更新参数
@@ -443,9 +448,17 @@ public class ExecutionEngineWrapper implements Instrumentation {
         };
     }
 
+    /**
+     * 当前任务是否嵌套在list路径中
+     */
     private boolean isInListPath(FutureTask task) {
-        FutureTask tmp = task;
-        while (true && tmp != null) {
+        // Root Query
+        if(task.getParent() == null){
+            return false;
+        }
+
+        FutureTask tmp = task.getParent();
+        while (tmp != null) {
             if (tmp.isList()) {
                 return true;
             }

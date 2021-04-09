@@ -97,3 +97,20 @@
 #    }
 #
 #}
+
+#query {
+#    item{
+#        couponList{
+#            # 预期不将 item 注册为任务
+#            couponId @node(name: "itemCIdS")
+#            limitation @node(name: "itemLimitationList")
+#        }
+#    }
+#
+#    itemList{
+#        couponList{
+#            # 全路径三个节点都会注册为任务
+#            couponId @node(name:"itemListCIdS")
+#        }
+#    }
+#}

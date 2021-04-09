@@ -12,6 +12,7 @@ type Query {
     item(id: Int): ItemBaseInfo
     itemList(ids:[Int], ignore: String): [ItemBaseInfo]
     itemStockList(ids:[Int]):  [ItemStockInfo]
+
 }
 
 type User{
@@ -33,6 +34,7 @@ type ItemBaseInfo{
     # 数据源默认没有该字段返回
     # 需要使用itemId从ItemStockInfoMap中获取
     stockAmount: Int
+    couponList: [Coupon]
 }
 
 type ItemStockInfo{

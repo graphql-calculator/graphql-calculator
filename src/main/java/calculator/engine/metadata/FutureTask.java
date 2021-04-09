@@ -17,10 +17,16 @@
 
 package calculator.engine.metadata;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class FutureTask<T> {
+
+    // 是否是query下的字段
+    // 当前字段所表示的任务执行完毕、则其子实体(数组实体)所表示的任务则也一定完成
+    private boolean isTopNode;
 
     // for debug
     private String path;
@@ -28,17 +34,34 @@ public class FutureTask<T> {
     // 是否是list下的元素
     private boolean isList;
 
+    private List tmpResult;
+
     private CompletableFuture<T> future;
 
     private FutureTask parent;
 
-    private FutureTask(String path, boolean isList, CompletableFuture<T> future, FutureTask parent) {
+    private List<FutureTask> subTaskList = new LinkedList<>();
+
+    public void addSubTaskList(FutureTask subTask) {
+        subTaskList.add(subTask);
+    }
+
+    public List<FutureTask> getSubTaskList() {
+        return subTaskList;
+    }
+
+    private FutureTask(boolean isTopNode, String path, boolean isList, CompletableFuture<T> future, FutureTask parent) {
         this.path = path;
         this.isList = isList;
+        tmpResult = new LinkedList();
         this.future = future;
         this.parent = parent;
     }
 
+
+    public boolean isTopNode() {
+        return isTopNode;
+    }
 
     public String getPath() {
         return path;
@@ -46,6 +69,10 @@ public class FutureTask<T> {
 
     public boolean isList() {
         return isList;
+    }
+
+    public List getTmpResult() {
+        return tmpResult;
     }
 
     public CompletableFuture<T> getFuture() {
@@ -61,6 +88,9 @@ public class FutureTask<T> {
     }
 
     public static class FutureTaskBuilder<T> {
+
+        private boolean isTopNode;
+
         private String path;
 
         private Boolean isList;
@@ -69,6 +99,11 @@ public class FutureTask<T> {
 
         private FutureTask parent;
 
+
+        public FutureTaskBuilder isTopNode(boolean isTopNode) {
+            this.isTopNode = isTopNode;
+            return this;
+        }
 
         public FutureTaskBuilder path(String path) {
             this.path = path;
@@ -95,7 +130,7 @@ public class FutureTask<T> {
             Objects.requireNonNull(isList);
             Objects.requireNonNull(future);
 
-            return new FutureTask(path, isList, future, parent);
+            return new FutureTask(isTopNode, path, isList, future, parent);
         }
 
     }

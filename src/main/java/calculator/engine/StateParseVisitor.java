@@ -24,7 +24,6 @@ import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
-import graphql.language.Field;
 import graphql.language.Node;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLOutputType;
@@ -45,8 +44,6 @@ import static graphql.schema.GraphQLTypeUtil.unwrapAll;
 public class StateParseVisitor implements QueryVisitor {
 
     private WrapperState state;
-
-    private static final String SEPARATOR = "#";
 
     private StateParseVisitor(WrapperState state) {
         this.state = state;
@@ -73,28 +70,22 @@ public class StateParseVisitor implements QueryVisitor {
             Map<String, FutureTask<Object>> taskByPath = state.getTaskByPath();
 
             LinkedList<String> pathList = new LinkedList<>();
-            handle(environment, pathList, taskByPath);
+            handle(false, environment, pathList, taskByPath);
             environment.getTraverserContext().setAccumulate(null);
             state.getSequenceTaskByNode().put(nodeName, pathList);
         }
     }
 
-    // 当前字段是否是list 并且不是叶子节点
-    private boolean isList(QueryVisitorFieldEnvironment environment) {
-        GraphQLOutputType fieldType = environment.getFieldDefinition().getType();
-
-        return fieldType instanceof GraphQLList
-                && !(unwrapAll(fieldType) instanceof GraphQLScalarType);
-    }
-
     /**
      * 获取 environment 对应节点
+     *
      * @param environment
-     * @param pathList 保存父节点、祖父节点... 的绝对路径。
+     * @param pathList    保存父节点、祖父节点... 的绝对路径。
      * @param taskByPath
      * @return
      */
-    private void handle(QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+    private void handle(boolean isRecursive,QueryVisitorFieldEnvironment environment, LinkedList<String> pathList, Map<String, FutureTask<Object>> taskByPath) {
+        // 当前节点是否已经在注册为 FutureTask
         TraverserContext<Node> traverserContext = environment.getTraverserContext();
         if (traverserContext.getNewAccumulate() != null) {
             String nestedKey = visitPath(environment);
@@ -102,36 +93,65 @@ public class StateParseVisitor implements QueryVisitor {
             return;
         }
 
+        QueryVisitorFieldEnvironment parentEnv = environment.getParentEnvironment();
+
         // Query root
-        if (environment.getParentEnvironment() == null) {
+        if (parentEnv == null) {
             String resultKey = environment.getField().getResultKey();
-            pathList.add(resultKey);
-            // 现在可能会重复创建
             FutureTask task = FutureTask.newBuilder()
-                    .isList(isList(environment))
+                    .isTopNode(true)
                     .path(resultKey)
+                    .isList(isListAndNotScalar(environment))
                     .future(new CompletableFuture())
                     .build();
             // kp: 将当前节点的任务作为其上下文累计值
             environment.getTraverserContext().setAccumulate(task);
             taskByPath.put(resultKey, task);
+            pathList.add(resultKey);
             return;
         }
-        handle(environment.getParentEnvironment(), pathList, taskByPath);
 
-        QueryVisitorFieldEnvironment parentEnv = environment.getParentEnvironment();
+        // 不是topQuery下节点、不再list路径下、不是node注解的节点(pathList为空)
+        // 将当前节点注册为异步任务，并返回
+        if (isRecursive && !isListAndNotScalar(parentEnv)) {
+            String nestedKey = visitPath(environment);
+            FutureTask task = FutureTask.newBuilder()
+                    .isTopNode(false)
+                    .path(nestedKey)
+                    .isList(isListAndNotScalar(environment))
+                    // .parent(parentEnv.getTraverserContext().getNewAccumulate()) 肯定是null
+                    .future(new CompletableFuture())
+                    .build();
+            environment.getTraverserContext().setAccumulate(task);
+            taskByPath.put(nestedKey, task);
+            pathList.add(nestedKey);
+            return;
+        }
+        handle(true, parentEnv, pathList, taskByPath);
+
         // handle不返回nestedKey因为
+        FutureTask parentTask = parentEnv.getTraverserContext().getNewAccumulate();
         String nestedKey = visitPath(environment);
         FutureTask task = FutureTask.newBuilder()
-                .isList(isList(environment))
+                .isTopNode(false)
                 .path(nestedKey)
-                .parent(parentEnv.getTraverserContext().getNewAccumulate())
+                .isList(isListAndNotScalar(environment))
+                .parent(parentTask)
                 .future(new CompletableFuture())
                 .build();
+        parentTask.addSubTaskList(task);
         // kp: 将当前节点的任务作为其上下文累计值
         environment.getTraverserContext().setAccumulate(task);
         taskByPath.put(nestedKey, task);
         pathList.add(nestedKey);
+    }
+
+    // 当前字段是否是list 并且不是叶子节点
+    private boolean isListAndNotScalar(QueryVisitorFieldEnvironment environment) {
+        GraphQLOutputType fieldType = environment.getFieldDefinition().getType();
+
+        return fieldType instanceof GraphQLList
+                && !(unwrapAll(fieldType) instanceof GraphQLScalarType);
     }
 
 

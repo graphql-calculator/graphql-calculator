@@ -286,7 +286,7 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "}";
 
-        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userIds", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))).build();
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userIds", Arrays.asList(1, 2, 3))).build();
         ExecutionResult result = graphQL.execute(input);
         assert result != null;
         assert result.getErrors().isEmpty();
@@ -294,8 +294,7 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(userInfoList,1),'userId')", result.getData()), 2);
         assert Objects.equals(execute("seq.get(seq.get(userInfoList,2),'userId')", result.getData()), 3);
 
-        System.out.println(((Map<String, List>) result.getData()).get("itemList"));
-        assert ((Map<String, List>) result.getData()).get("itemList").size() == 10;
+        assert ((Map<String, List>) result.getData()).get("itemList").size() == 3;
         assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 2);
         assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
