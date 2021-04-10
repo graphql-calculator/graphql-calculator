@@ -17,6 +17,7 @@
 
 package calculator.engine.metadata;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +35,7 @@ public class FutureTask<T> {
     // 是否是list下的元素
     private boolean isList;
 
-    private List tmpResult;
+    private List tmpResult = Collections.synchronizedList(new LinkedList());
 
     private CompletableFuture<T> future;
 
@@ -53,7 +54,6 @@ public class FutureTask<T> {
     private FutureTask(boolean isTopNode, String path, boolean isList, CompletableFuture<T> future, FutureTask parent) {
         this.path = path;
         this.isList = isList;
-        tmpResult = new LinkedList();
         this.future = future;
         this.parent = parent;
     }
