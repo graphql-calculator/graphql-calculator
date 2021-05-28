@@ -17,23 +17,19 @@
 
 package calculator.engine.function;
 
-import calculator.engine.metadata.FutureTask;
-import calculator.engine.metadata.WrapperState;
+import calculator.engine.annotation.Beta;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
-import com.googlecode.aviator.runtime.type.AviatorNil;
 import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
 import com.googlecode.aviator.runtime.type.AviatorString;
 
-import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
-
-public class FindOneFunction extends AbstractFunction {
+@Beta
+public class FindOne extends AbstractFunction {
     private static final String FUNCTION_NAME = "findOne";
 
     @Override
@@ -50,7 +46,7 @@ public class FindOneFunction extends AbstractFunction {
         String envLexeme = ((AviatorString) envKey).getLexeme(Collections.emptyMap());
         Object targetValue = env.get(envLexeme);
 
-        List<Map> listValue = (List)((AviatorRuntimeJavaType) listElement).getValue(Collections.emptyMap());
+        List<Map> listValue = (List)listElement.getValue(Collections.emptyMap());
         Map result = listValue.stream().filter(map -> Objects.equals(map.get(elementKey), targetValue)).findFirst().orElse(null);
 
         return AviatorRuntimeJavaType.valueOf(result);

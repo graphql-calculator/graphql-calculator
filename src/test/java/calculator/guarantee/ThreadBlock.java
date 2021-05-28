@@ -15,43 +15,33 @@
  * limitations under the License.
  */
 
-package calculator;
+package calculator.guarantee;
 
-import static calculator.directives.CalculateSchemaHolder.getCalSchema;
-import static calculator.engine.ExecutionEngineWrapper.getEngineWrapper;
-import static com.googlecode.aviator.AviatorEvaluator.execute;
+import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.ExecutionEngine.newInstance;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
+import calculator.engine.ExecutionEngine;
 import org.junit.Test;
 
 import calculator.config.ConfigImpl;
-import calculator.engine.Wrapper;
-import calculator.engine.function.FindOneFunction;
-import calculator.engine.function.NodeFunction;
+import calculator.engine.SchemaWrapper;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 
-public class Issues {
-
-    private static ConfigImpl scheduleConfig = ConfigImpl.newConfig()
-            // 是否需要支持调度
-            .isScheduleEnabled(true)
-            // todo 这两个应该是自动添加的
-            .function(new NodeFunction())
-            .function(new FindOneFunction())
+public class ThreadBlock {
+    private static ConfigImpl configImpl = ConfigImpl.newConfig().build();
+    private static GraphQLSchema wrappedSchema = SchemaWrapper.wrap(configImpl, getCalSchema());
+    private static ExecutionEngine executionEngine = newInstance(configImpl.getAviatorEvaluator(), configImpl.getObjectMapper());
+    private static GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+            .instrumentation(executionEngine)
             .build();
-    private static GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-
     @Test
     public void threadBlockOnScheduleThread() {
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "" +
                 "query($userIds: [Int]){\n" +
                 "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +

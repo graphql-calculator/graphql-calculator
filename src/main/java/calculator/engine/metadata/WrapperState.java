@@ -18,7 +18,7 @@ package calculator.engine.metadata;
 
 import graphql.execution.instrumentation.InstrumentationState;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,24 +31,24 @@ public class WrapperState implements InstrumentationState {
     public static final String FUNCTION_KEY = "wrapperState";
 
     /**
-     * 字段路径，对应的异步任务
-     *
-     * task by field absolute path.
-     */
-    private final Map<String, FutureTask<Object>> taskByPath = new ConcurrentHashMap<>();
-
-    /**
      * 一个节点依赖的字段绝对路径、从外到内<nodeName,List<absolutePath>>
-     *
+     * <p>
      * Keys of tasks which the node depends on.
      */
-    private final Map<String, List<String>> sequenceTaskByNode = new HashMap<>();
+    private final Map<String, List<String>> sequenceTaskByNode = new LinkedHashMap<>();
 
-    public Map<String, FutureTask<Object>> getTaskByPath() {
-        return taskByPath;
-    }
+    /**
+     * 字段路径对应的异步任务
+     * <p>
+     * task by field absolute path.
+     */
+    private final Map<String, NodeTask<Object>> taskByPath = new ConcurrentHashMap<>();
 
     public Map<String, List<String>> getSequenceTaskByNode() {
         return sequenceTaskByNode;
+    }
+
+    public Map<String, NodeTask<Object>> getTaskByPath() {
+        return taskByPath;
     }
 }

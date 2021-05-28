@@ -17,23 +17,22 @@
 package calculator.validate;
 
 import graphql.analysis.QueryVisitor;
-import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
-import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.SourceLocation;
-import graphql.util.TraverserContext;
 import graphql.validation.ValidationError;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractTraverRule implements QueryVisitor {
 
-    // fixme 校验结果
+    /**
+     * the result of validation.
+     */
     private List<ValidationError> errors;
 
 
     public AbstractTraverRule() {
-        this.errors = new LinkedList<>();
+        this.errors = new ArrayList<>();
     }
 
     public List<ValidationError> getErrors() {

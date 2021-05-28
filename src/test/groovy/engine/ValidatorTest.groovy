@@ -17,30 +17,16 @@
 
 package engine
 
-import calculator.config.ConfigImpl
-import calculator.engine.Wrapper
+import calculator.config.Config
+import calculator.engine.SchemaWrapper
 import calculator.validate.Validator
 import spock.lang.Specification
 
-import static calculator.directives.CalculateSchemaHolder.getCalSchema
+import static calculator.engine.CalculateSchemaHolder.getCalSchema
 
-/**
- * 基本校验：
- * @skipBy 表达式不为空且合法；
- * @filter 表达式不为空且合法；
- * @filter 必须放在list节点；
- * @sortBy 必须定义在list上；
- * @sortBy 的key必须存在于子元素中；
- * @node 名称必须有效；
- * @node 名称不能重复；
- * todo 别名的判断和出错信息打印；
- *      片段的判断和出错信息打印；
- *      sortBy支持自定义函数；
- */
-class BaseValidatorTest extends Specification {
+class ValidatorTest extends Specification {
 
-    def config = ConfigImpl.newConfig().isScheduleEnabled(true).build()
-    def wrappedSchema = Wrapper.wrap(config, getCalSchema())
+    def wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema())
 
     def "filter on nonList"() {
         given:

@@ -14,55 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.directives;
+package calculator.engine;
 
-import calculator.config.ConfigImpl;
-import calculator.engine.ExecutionEngineWrapper;
-import calculator.engine.Wrapper;
-import calculator.engine.function.FindOneFunction;
-import calculator.engine.function.NodeFunction;
+import calculator.config.Config;
+import calculator.engine.annotation.Beta;
 import calculator.validate.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
-import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.directives.CalculateSchemaHolder.getCalSchema;
-import static calculator.TestUtil.getFromNestedMap;
-import static calculator.engine.ExecutionEngineWrapper.getEngineWrapper;
+import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.TestUtil.getFromNestedMap;
+import static calculator.engine.ExecutionEngine.newInstance;
 import static com.googlecode.aviator.AviatorEvaluator.execute;
 
 
-// todo 测试校验
 public class CalculateDirectivesTest {
 
-    private static ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnabled(false).build();
+    private static final GraphQLSchema wrappedSchema;
+    private static final GraphQL graphQL;
 
-    private static ConfigImpl scheduleConfig = ConfigImpl.newConfig()
-            // 是否需要支持调度
-            .isScheduleEnabled(true)
-            // todo 这两个应该是自动添加的
-            .function(new NodeFunction())
-            .function(new FindOneFunction())
-            .build();
+    static {
+        wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema());
+        graphQL = GraphQL.newGraphQL(wrappedSchema)
+                .instrumentation(newInstance(Config.DEFAULT_CONFIG.getAviatorEvaluator(), Config.DEFAULT_CONFIG.getObjectMapper()))
+                .build();
+    }
 
     @Test
     public void skipByTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(getEngineWrapper())
-                .build();
-
         String query = ""
                 + "query($userId:Int) { "
                 + "    userInfo(id: $userId) @skipBy(exp:\"id < 0\"){"
@@ -79,22 +70,19 @@ public class CalculateDirectivesTest {
                 .variables(Collections.singletonMap("userId", -1))
                 .build();
         ExecutionResult skipRes = graphQL.execute(skipInput);
-        assert ((Map) skipRes.getData()).get("userInfo") == null;
+        assert ((Map<String, Object>) skipRes.getData()).get("userInfo") == null;
 
         ExecutionInput normalInput = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("userId", 11))
                 .build();
         ExecutionResult invokeRes = graphQL.execute(normalInput);
-        assert ((Map) invokeRes.getData()).get("userInfo") != null;
+        assert ((Map<String, Object>) invokeRes.getData()).get("userInfo") != null;
     }
 
 
     @Test
     public void mockTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
-
         String query = "query{\n" +
                 "    userInfo(id:1){\n" +
                 "        email @mock(value:\"dugk@foxmail.com\")\n" +
@@ -105,19 +93,16 @@ public class CalculateDirectivesTest {
 
         ExecutionResult filterRes = graphQL.execute(query);
         assert filterRes.getErrors().isEmpty();
-        assert getFromNestedMap(filterRes.getData(), "userInfo.email").equals("dugk@foxmail.com");
+        assert Objects.equals(getFromNestedMap(filterRes.getData(), "userInfo.email"), "dugk@foxmail.com");
     }
 
 
     @Test
     public void mapTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
-
         String query = "query {\n" +
                 "    userInfo(id:5){\n" +
                 "        email\n" +
-                "        netName: email @map(mapper:\"\'netName:\' + email\")\n" +
+                "        netName: email @map(mapper:\"'netName:' + email\")\n" +
                 "    }\n" +
                 "}";
 
@@ -127,14 +112,12 @@ public class CalculateDirectivesTest {
         ExecutionResult mapResult = graphQL.execute(query);
         assert mapResult != null;
         assert mapResult.getErrors().isEmpty();
-        assert getFromNestedMap(mapResult.getData(), "userInfo.email").equals("5dugk@foxmail.com");
-        assert getFromNestedMap(mapResult.getData(), "userInfo.netName").equals("netName:5dugk@foxmail.com");
+        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.email"), "5dugk@foxmail.com");
+        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.netName"), "netName:5dugk@foxmail.com");
     }
 
     @Test
     public void filterTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "query {\n" +
                 "    couponList(ids:[1,2,3,4]) @filter(predicate:\"couponId>=2\"){\n" +
                 "        couponId\n" +
@@ -155,8 +138,6 @@ public class CalculateDirectivesTest {
 
     @Test
     public void sortByDirective() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "query {\n" +
                 "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"itemId\"){\n" +
                 "        itemId\n" +
@@ -180,9 +161,6 @@ public class CalculateDirectivesTest {
 
     @Test
     public void scheduleTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
         String query = ""
                 + "query($userId:Int){\n" +
                 "    userInfo(id:$userId){\n" +
@@ -218,13 +196,6 @@ public class CalculateDirectivesTest {
 
     @Test
     public void scheduleAndComputeTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-        ChainedInstrumentation chainedInstrumentation = new ChainedInstrumentation(
-                Arrays.asList( getEngineWrapper())
-        );
-
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(chainedInstrumentation).build();
         String query = ""
                 + "query($userId:Int){\n" +
                 "    userInfo(id:$userId){\n" +
@@ -271,8 +242,6 @@ public class CalculateDirectivesTest {
 
     @Test
     public void nestedScheduleTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(getEngineWrapper()).build();
         String query = "" +
                 "query($userIds: [Int]){\n" +
                 "    itemList(ids: 1)@link(argument:\"ids\",node:\"itemIds\"){\n" +
@@ -300,18 +269,19 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
     }
 
+    @Beta
     @Test
     public void testNodeFunction() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ExecutionEngineWrapper.getEngineWrapper()).build();
-        // todo itemList 和 itemStockList 互换位置、解析失败
         String query = "" +
                 "query ($itemIds:[Int]){\n" +
                 "    itemList(ids: $itemIds){\n" +
                 "        itemId\n" +
                 "        name\n" +
-                "        stockAmount @map(mapper: \" seq.get(findOne(node('stockInfoList'),'itemId','itemId'),'stockAmount') \")\n"+
+                "        stockAmount @map(mapper: \" seq.get(" +
+                "                                           seq.get(" +
+                "                                                   toMap(getByNode('stockInfoList'),'itemId')" +
+                "                                           ,itemId)" +
+                "                                     ,'stockAmount') \")\n" +
                 "    }\n" +
                 "    itemStockList(ids: $itemIds) @node(name:\"stockInfoList\")\n" +
                 "    {\n" +
@@ -320,15 +290,15 @@ public class CalculateDirectivesTest {
                 "    }\n" +
                 "\n" +
                 "}";
-        System.out.println(query);
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-        //  unused node: [stockInfoList].
+//        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+//        unused node: [stockInfoList].
 //        assert !validateResult.isFailure();
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3))).build();
         ExecutionResult result = graphQL.execute(input);
 
-        System.out.println(result);
+        assert result.getErrors().isEmpty();
+        assert ((LinkedHashMap<String, Object>) result.getData()).size() == 2;
     }
 
 }

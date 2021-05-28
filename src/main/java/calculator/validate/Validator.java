@@ -32,12 +32,11 @@ import java.util.stream.Collectors;
 public class Validator {
 
     /**
-     * fixme 使用场景，在第一次执行的时候检测一次即可。
-     * <p>
-     * 校验规则：
-     * 1. @node是否重名;
-     * 2. @link中是否有重名；
-     * 3. @link使用的node不存在、node指向的参数不存在；
+     * kp 使用场景，在第一次执行的时候检测一次即可。
+     *      校验规则：
+     *          1. @node是否重名;
+     *          2. @link中是否有重名；
+     *          3. @link使用的node不存在、node指向的参数不存在；
      *
      * @param query  查询语句
      * @param schema 上下文，在上下文中查看是否有所用的指令

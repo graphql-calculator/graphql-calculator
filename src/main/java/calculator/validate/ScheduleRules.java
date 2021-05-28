@@ -16,6 +16,7 @@
  */
 package calculator.validate;
 
+import calculator.engine.annotation.Beta;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -24,10 +25,10 @@ import graphql.util.TraverserContext;
 
 /**
  * 校验内容：
- * <ul>
- *     <li>todo 如果使用了@link，则编排后的图必须还是DAG；</li>
- * </ul>
+ *      "todo 如果使用了@link，则编排后的图必须还是DAG；"
+ *      确认是否只要不再同一个list节点下就可以
  */
+@Beta
 public class ScheduleRules extends AbstractTraverRule {
 
 
@@ -37,7 +38,7 @@ public class ScheduleRules extends AbstractTraverRule {
 
     @Override
     public void visitField(QueryVisitorFieldEnvironment queryVisitorFieldEnvironment) {
-
+        // todo
     }
 
     @Override

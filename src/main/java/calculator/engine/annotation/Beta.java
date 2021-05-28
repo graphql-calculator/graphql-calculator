@@ -14,10 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.validate;
 
+package calculator.engine.annotation;
 
-import graphql.schema.idl.WiringFactory;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class MockedWiringFactory implements WiringFactory {
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PACKAGE;
+import static java.lang.annotation.ElementType.TYPE;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = {PACKAGE, TYPE, FIELD, METHOD, CONSTRUCTOR})
+public @interface Beta {
+    String info() default "";
 }

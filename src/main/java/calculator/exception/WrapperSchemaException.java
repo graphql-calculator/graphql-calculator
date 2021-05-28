@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine.cache;
+package calculator.exception;
 
-public interface Options {
+import graphql.GraphQLException;
 
-    long getCacheForMil();
-
+/**
+ * RuntimeException
+ */
+public class WrapperSchemaException extends GraphQLException {
+    public WrapperSchemaException(String message) {
+        super(message);
+    }
 }

@@ -12,8 +12,8 @@ import org.junit.Test;
 
 import com.googlecode.aviator.AviatorEvaluator;
 
-import calculator.engine.function.NodeFunction;
-import calculator.engine.metadata.FutureTask;
+import calculator.engine.function.GetByNode;
+import calculator.engine.metadata.NodeTask;
 import calculator.engine.metadata.WrapperState;
 
 public class FunctionTest {
@@ -23,10 +23,12 @@ public class FunctionTest {
         WrapperState wrapperState = new WrapperState();
         wrapperState.getSequenceTaskByNode().put("itemId", Arrays.asList("itemInfo.itemId"));
 
-        FutureTask task = FutureTask.newBuilder()
+        NodeTask task = NodeTask.newBuilder()
                 .future(CompletableFuture.completedFuture(1991))
+                .isTopNode(false)
                 .isList(false)
                 .path("itemInfo.itemId")
+                .isAnnotated(true)
                 .build();
         wrapperState.getTaskByPath().put("itemInfo.itemId", task);
 
@@ -34,8 +36,8 @@ public class FunctionTest {
         Map<String, Object> variable = new HashMap<>();
         variable.put(FUNCTION_KEY, wrapperState);
 
-        AviatorEvaluator.addFunction(new NodeFunction());
-        Object funcResult = AviatorEvaluator.execute("node('itemId')", variable, true);
+        AviatorEvaluator.addFunction(new GetByNode());
+        Object funcResult = AviatorEvaluator.execute("getByNode('itemId')", variable, true);
 
         assert Objects.equals(funcResult, 1991);
     }

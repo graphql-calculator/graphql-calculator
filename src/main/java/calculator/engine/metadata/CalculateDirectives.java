@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine;
+package calculator.engine.metadata;
 
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
@@ -30,14 +30,13 @@ import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
 public class CalculateDirectives {
 
-    private static final Map<String, GraphQLDirective> calDirectiveByName;
+    private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
 
     public static Map<String, GraphQLDirective> getCalDirectiveByName() {
-        return calDirectiveByName;
+        return CAL_DIRECTIVE_BY_NAME;
     }
 
-    // skip 的升级版
-    public final static GraphQLDirective skipBy = GraphQLDirective.newDirective()
+    public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
             .description("filter the field by exp.")
             .validLocation(FIELD)
@@ -47,7 +46,7 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    public final static GraphQLDirective mock = GraphQLDirective.newDirective()
+    public final static GraphQLDirective MOCK = GraphQLDirective.newDirective()
             .name("mock")
             .description("cal value for this field by trigger.")
             .validLocation(FIELD)
@@ -58,7 +57,7 @@ public class CalculateDirectives {
             .build();
 
     // 过滤list
-    public final static GraphQLDirective filter = GraphQLDirective.newDirective()
+    public final static GraphQLDirective FILTER = GraphQLDirective.newDirective()
             .name("filter")
             .description("filter the field by exp.")
             .validLocation(FIELD)
@@ -68,7 +67,7 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    public final static GraphQLDirective map = GraphQLDirective.newDirective()
+    public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
             .name("map")
             .description("mapped the field value by exp.")
             .validLocation(FIELD)
@@ -78,7 +77,7 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    public final static GraphQLDirective sortBy = GraphQLDirective.newDirective()
+    public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
             .name("sortBy")
             .description("cal value for this field by trigger.")
             .validLocation(FIELD)
@@ -94,18 +93,18 @@ public class CalculateDirectives {
             .build();
 
 
-    public final static GraphQLDirective node = GraphQLDirective.newDirective()
+    public final static GraphQLDirective NODE = GraphQLDirective.newDirective()
             .name("node")
             .description("cal value for this field by trigger.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    // 可能是基本类型、因此key是可选的
+                    // 可能是基本类型、因此key是可选的 TODO delete
                     .name("name")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    public final static GraphQLDirective link = GraphQLDirective.newDirective()
+    public final static GraphQLDirective LINK = GraphQLDirective.newDirective()
             .name("link")
             .description("cal value for this field by trigger.")
             .validLocation(FIELD)
@@ -123,13 +122,13 @@ public class CalculateDirectives {
 
     static {
         Map<String, GraphQLDirective> tmpMap = new HashMap<>();
-        tmpMap.put(skipBy.getName(), skipBy);
-        tmpMap.put(map.getName(), map);
-        tmpMap.put(filter.getName(), filter);
-        tmpMap.put(mock.getName(), mock);
-        tmpMap.put(sortBy.getName(), sortBy);
-        tmpMap.put(link.getName(), link);
-        tmpMap.put(node.getName(), node);
-        calDirectiveByName = Collections.unmodifiableMap(tmpMap);
+        tmpMap.put(SKIP_BY.getName(), SKIP_BY);
+        tmpMap.put(MAP.getName(), MAP);
+        tmpMap.put(FILTER.getName(), FILTER);
+        tmpMap.put(MOCK.getName(), MOCK);
+        tmpMap.put(SORT_BY.getName(), SORT_BY);
+        tmpMap.put(LINK.getName(), LINK);
+        tmpMap.put(NODE.getName(), NODE);
+        CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

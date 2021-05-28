@@ -22,18 +22,9 @@ package calculator.engine.cache;
  */
 public interface Cache<K, V> {
 
+    /**
+     * @return the name of cache.
+     */
     String getName();
 
-    /**
-     * 缓存没有数据、或者数据失效的时候，使用loader加载数据(
-     *
-     * @return 加载结果，可能为null（@Nullable）
-     */
-    CacheLoader<K, V> getCacheLoader();
-
-    //  get抛出异常时，对异常的处理
-    CacheErrorsHandle<K> getCacheErrorsHandle();
-
-    // 对错误进行处理
-    V get(K key);
 }

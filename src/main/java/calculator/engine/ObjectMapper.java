@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine;
 
-import com.googlecode.aviator.AviatorEvaluator;
+package calculator.engine;
 
 import java.util.Map;
 
-public class ExpCalculator {
+/**
+ * 将普通对象转换为Map
+ */
+public interface ObjectMapper {
 
-    public static Object calExp(String exp, Map<String, Object> arguments) {
-        return AviatorEvaluator.execute(exp, arguments);
-    }
+    ObjectMapper DEFAULT_MAPPER = new ObjectMapperImpl();
 
+    Map<String, Object> toMap(Object object);
 
-    public static boolean isValidExp(String scriptText) {
-        try {
-            AviatorEvaluator.compile(scriptText, true);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
+    Map<String, Object> toNestedMap(Object object);
 }

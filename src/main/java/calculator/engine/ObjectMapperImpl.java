@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator;
 
-import graphql.GraphQLException;
+package calculator.engine;
 
-public class WrapperSchemaException extends GraphQLException {
-    public WrapperSchemaException(String message) {
-        super(message);
+import calculator.engine.annotation.Beta;
+
+import java.util.Map;
+
+@Beta
+public class ObjectMapperImpl implements ObjectMapper{
+
+    @Override
+    public Map<String, Object> toMap(Object object) {
+        return null;
+    }
+
+    @Override
+    public Map<String, Object> toNestedMap(Object object) {
+        return null;
     }
 }

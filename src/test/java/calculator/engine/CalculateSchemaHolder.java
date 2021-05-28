@@ -14,22 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.directives;
+package calculator.engine;
 
-import static calculator.engine.AsyncDataFetcher.async;
+import static calculator.graphql.AsyncDataFetcher.async;
 
-import calculator.TestUtil;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.PropertyDataFetcher;
-import graphql.schema.idl.FieldWiringEnvironment;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
-import graphql.schema.idl.WiringFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -73,7 +68,7 @@ public class CalculateSchemaHolder {
         Map<String, Object> arguments = environment.getArguments();
         List<Integer> ids = (List<Integer>) arguments.get("ids");
 
-        List<Map<String, Object>> userInfoList = new LinkedList<>();
+        List<Map<String, Object>> userInfoList = new ArrayList<>();
         for (Integer id : ids) {
             Map<String, Object> person = new HashMap<>();
             person.put("userId", id);
@@ -94,7 +89,7 @@ public class CalculateSchemaHolder {
         Map<String, Object> arguments = environment.getArguments();
         List<Integer> ids = (List<Integer>) arguments.get("ids");
 
-        List<Map<String, Object>> itemInfoList = new LinkedList<>();
+        List<Map<String, Object>> itemInfoList = new ArrayList<>();
         for (Integer id : ids) {
             Map<String, Object> itemInfo = new HashMap<>();
             itemInfo.put("itemId", id);
@@ -110,7 +105,7 @@ public class CalculateSchemaHolder {
         Map<String, Object> arguments = environment.getArguments();
         List<Integer> ids = (List<Integer>) arguments.get("ids");
 
-        List<Map<String, Object>> stockInfoList = new LinkedList<>();
+        List<Map<String, Object>> stockInfoList = new ArrayList<>();
         for (Integer id : ids) {
             Map<String, Object> itemInfo = new HashMap<>();
             itemInfo.put("itemId", id);
@@ -149,14 +144,6 @@ public class CalculateSchemaHolder {
     };
 
 
-    private static WiringFactory wiringFactory = new WiringFactory() {
-        @Override
-        public DataFetcher getDefaultDataFetcher(FieldWiringEnvironment environment) {
-            String fieldName = environment.getFieldDefinition().getName();
-            return async(new PropertyDataFetcher<Object>(fieldName));
-        }
-    };
-
     public static GraphQLSchema getCalSchema() {
         if (calSchema == null) {
             synchronized (CalculateSchemaHolder.class) {
@@ -172,9 +159,7 @@ public class CalculateSchemaHolder {
                     Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
                     dataFetcherInfo.put("Query", queryFetcher);
 
-                    RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring()
-                            .wiringFactory(wiringFactory)
-                            ;
+                    RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
                     for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {
                         TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
                         runtimeWiring.type(typeWiring);

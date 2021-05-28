@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator;
+package calculator.common;
 
+import calculator.engine.metadata.NodeTask;
 import graphql.Assert;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.execution.ResultPath;
 import graphql.language.Argument;
 import graphql.language.Directive;
-import graphql.language.Field;
 import graphql.language.IntValue;
-import graphql.language.NamedNode;
 import graphql.language.StringValue;
 import graphql.language.Value;
-import graphql.schema.GraphQLTypeUtil;
-import graphql.schema.GraphQLUnmodifiedType;
 
-import java.util.List;
-import java.util.Objects;
-
-public class CommonTools {
+public class Tools {
 
     public static final String PATH_SEPARATOR = "#";
 
@@ -126,6 +120,12 @@ public class CommonTools {
     }
 
 
+    /**
+     * 获取 environment 表示的当前节点的结果路径
+     *
+     * @param environment 被访问的Field节点环境变量
+     * @return 当前节点的绝对路径，用 {@link #PATH_SEPARATOR} 分割
+     */
     public static String visitPath(QueryVisitorFieldEnvironment environment) {
         if (environment == null) {
             return "";
@@ -136,6 +136,26 @@ public class CommonTools {
         }
 
         return visitPath(environment.getParentEnvironment()) + PATH_SEPARATOR + environment.getField().getResultKey();
+    }
+
+
+    // 当前任务是否嵌套在list路径中
+    public static boolean isInListPath(NodeTask<Object> task) {
+        // Query root
+        if (task.getParent() == null) {
+            return false;
+        }
+
+        NodeTask<Object> parentNode = task.getParent();
+        while (parentNode != null) {
+            if (parentNode.isList()) {
+                return true;
+            }
+
+            parentNode = parentNode.getParent();
+        }
+
+        return false;
     }
 
 }
