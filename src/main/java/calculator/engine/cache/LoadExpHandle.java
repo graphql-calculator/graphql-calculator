@@ -16,12 +16,13 @@
  */
 package calculator.engine.cache;
 
+public interface LoadExpHandle<K> {
 
-public final class DefaultCache<K, V> implements Cache<K, V> {
-
-    @Override
-    public final String getName() {
-        return "DefaultCache";
-    }
-
+    /**
+     * 当有错误的时候，调用到这里
+     *
+     * @param key key
+     * @param ex  exception
+     */
+    void handle(K key, Throwable ex);
 }

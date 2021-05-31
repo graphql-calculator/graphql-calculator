@@ -16,32 +16,34 @@
  */
 package calculator.engine;
 
-import calculator.WrapperSchemaException;
+import calculator.exception.WrapperSchemaException;
 import calculator.config.Config;
-import calculator.engine.function.NodeFunction;
-import com.googlecode.aviator.AviatorEvaluator;
+import calculator.engine.function.FindOne;
+import calculator.engine.function.GetByNode;
+import calculator.engine.function.ToMap;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import static calculator.engine.CalculateDirectives.getCalDirectiveByName;
-import static calculator.engine.CalculateDirectives.filter;
-import static calculator.engine.CalculateDirectives.link;
-import static calculator.engine.CalculateDirectives.map;
-import static calculator.engine.CalculateDirectives.mock;
-import static calculator.engine.CalculateDirectives.node;
-import static calculator.engine.CalculateDirectives.skipBy;
-import static calculator.engine.CalculateDirectives.sortBy;
+import static calculator.engine.metadata.CalculateDirectives.getCalDirectiveByName;
+import static calculator.engine.metadata.CalculateDirectives.FILTER;
+import static calculator.engine.metadata.CalculateDirectives.LINK;
+import static calculator.engine.metadata.CalculateDirectives.MAP;
+import static calculator.engine.metadata.CalculateDirectives.MOCK;
+import static calculator.engine.metadata.CalculateDirectives.NODE;
+import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
+import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 /**
  * 将已有的schema封装为具有运行时计算行为的schema。
  */
-public class Wrapper {
+public class SchemaWrapper {
 
     /**
      * 包装schema
@@ -56,18 +58,17 @@ public class Wrapper {
         GraphQLSchema.Builder wrappedSchemaBuilder = GraphQLSchema.newSchema(existingSchema);
 
         // 将配置中的指令放到schema中
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(skipBy);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(mock);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(filter);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(map);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(sortBy);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SKIP_BY);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MOCK);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(FILTER);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MAP);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT_BY);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
 
-        if (config.isScheduleEnabled()) {
-            wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(node);
-            wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(link);
-            config.getAviatorEvaluator().addFunction(new NodeFunction());
-        }
-
+        config.getAviatorEvaluator().addFunction(new GetByNode());
+        config.getAviatorEvaluator().addFunction(new ToMap());
+        config.getAviatorEvaluator().addFunction(new FindOne());
         for (AviatorFunction function : config.functions()) {
             config.getAviatorEvaluator().addFunction(function);
         }
@@ -79,9 +80,6 @@ public class Wrapper {
      * 检查
      * 1. 指定的指令是否是 计算指令；
      * 2. schema中是否有已经有同名的指令；
-     *
-     * @param config
-     * @param existingSchema
      */
     private static void check(Config config, GraphQLSchema existingSchema) {
         Set<String> schemaDirsName = existingSchema.getDirectives().stream().map(GraphQLDirective::getName).collect(toSet());
@@ -93,20 +91,18 @@ public class Wrapper {
             throw new WrapperSchemaException(errorMsg);
         }
 
-        /**
-         * 使用的是全局唯一执行器 {@link AviatorEvaluator.StaticHolder}
-         */
-        Set<String> engineFunctions = config.getAviatorEvaluator().getFuncMap().keySet();
-        List<AviatorFunction> duplicateFunc = config.functions().stream().filter(engineFunctions::contains).collect(toList());
-        if (!duplicateDir.isEmpty()) {
-            String errorMsg = String.format("function named %s is already exist in Aviator Engine.", duplicateFunc);
+        // todo 不要这样硬编码
+        List<String> engineFunc = Arrays.asList("getByNode", "toMap", "findOne");
+        List<String> duplicateFuncNames = config.functions().stream()
+                .filter(function ->
+                        config.getAviatorEvaluator().containsFunction(function.getName())
+                                || engineFunc.contains(function.getName())
+                )
+                .map(AviatorFunction::getName).collect(toList());
+
+        if (!duplicateFuncNames.isEmpty()) {
+            String errorMsg = String.format("function named %s is already exist in Aviator Engine or engineFunc.", duplicateFuncNames);
             throw new WrapperSchemaException(errorMsg);
-        }
-
-
-        // @node 和 @link
-        if (config.isScheduleEnabled()) {
-            // todo 应该也不需要做什么特殊的校验
         }
     }
 }

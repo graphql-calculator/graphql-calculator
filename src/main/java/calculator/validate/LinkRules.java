@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static calculator.CommonTools.getArgumentFromDirective;
+import static calculator.common.Tools.getArgumentFromDirective;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -131,9 +131,7 @@ public class LinkRules extends AbstractTraverRule {
         if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
             return;
         }
-
         // todo
-
     }
 
     @Override
@@ -141,7 +139,6 @@ public class LinkRules extends AbstractTraverRule {
         if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
             return;
         }
-
         // todo
     }
 }

@@ -17,43 +17,50 @@
 
 package calculator.engine.metadata;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-public class FutureTask<T> {
+public class NodeTask<T> {
 
     // 是否是query下的字段
     // 当前字段所表示的任务执行完毕、则其子实体(数组实体)所表示的任务则也一定完成
-    private boolean isTopNode;
+    private final boolean isTopNode;
 
     // for debug
-    private String path;
+    private final String path;
 
-    // 是否是list下的元素
-    private boolean isList;
+    // 当前节点是否是 list节点、并且不是叶子节点
+    private final boolean isList;
 
-    private List tmpResult = Collections.synchronizedList(new LinkedList());
+    // 当前节点是否是被 @node 注视的节点
+    private final boolean isAnnotated;
 
-    private CompletableFuture<T> future;
+    // 如果是list路径下的节点，则在最后一个节点计算完成前，将结果暂存在 tmpResult 中
+    // todo 确认是否需要线程安全(graphql-java是同步遍历list中的元素)
+    private final List<Object> tmpResult = Collections.synchronizedList(new ArrayList());
 
-    private FutureTask parent;
+    private final CompletableFuture<T> future;
 
-    private List<FutureTask> subTaskList = new LinkedList<>();
+    private final NodeTask<T> parent;
 
-    public void addSubTaskList(FutureTask subTask) {
+    private final List<NodeTask<T>> subTaskList = new ArrayList<>();
+
+    public void addSubTaskList(NodeTask<T> subTask) {
         subTaskList.add(subTask);
     }
 
-    public List<FutureTask> getSubTaskList() {
+    public List<NodeTask<T>> getSubTaskList() {
         return subTaskList;
     }
 
-    private FutureTask(boolean isTopNode, String path, boolean isList, CompletableFuture<T> future, FutureTask parent) {
+    private NodeTask(boolean isTopNode, String path, boolean isList, boolean isAnnotated, CompletableFuture<T> future, NodeTask<T> parent) {
+        this.isTopNode = isTopNode;
         this.path = path;
         this.isList = isList;
+        this.isAnnotated = isAnnotated;
         this.future = future;
         this.parent = parent;
     }
@@ -79,59 +86,67 @@ public class FutureTask<T> {
         return future;
     }
 
-    public FutureTask getParent() {
+    public NodeTask<T> getParent() {
         return parent;
     }
 
-    public static FutureTaskBuilder newBuilder() {
-        return new FutureTaskBuilder();
+    public static <T> FutureTaskBuilder<T> newBuilder() {
+        return new FutureTaskBuilder<T>();
     }
 
     public static class FutureTaskBuilder<T> {
 
-        private boolean isTopNode;
+        private Boolean isTopNode;
 
         private String path;
 
         private Boolean isList;
 
-        private CompletableFuture future;
+        private Boolean isAnnotated;
 
-        private FutureTask parent;
+        private CompletableFuture<T> future;
+
+        private NodeTask<T> parent;
 
 
-        public FutureTaskBuilder isTopNode(boolean isTopNode) {
+        public FutureTaskBuilder<T> isTopNode(boolean isTopNode) {
             this.isTopNode = isTopNode;
             return this;
         }
 
-        public FutureTaskBuilder path(String path) {
+        public FutureTaskBuilder<T> path(String path) {
             this.path = path;
             return this;
         }
 
-        public FutureTaskBuilder isList(boolean val) {
+        public FutureTaskBuilder<T> isList(boolean val) {
             this.isList = val;
             return this;
         }
 
-        public FutureTaskBuilder future(CompletableFuture future) {
+        public FutureTaskBuilder<T> isAnnotated(boolean val) {
+            this.isAnnotated = val;
+            return this;
+        }
+
+        public FutureTaskBuilder<T> future(CompletableFuture<T> future) {
             this.future = future;
             return this;
         }
 
-        public FutureTaskBuilder parent(FutureTask parent) {
+        public FutureTaskBuilder<T> parent(NodeTask<T> parent) {
             this.parent = parent;
             return this;
         }
 
-        public FutureTask build() {
+        public NodeTask<T> build() {
+            Objects.requireNonNull(isTopNode);
             Objects.requireNonNull(path);
             Objects.requireNonNull(isList);
+            Objects.requireNonNull(isAnnotated);
             Objects.requireNonNull(future);
 
-            return new FutureTask(isTopNode, path, isList, future, parent);
+            return new NodeTask(isTopNode, path, isList, isAnnotated, future, parent);
         }
-
     }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator;
+package calculator.engine;
 
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
@@ -24,6 +24,8 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class TestUtil {
@@ -52,6 +54,41 @@ public class TestUtil {
         }
 
         return tmpRes;
+    }
+
+    // 判断两个list是否含有相同的元素、忽略顺序
+    public static boolean listsWithSameElements(List l1, List l2) {
+        if (l1 == l2) {
+            return true;
+        }
+
+        if (l1 == null || l2 == null) {
+            return false;
+        }
+
+        if (l1.size() != l2.size()) {
+            return false;
+        }
+
+        ArrayList new1List = new ArrayList(l1);
+        ArrayList new2List = new ArrayList(l2);
+
+
+        try {
+            for (Object l1Ele : new1List) {
+                if (new2List.contains(l1Ele)) {
+                    // remove: Removes the first occurrence of the specified element from this list.
+                    new2List.remove(l1Ele);
+                } else {
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        // 对于重复的
+        return new2List.size() == 0;
     }
 
 }

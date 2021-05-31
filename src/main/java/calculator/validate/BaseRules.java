@@ -16,7 +16,7 @@
  */
 package calculator.validate;
 
-import calculator.CommonTools;
+import calculator.common.Tools;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -30,29 +30,28 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.CommonTools.isValidEleName;
-import static calculator.CommonTools.pathForTraverse;
-import static calculator.engine.CalculateDirectives.filter;
-import static calculator.engine.CalculateDirectives.mock;
-import static calculator.engine.CalculateDirectives.node;
-import static calculator.engine.CalculateDirectives.skipBy;
-import static calculator.engine.CalculateDirectives.sortBy;
-import static calculator.engine.ExpCalculator.isValidExp;
-
+import static calculator.common.Tools.isValidEleName;
+import static calculator.common.Tools.pathForTraverse;
+import static calculator.engine.metadata.CalculateDirectives.FILTER;
+import static calculator.engine.metadata.CalculateDirectives.MOCK;
+import static calculator.engine.metadata.CalculateDirectives.NODE;
+import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
+import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
+import static calculator.engine.function.ExpEvaluator.isValidExp;
 
 
 /**
  * 基本校验：
- *      skipBy 表达式不为空且合法；
- *      filter 表达式不为空且合法；
- *      filter 必须放在list节点；
- *      sortBy 必须定义在list上；
- *      sortBy 的key必须存在于子元素中；
- *      node 名称必须有效；
- *      node 名称不能重复；
+ * skipBy 表达式不为空且合法；
+ * filter 表达式不为空且合法；
+ * filter 必须放在list节点；
+ * sortBy 必须定义在list上；
+ * sortBy 的key必须存在于子元素中；
+ * node 名称必须有效；
+ * node 名称不能重复；
  * todo 别名的判断和出错信息打印；
- *      片段的判断和出错信息打印；
- *      sortBy支持自定义函数；
+ * 片段的判断和出错信息打印；
+ * sortBy支持自定义函数；
  */
 public class BaseRules extends AbstractTraverRule {
 
@@ -87,8 +86,8 @@ public class BaseRules extends AbstractTraverRule {
             String directiveName = directive.getName();
             // 如果是node、则查看是否已经在中保存过
 
-            if (Objects.equals(directiveName, skipBy.getName())) {
-                String exp = (String) CommonTools.parseValue(
+            if (Objects.equals(directiveName, SKIP_BY.getName())) {
+                String exp = (String) Tools.parseValue(
                         directive.getArgument("exp").getValue()
                 );
 
@@ -102,10 +101,10 @@ public class BaseRules extends AbstractTraverRule {
                     addValidError(location, errorMsg);
                 }
 
-            } else if (Objects.equals(directiveName, mock.getName())) {
+            } else if (Objects.equals(directiveName, MOCK.getName())) {
                 //注意，value可以为空串、模拟返回结果为空的情况；
 
-            } else if (Objects.equals(directiveName, filter.getName())) {
+            } else if (Objects.equals(directiveName, FILTER.getName())) {
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
                     String errorMsg = String.format("predicate must define on list type, instead @%s.", fieldPath);
@@ -113,7 +112,7 @@ public class BaseRules extends AbstractTraverRule {
                     continue;
                 }
 
-                String predicate = (String) CommonTools.parseValue(
+                String predicate = (String) Tools.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
                 if (predicate == null || predicate.isEmpty()) {
@@ -127,7 +126,7 @@ public class BaseRules extends AbstractTraverRule {
                     addValidError(location, errorMsg);
                 }
 
-            } else if (Objects.equals(directiveName, sortBy.getName())) {
+            } else if (Objects.equals(directiveName, SORT_BY.getName())) {
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
                     String errorMsg = String.format("key must define on list type, instead @%s.", fieldPath);
@@ -135,7 +134,7 @@ public class BaseRules extends AbstractTraverRule {
                     continue;
                 }
 
-                String key = (String) CommonTools.parseValue(
+                String key = (String) Tools.parseValue(
                         directive.getArgument("key").getValue()
                 );
                 if (key == null || key.isEmpty()) {
@@ -154,8 +153,8 @@ public class BaseRules extends AbstractTraverRule {
                     addValidError(location, errorMsg);
                     continue;
                 }
-            } else if (Objects.equals(directiveName, node.getName())) {
-                String nodeName = (String) CommonTools.parseValue(
+            } else if (Objects.equals(directiveName, NODE.getName())) {
+                String nodeName = (String) Tools.parseValue(
                         directive.getArgument("name").getValue()
                 );
 

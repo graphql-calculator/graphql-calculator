@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package calculator.engine;
+package calculator.graphql;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -26,19 +26,21 @@ import java.util.concurrent.ForkJoinPool;
 
 import static graphql.Assert.assertNotNull;
 
-public class AsyncDataFetcherWithGetter<T> implements DataFetcher<CompletableFuture<T>> {
+/**
+ * 比 graphql-java 多两个 getter 方法，等17.0版本release后替换为 graphql-java 的 AsyncDataFetcher
+ */
+public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>> {
 
-    public static <T> graphql.schema.AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {
-        return new graphql.schema.AsyncDataFetcher<>(wrappedDataFetcher);
+    public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {
+        return new AsyncDataFetcher<>(wrappedDataFetcher);
     }
 
-    public static <T> graphql.schema.AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher, Executor executor) {
-        return new graphql.schema.AsyncDataFetcher<>(wrappedDataFetcher, executor);
+    public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher, Executor executor) {
+        return new AsyncDataFetcher<>(wrappedDataFetcher, executor);
     }
 
     private final DataFetcher<T> wrappedDataFetcher;
     private final Executor executor;
-
 
     public DataFetcher<T> getWrappedDataFetcher() {
         return wrappedDataFetcher;
@@ -48,11 +50,11 @@ public class AsyncDataFetcherWithGetter<T> implements DataFetcher<CompletableFut
         return executor;
     }
 
-    public AsyncDataFetcherWithGetter(DataFetcher<T> wrappedDataFetcher) {
+    public AsyncDataFetcher(DataFetcher<T> wrappedDataFetcher) {
         this(wrappedDataFetcher, ForkJoinPool.commonPool());
     }
 
-    public AsyncDataFetcherWithGetter(DataFetcher<T> wrappedDataFetcher, Executor executor) {
+    public AsyncDataFetcher(DataFetcher<T> wrappedDataFetcher, Executor executor) {
         this.wrappedDataFetcher = assertNotNull(wrappedDataFetcher, () -> "wrappedDataFetcher can't be null");
         this.executor = assertNotNull(executor, () -> "executor can't be null");
     }
@@ -73,4 +75,3 @@ public class AsyncDataFetcherWithGetter<T> implements DataFetcher<CompletableFut
     }
 
 }
-

@@ -18,8 +18,8 @@ package calculator.engine.function;
 
 import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
 
+import calculator.engine.annotation.Beta;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
-import com.googlecode.aviator.runtime.type.AviatorJavaType;
 import com.googlecode.aviator.runtime.type.AviatorNil;
 import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
@@ -27,16 +27,14 @@ import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
 import java.util.Collections;
 import java.util.Map;
 
-import calculator.engine.metadata.FutureTask;
+import calculator.engine.metadata.NodeTask;
 import calculator.engine.metadata.WrapperState;
 import com.googlecode.aviator.runtime.type.AviatorString;
 
-/**
- * todo: take ScheduleState as env.
- */
-public class NodeFunction extends AbstractFunction {
+@Beta
+public class GetByNode extends AbstractFunction {
 
-    private static final String FUNCTION_NAME = "node";
+    private static final String FUNCTION_NAME = "getByNode";
 
     @Override
     public String getName() {
@@ -56,7 +54,7 @@ public class NodeFunction extends AbstractFunction {
         }
 
         String taskPath = state.getSequenceTaskByNode().get(nodeName).get(0);
-        FutureTask<Object> futureTask = state.getTaskByPath().get(taskPath);
+        NodeTask<Object> futureTask = state.getTaskByPath().get(taskPath);
         Object taskResult = futureTask.getFuture().join();
 
         return AviatorRuntimeJavaType.valueOf(taskResult);

@@ -14,15 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * 用于实现缓存指令。
+ *
+ * kp：缓存并不涉及到数据的计算、好像不应该在这个项目中实现、而且最优的实现方式应该是 自定义指令+自定义DataFetcher；
+ *     但是 自定义指令+自定义DataFetcher 对于入门开发者来说也有很大学习和试错成本，因此在此项目进行一些探索、实现
+ *     仍然含有很大意义。
+ *
+ * cache(cacheName:String,maxSize:Int,refreshAfterWrite:Int,expireAfterWrite:Int,expireAfterAccess:Int,ext:String)
+ *
+ * - cacheName：使用的缓存名称
+ * - ext: 额外配置；
+ * - 其他：同guava；
+ */
+
+@Beta
 package calculator.engine.cache;
 
-public interface CacheErrorsHandle<K> {
-
-    /**
-     * 当有错误的时候，调用到这里
-     *
-     * @param key key
-     * @param ex  exception
-     */
-    void handle(K key, Throwable ex);
-}
+import calculator.engine.annotation.Beta;

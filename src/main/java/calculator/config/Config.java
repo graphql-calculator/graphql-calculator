@@ -17,20 +17,21 @@
 package calculator.config;
 
 
-import com.googlecode.aviator.AviatorEvaluator;
+import calculator.engine.ObjectMapper;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 
+import java.util.Collections;
 import java.util.List;
 
 public interface Config {
 
-    AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
-
-    boolean isScheduleEnabled();
-
-    List<AviatorFunction> functions();
+    Config DEFAULT_CONFIG = new ConfigImpl(null, Collections.emptyList(), null);
 
     // 指定 执行器 是为了防止公用的用问题，例如同名函数
     AviatorEvaluatorInstance getAviatorEvaluator();
+
+    List<AviatorFunction> functions();
+
+    ObjectMapper getObjectMapper();
 }

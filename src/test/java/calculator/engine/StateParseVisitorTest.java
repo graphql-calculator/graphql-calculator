@@ -15,13 +15,9 @@
  * limitations under the License.
  */
 
-package calculator.directives;
+package calculator.engine;
 
 import calculator.config.ConfigImpl;
-import calculator.engine.StateParseVisitor;
-import calculator.engine.Wrapper;
-import calculator.engine.function.FindOneFunction;
-import calculator.engine.function.NodeFunction;
 import calculator.engine.metadata.WrapperState;
 import graphql.analysis.QueryTraverser;
 import graphql.parser.Parser;
@@ -31,15 +27,16 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static calculator.directives.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.TestUtil.listsWithSameElements;
+import static calculator.engine.CalculateSchemaHolder.getCalSchema;
 
 public class StateParseVisitorTest {
 
-    private static ConfigImpl baseConfig = ConfigImpl.newConfig().isScheduleEnabled(false).build();
+    private static ConfigImpl baseConfig = ConfigImpl.newConfig().build();
 
 
     @Test
-    public void testParseNestedNodeListTask(){
+    public void testParseNestedNodeListTask() {
         String query = "query {\n" +
                 "    item{\n" +
                 "        couponList{\n" +
@@ -57,7 +54,7 @@ public class StateParseVisitorTest {
                 "    }\n" +
                 "}";
 
-        GraphQLSchema wrappedSchema = Wrapper.wrap(baseConfig, getCalSchema());
+        GraphQLSchema wrappedSchema = SchemaWrapper.wrap(baseConfig, getCalSchema());
 
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
                 .schema(wrappedSchema)
@@ -65,14 +62,14 @@ public class StateParseVisitorTest {
                 .variables(Collections.emptyMap()).build();
 
         WrapperState state = new WrapperState();
-        StateParseVisitor visitor = StateParseVisitor.newInstanceWithState(state);
+        StateParser visitor = StateParser.newInstanceWithState(state);
         traverser.visitDepthFirst(visitor);
 
-        assert state.getTaskByPath().size() == 6;
+        assert state.getTaskByPath().size() == 7;
         assert state.getSequenceTaskByNode().size() == 3;
-        assert state.getSequenceTaskByNode().get("itemCIdS").equals(Arrays.asList("item#couponList","item#couponList#couponId"));
-        assert state.getSequenceTaskByNode().get("itemListCIdS").equals(Arrays.asList("itemList","itemList#couponList","itemList#couponList#couponId"));
-        assert state.getSequenceTaskByNode().get("itemLimitationList").equals(Arrays.asList("item#couponList","item#couponList#limitation"));
+        assert state.getSequenceTaskByNode().get("itemCIdS").equals(Arrays.asList("item", "item#couponList", "item#couponList#couponId"));
+        assert listsWithSameElements(state.getSequenceTaskByNode().get("itemLimitationList"),(Arrays.asList("item", "item#couponList", "item#couponList#limitation")));
+        assert state.getSequenceTaskByNode().get("itemListCIdS").equals(Arrays.asList("itemList", "itemList#couponList", "itemList#couponList#couponId"));
 
         assert state.getTaskByPath().get("itemList").getSubTaskList().size() == 1;
         assert state.getTaskByPath().get("itemList#couponList").getSubTaskList().size() == 1;

@@ -17,21 +17,21 @@
 package calculator.validate;
 
 import calculator.config.ConfigImpl;
-import calculator.engine.Wrapper;
+import calculator.engine.SchemaWrapper;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
 
-import static calculator.directives.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.CalculateSchemaHolder.getCalSchema;
 
 public class CalValidationUtilTest {
 
-    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().isScheduleEnabled(true).build();
+    private ConfigImpl scheduleConfig = ConfigImpl.newConfig().build();
 
     @Test
     public void unusedNodeTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
+        GraphQLSchema wrappedSchema = SchemaWrapper.wrap(scheduleConfig, getCalSchema());
 
         String query = "query { \n" +
                 "            userInfo @node(name: \"X\") {\n" +
@@ -52,7 +52,7 @@ public class CalValidationUtilTest {
 
     @Test
     public void duplicateNodeTest() {
-        GraphQLSchema wrappedSchema = Wrapper.wrap(scheduleConfig, getCalSchema());
+        GraphQLSchema wrappedSchema = SchemaWrapper.wrap(scheduleConfig, getCalSchema());
         String query = "query($userId:Int){\n" +
                 "    userInfo(id:$userId){\n" +
                 "        preferredItemIdList @node(name:\"ids\")\n" +

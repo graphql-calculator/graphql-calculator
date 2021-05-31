@@ -17,10 +17,9 @@
 
 package calculator.engine.cache;
 
-public interface CacheLoader<T, V> {
-
-    // 执行一次实际的请求
-    V load(T key) throws Exception;
-
-//    V reLoad(T key) throws Exception;
+public interface CacheLoader<K, V> {
+    /**
+     * @return the name of CacheLoader.
+     */
+    String getName();
 }

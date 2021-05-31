@@ -16,35 +16,40 @@
  */
 package calculator.config;
 
+import calculator.engine.ObjectMapper;
+import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * 默认配置实现
  */
 public class ConfigImpl implements Config {
 
-    private boolean isScheduleEnabled;
+    private static final AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
 
-    private List<AviatorFunction> functionList;
+    private final List<AviatorFunction> functionList;
 
-    private AviatorEvaluatorInstance evaluatorInstance;
+    private final AviatorEvaluatorInstance aviatorEvaluator;
 
-    public ConfigImpl(boolean isScheduleEnabled, AviatorEvaluatorInstance evaluatorInstance, List<AviatorFunction> functionList) {
-        this.isScheduleEnabled = isScheduleEnabled;
-        this.evaluatorInstance = Optional.ofNullable(evaluatorInstance).orElse(Config.DEFAULT_EVALUATOR);
+    private final ObjectMapper objectMapper;
+
+    public ConfigImpl(AviatorEvaluatorInstance aviatorEvaluator,
+                      List<AviatorFunction> functionList,
+                      ObjectMapper objectMapper) {
+        this.aviatorEvaluator = aviatorEvaluator != null ? aviatorEvaluator : DEFAULT_EVALUATOR;
         this.functionList = functionList;
+        this.objectMapper = objectMapper != null ? objectMapper : ObjectMapper.DEFAULT_MAPPER;
     }
 
     @Override
-    public boolean isScheduleEnabled() {
-        return isScheduleEnabled;
+    public AviatorEvaluatorInstance getAviatorEvaluator() {
+        return aviatorEvaluator;
     }
 
     @Override
@@ -53,9 +58,10 @@ public class ConfigImpl implements Config {
     }
 
     @Override
-    public AviatorEvaluatorInstance getAviatorEvaluator() {
-        return evaluatorInstance;
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
+
 
     public static Builder newConfig() {
         return new Builder();
@@ -63,36 +69,37 @@ public class ConfigImpl implements Config {
 
     public static class Builder {
 
-        private boolean isScheduleEnabled;
+        private AviatorEvaluatorInstance aviatorEvaluator;
 
-        private AviatorEvaluatorInstance evaluatorInstance;
+        private final List<AviatorFunction> functionList = new ArrayList<>();
 
-        private List<AviatorFunction> functionList = new LinkedList<>();
+        private ObjectMapper objectMapper;
 
-        public Builder isScheduleEnabled(boolean val) {
-            isScheduleEnabled = val;
-            return this;
-        }
-
-        public Builder evaluatorInstance(AviatorEvaluatorInstance evaluatorInstance) {
-            this.evaluatorInstance = evaluatorInstance;
+        public Builder evaluatorInstance(AviatorEvaluatorInstance aviatorEvaluator) {
+            Objects.requireNonNull(aviatorEvaluator, "aviatorEvaluator can not be null.");
+            this.aviatorEvaluator = aviatorEvaluator;
             return this;
         }
 
         public Builder function(AviatorFunction function) {
-            Objects.requireNonNull(function, "function can't be null.");
+            Objects.requireNonNull(function, "function can not be null.");
             this.functionList.add(function);
             return this;
         }
 
+        public Builder objectMapper(ObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
+            return this;
+        }
+
         public Builder functionList(List<AviatorFunction> functionList) {
-            Objects.requireNonNull(functionList, "functionList can't be null.");
+            Objects.requireNonNull(functionList, "functionList can not be null.");
             this.functionList.addAll(functionList);
             return this;
         }
 
         public ConfigImpl build() {
-            return new ConfigImpl(isScheduleEnabled, evaluatorInstance, functionList);
+            return new ConfigImpl(aviatorEvaluator, functionList, objectMapper);
         }
     }
 }
