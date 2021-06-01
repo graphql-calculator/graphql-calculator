@@ -114,3 +114,14 @@
 #        }
 #    }
 #}
+
+
+# 过滤掉小于5的参数
+#query ($itemIds:[Int]){
+#    itemList(ids: $itemIds) @paramTransform(type: FILTER,name: "ids",exp: "param>10")
+#    {
+#        itemId
+#        name
+#        stockAmount
+#    }
+#}

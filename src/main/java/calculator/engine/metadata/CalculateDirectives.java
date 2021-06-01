@@ -18,6 +18,8 @@ package calculator.engine.metadata;
 
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLEnumValueDefinition;
 import graphql.schema.GraphQLNonNull;
 
 import java.util.Collections;
@@ -28,6 +30,13 @@ import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
+/**
+ * the customized directives which to be provided to describe runtime operation,
+ *
+ * including query execution, type validation.
+ *
+ * details in https://spec.graphql.org/draft/#sec-Language.Directives.
+ */
 public class CalculateDirectives {
 
     private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
@@ -99,7 +108,6 @@ public class CalculateDirectives {
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    // 可能是基本类型、因此key是可选的 TODO delete
                     .name("name")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
@@ -118,6 +126,57 @@ public class CalculateDirectives {
                     .type(GraphQLString))
             .build();
 
+    public enum ParamTransformType {
+        MAP("map"), MAP_LIST("mapList"), FILTER("filter");
+
+        String name;
+
+        ParamTransformType(String name) {
+            this.name = name;
+        }
+    }
+
+    public static final GraphQLEnumType PARAM_TRANSFORM_TYPE = GraphQLEnumType.newEnum()
+            .name("ParamTransformType")
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("MAP")
+//                            .value(ParamTransformType.MAP)
+                            .description("transform the argument by exp.").build()
+
+            )
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("MAP_LIST")
+//                            .value(ParamTransformType.MAP_LIST)
+                            .description("transform each argument element by exp.").build()
+            )
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("FILTER")
+//                            .value(ParamTransformType.FILTER)
+                            .description("filter the argument element by exp.").build()
+            ).build();
+
+    public final static GraphQLDirective PARAM_TRANSFORM = GraphQLDirective.newDirective()
+            .name("paramTransform")
+            .description("transform the argument by exp.")
+            .validLocation(FIELD)
+            .repeatable(true)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("name")
+                    .description("the argument name defined on the annotated field.")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("type")
+                    .type(GraphQLNonNull.nonNull(PARAM_TRANSFORM_TYPE)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("exp")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .build();
 
     static {
         Map<String, GraphQLDirective> tmpMap = new HashMap<>();
@@ -128,6 +187,7 @@ public class CalculateDirectives {
         tmpMap.put(SORT_BY.getName(), SORT_BY);
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
+        tmpMap.put(PARAM_TRANSFORM.getName(),PARAM_TRANSFORM);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

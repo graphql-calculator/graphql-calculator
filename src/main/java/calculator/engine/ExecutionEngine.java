@@ -65,13 +65,14 @@ import static calculator.common.Tools.isInListPath;
 import static calculator.engine.metadata.CalculateDirectives.FILTER;
 import static calculator.engine.metadata.CalculateDirectives.MAP;
 import static calculator.engine.metadata.CalculateDirectives.MOCK;
+import static calculator.engine.metadata.CalculateDirectives.PARAM_TRANSFORM;
 import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
 import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
 import static calculator.engine.function.ExpEvaluator.calExp;
 import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
+import static calculator.graphql.AsyncDataFetcher.async;
 import static graphql.execution.Async.toCompletableFuture;
 import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
-import static graphql.schema.AsyncDataFetcher.async;
 import static java.util.stream.Collectors.toList;
 import static calculator.engine.metadata.CalculateDirectives.LINK;
 
@@ -400,6 +401,15 @@ public class ExecutionEngine implements Instrumentation {
                 defaultDF = wrapSortByDF(defaultDF, sortExp, reversed, instrumentationParameters.getInstrumentationState());
                 continue;
             }
+
+            if(Objects.equals(PARAM_TRANSFORM.getName(), directive.getName())){
+                String name = getArgumentFromDirective(directive, "name");
+                String exp = getArgumentFromDirective(directive, "exp");
+                String typeName = getArgumentFromDirective(directive, "type");
+                defaultDF = transformParamDF(name, exp, typeName, defaultDF);
+                continue;
+            }
+
         }
 
         //  skipBy放在最外层包装，因为如果跳过该字段，其他逻辑也不必在执行
@@ -503,6 +513,50 @@ public class ExecutionEngine implements Instrumentation {
         }
         result.put(FUNCTION_KEY, state);
         return result;
+    }
+
+
+    // todo 校验 name 必须存在与 query 中
+    // todo 校验 exp 必须是可编译的
+    // typeName: String -> Enum
+    private DataFetcher<?> transformParamDF(String name, String exp, String typeName, DataFetcher<?> defaultDF) {
+        final DataFetcher<?> finalDF;
+        final Executor exec;
+        if (defaultDF instanceof AsyncDataFetcher) {
+            finalDF = ((AsyncDataFetcher) defaultDF).getWrappedDataFetcher();
+            exec = ((AsyncDataFetcher) defaultDF).getExecutor();
+        } else {
+            finalDF = defaultDF;
+            exec = executor;
+        }
+
+        DataFetcher<?> wrappedFetcher = environment -> {
+            if (Objects.equals(typeName, "FILTER")) {
+                List<Object> argument = environment.getArgumentOrDefault(name, Collections.emptyList());
+                if (argument == null) {
+                    return finalDF.get(environment);
+                }
+
+                argument = argument.stream().filter(ele -> {
+                    Boolean isValid = (Boolean) aviatorEvaluator.execute(exp, Collections.singletonMap("param", ele));
+                    return isValid != null && isValid;
+                }).collect(toList());
+
+                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                newArguments.put(name, argument);
+                DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
+                        .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+                return finalDF.get(newEnvironment);
+            }
+
+
+            return finalDF.get(environment);
+        };
+        if (defaultDF instanceof AsyncDataFetcher) {
+            return async(wrappedFetcher, exec);
+        } else {
+            return wrappedFetcher;
+        }
     }
 
 }

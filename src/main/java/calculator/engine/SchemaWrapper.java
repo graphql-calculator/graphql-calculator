@@ -29,14 +29,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static calculator.engine.metadata.CalculateDirectives.PARAM_TRANSFORM_TYPE;
 import static calculator.engine.metadata.CalculateDirectives.getCalDirectiveByName;
-import static calculator.engine.metadata.CalculateDirectives.FILTER;
-import static calculator.engine.metadata.CalculateDirectives.LINK;
-import static calculator.engine.metadata.CalculateDirectives.MAP;
-import static calculator.engine.metadata.CalculateDirectives.MOCK;
-import static calculator.engine.metadata.CalculateDirectives.NODE;
-import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -57,14 +51,13 @@ public class SchemaWrapper {
 
         GraphQLSchema.Builder wrappedSchemaBuilder = GraphQLSchema.newSchema(existingSchema);
 
-        // 将配置中的指令放到schema中
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SKIP_BY);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MOCK);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(FILTER);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MAP);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT_BY);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
+        // add calculator directives to schema
+        for (GraphQLDirective calDirective : getCalDirectiveByName().values()) {
+            wrappedSchemaBuilder.additionalDirective(calDirective);
+        }
+
+        // add calculator type to schema
+        wrappedSchemaBuilder.additionalType(PARAM_TRANSFORM_TYPE);
 
         config.getAviatorEvaluator().addFunction(new GetByNode());
         config.getAviatorEvaluator().addFunction(new ToMap());
