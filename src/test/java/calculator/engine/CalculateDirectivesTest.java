@@ -48,7 +48,7 @@ public class CalculateDirectivesTest {
     static {
         wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema());
         graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(newInstance(Config.DEFAULT_CONFIG.getAviatorEvaluator(), Config.DEFAULT_CONFIG.getObjectMapper()))
+                .instrumentation(newInstance(Config.DEFAULT_CONFIG))
                 .build();
     }
 

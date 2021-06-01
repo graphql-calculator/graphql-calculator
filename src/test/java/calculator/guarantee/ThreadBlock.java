@@ -23,10 +23,10 @@ import static calculator.engine.ExecutionEngine.newInstance;
 import java.util.Arrays;
 import java.util.Collections;
 
+import calculator.config.Config;
 import calculator.engine.ExecutionEngine;
 import org.junit.Test;
 
-import calculator.config.ConfigImpl;
 import calculator.engine.SchemaWrapper;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -34,9 +34,8 @@ import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 
 public class ThreadBlock {
-    private static ConfigImpl configImpl = ConfigImpl.newConfig().build();
-    private static GraphQLSchema wrappedSchema = SchemaWrapper.wrap(configImpl, getCalSchema());
-    private static ExecutionEngine executionEngine = newInstance(configImpl.getAviatorEvaluator(), configImpl.getObjectMapper());
+    private static GraphQLSchema wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema());
+    private static ExecutionEngine executionEngine = newInstance(Config.DEFAULT_CONFIG);
     private static GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
             .instrumentation(executionEngine)
             .build();

@@ -16,6 +16,7 @@
  */
 package calculator.engine;
 
+import calculator.config.Config;
 import calculator.engine.metadata.NodeTask;
 import calculator.engine.metadata.WrapperState;
 import calculator.graphql.AsyncDataFetcher;
@@ -86,9 +87,13 @@ public class ExecutionEngine implements Instrumentation {
         this.objectMapper = objectMapper;
     }
 
-
+    @Deprecated
     public static ExecutionEngine newInstance(AviatorEvaluatorInstance aviatorEvaluator, ObjectMapper objectMapper) {
         return new ExecutionEngine(aviatorEvaluator, objectMapper);
+    }
+
+    public static ExecutionEngine newInstance(Config config) {
+        return new ExecutionEngine(config.getAviatorEvaluator(), config.getObjectMapper());
     }
 
     // ============================================== create InstrumentationState for engine  ==============================================
