@@ -435,6 +435,10 @@ public class ExecutionEngine implements Instrumentation {
                 if (ex != null) {
                     throw new RuntimeException(ex);
                 }
+                if (res == null) {
+                    return null;
+                }
+
                 Collection<Map<String, Object>> collection = (Collection) res;
                 return collection.stream().filter(ele -> (Boolean) calExp(aviatorEvaluator, predicate, ele)).collect(Collectors.toList());
             });
