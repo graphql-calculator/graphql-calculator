@@ -48,7 +48,7 @@ public class CalculateDirectives {
 
     public final static GraphQLDirective MOCK = GraphQLDirective.newDirective()
             .name("mock")
-            .description("cal value for this field by trigger.")
+            .description("reset the annotated field by '@mock', just work for primitive type. it's easily replaced by '@map(exp)'.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -69,7 +69,7 @@ public class CalculateDirectives {
 
     public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
             .name("map")
-            .description("mapped the field value by exp.")
+            .description("transform the field value by exp.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -79,11 +79,12 @@ public class CalculateDirectives {
 
     public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
             .name("sortBy")
-            .description("cal value for this field by trigger.")
+            .description("sort list by exp.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("key")
+                    // todo key -> exp：所有相关的代码看一遍
+                    .name("exp")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
@@ -95,7 +96,6 @@ public class CalculateDirectives {
 
     public final static GraphQLDirective NODE = GraphQLDirective.newDirective()
             .name("node")
-            .description("cal value for this field by trigger.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -106,7 +106,6 @@ public class CalculateDirectives {
 
     public final static GraphQLDirective LINK = GraphQLDirective.newDirective()
             .name("link")
-            .description("cal value for this field by trigger.")
             .validLocation(FIELD)
             .repeatable(true)
             .argument(GraphQLArgument

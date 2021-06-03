@@ -24,15 +24,19 @@ import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
 import com.googlecode.aviator.runtime.type.AviatorString;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 将list按照指定的key转换为map，重复的key则忽略
+ * 将List_VO按照指定的key转换为map，重复的key则忽略。
  *
- * 示例见  calculator.directives.CalculateDirectivesTest#testNodeFunction
+ * 示例见  calculator.directives.CalculateDirectivesTest#testNodeFunction。
+ *
+ * 注：传递个该函数的VO类型最好转换为Map类型，否则会执行反射代码。
  */
 @Beta
 public class ToMap extends AbstractFunction {
@@ -48,17 +52,37 @@ public class ToMap extends AbstractFunction {
     @Override
     public AviatorObject call(Map<String, Object> env, AviatorObject listElement, AviatorObject fieldNameObj) {
         String fieldName = ((AviatorString) fieldNameObj).getLexeme(Collections.emptyMap());
-        // todo 假设这里是map，不对的
-        List<Map> list = (List<Map>) listElement.getValue(Collections.emptyMap());
+        Collection<Object> list = (Collection<Object>) listElement.getValue(Collections.emptyMap());
         if (list == null || list.isEmpty()) {
             return AviatorRuntimeJavaType.valueOf(Collections.emptyMap());
         }
-        Map<Object, Map> mapByKey = list.stream().collect(Collectors.toMap(
-                map -> map.get(fieldName),
-                map -> map,
+
+        Map<Object, Object> eleByKey = list.stream().collect(Collectors.toMap(
+                ele -> toMap(ele).get(fieldName),
+                ele -> ele,
                 (v1, v2) -> v1
         ));
-
-        return AviatorRuntimeJavaType.valueOf(mapByKey);
+        return AviatorRuntimeJavaType.valueOf(eleByKey);
     }
+
+    private Map<String, Object> toMap(Object object) {
+        if (Map.class.isAssignableFrom(object.getClass())) {
+            return (Map<String, Object>) object;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        Field[] declaredFields = object.getClass().getDeclaredFields();
+        for (Field declaredField : declaredFields) {
+            declaredField.setAccessible(true);
+            try {
+                Object fieldValue = declaredField.get(object);
+                result.put(declaredField.getName(), fieldValue);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return result;
+    }
+
 }

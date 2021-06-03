@@ -63,7 +63,7 @@ public class StateParser implements QueryVisitor {
 
             Directive nodeDir = directives.get(0);
             String nodeName = getArgumentFromDirective(nodeDir, "name");
-            Map<String, NodeTask<Object>> taskByPath = state.getTaskByPath();
+            Map<String, NodeTask> taskByPath = state.getTaskByPath();
 
             // 保存该节点及其父节点路径，例如a、a.b、a.b.c
             // 同时保存每个路径：1.是否是list下的节点；2.父节点和子节点；
@@ -77,89 +77,119 @@ public class StateParser implements QueryVisitor {
 
     /**
      * 获取 environment对应节点 及其递归上层节点对应的路径、保存在pathList，
-     * 表示了解@node注解的节点必须指导哪些路径节点的完成情况，以及每个路径节点对应的
+     * 表示了解@node注解的节点必须知道哪些路径节点的完成情况，以及每个路径节点对应的
      * 异步任务、保存在taskByPath中。
      *
      * @param isRecursive 是否是递归调用
-     * @param environment 当前节点visit上下文
+     * @param visitorEnv 当前节点visit上下文
      * @param pathList    kp 保存父节点、祖父节点... 的绝对路径。
      * @param taskByPath  kp 保存字段路径对应的异步任务
      */
-    private void handle(boolean isRecursive, QueryVisitorFieldEnvironment environment, ArrayList<String> pathList, Map<String, NodeTask<Object>> taskByPath) {
-        if (environment == null) {
-            return;
-        }
+    private void handle(boolean isRecursive,
+                        QueryVisitorFieldEnvironment visitorEnv,
+                        ArrayList<String> pathList,
+                        Map<String, NodeTask> taskByPath) {
 
-        // 当前节点是否已经在注册为 FutureTask
-        TraverserContext<Node> traverserContext = environment.getTraverserContext();
-        QueryVisitorFieldEnvironment parentEnv = environment.getParentEnvironment();
-
-        // 对于一些共用的父路径可能会走到这个逻辑，例如
+        // 1. 一个node依赖任务列表的 "根节点任务"应该是在 其与 root 路径中、
+        // 和 Query root 距离最远的 不在list中的节点，如下 uid 和 uName 依赖的上层任务从 levelOneList 开始算起，
+        // 因为 levelTwoList 也在list中，即 levelOneList 中：
         // query {
-        //      userInfo{
-        //          id @node(name:"uId")
-        //          name @node(name:"uName")
-        //      }
-        // }
-        // 解析 @uId 和 @uName 的时候都会解析到 userInfo，后者、例如 @uName 在此判断为true，
-        // 此时需要将 userInfo 作为 @uName 依赖的绝对路径之一，但是已经不再需要向 taskByPath 中添加任务
+        //       levelOne
+        //          levelTwo{
+        //              levelOneList{
+        //                  fieldInLevelOne
+        //                  levelTwoList{
+        //                      # [ levelOne#levelTwo#levelOneList,
+        //                      #   levelOne#levelTwo#levelOneList#levelTwoList,
+        //                      #   levelOne#levelTwo#levelOneList#levelTwoList#id
+        //                      # ]
+        //                      id @node(name:"uId")
         //
-        // kp 对于以下情况，注意解析@uName时不要忘记：
-        //          1. 将 nameFuture 作为 userInfoFuture 的subTask/addSubTaskList;
-        //          2. 将 baseInfo 也放进 @uName节点依赖的任务路径列表。
-        // query {
-        //      baseInfo{
-        //          userInfo{
-        //              id @node(name:"uId")
-        //              name @node(name:"uName")
+        //                      # [ levelOne#levelTwo#levelOneList,
+        //                      #   levelOne#levelTwo#levelOneList#levelTwoList,
+        //                      #   levelOne#levelTwo#levelOneList#levelTwoList#name
+        //                      # ]
+        //                      name @node(name:"uName")
+        //                  }
+        //              }
         //          }
         //      }
         // }
         //
-        if (traverserContext.getNewAccumulate() != null) {
-            String absoluteResultPath = visitPath(environment);
-            pathList.add(absoluteResultPath);
-            // 递归回去的时候 parentEnv 可能为null
-            handle(true, parentEnv, pathList, taskByPath);
+        // 2. 对于如下情况，该方法算法可能出现parentEnv为null的情况。
+        // query {
+        //       userInfoList{
+        //              # [userInfoList, userInfoList#id]
+        //              id @node(name: "uId")
+        //              # [userInfoList, userInfoList#name]
+        //              name @node(name: "name")
+        //       }
+        // }
+        //
+        // 3. 对于如下情况，直接解析当前节点即可
+        // query {
+        //       userInfo{
+        //              # [ userInfo#id ]
+        //              id @node(name: "uId")
+        //              # [ userInfo#name ]
+        //              name @node(name: "name")
+        //       }
+        // }
+        //
+        // tips：如果一个节点可以作其某个子节点的父亲任务，则肯定也可以做起另外一个子节点的父亲任务。反之也成立。
+        //
+
+        /**
+         * 1. 如果不是list元素，则解析后不递归返回;
+         * 2. 如果是list元素，先递归解析父亲元素，然后在解析当前任务。
+         */
+        if (!isInListPath(visitorEnv)) {
+            String absolutePath = visitPath(visitorEnv);
+            // 当前节点依赖的任务
+            pathList.add(absolutePath);
+
+            // 对于已经解析过、放到 taskByPath 的任务不可以在重复创建任务
+            if (visitorEnv.getTraverserContext().getNewAccumulate() == null) {
+                NodeTask task = NodeTask.newBuilder()
+                        .isTopTaskNode(true)
+                        .path(absolutePath)
+                        .isList(isList(visitorEnv))
+                        .isAnnotated(!isRecursive)
+                        .future(new CompletableFuture<>())
+                        .build();
+                visitorEnv.getTraverserContext().setAccumulate(task);
+                taskByPath.put(absolutePath, task);
+            }
             return;
         }
 
-        // Query root
-        if (parentEnv == null) {
-            String absoluteResultPath = environment.getField().getResultKey();
-            NodeTask<Object> task = NodeTask.newBuilder()
-                    .isTopNode(true)
-                    .path(absoluteResultPath)
-                    .isList(isList(environment))
+        // 先递归解析父节点的原因：在创建自节点对应的NodeTask时需要设置parentTask，
+        // 并将当前节点代表的任务设置为parentTask的子任务。
+        handle(true, visitorEnv.getParentEnvironment(), pathList, taskByPath);
+
+        // 当前节点代表的 Node Task
+        String absolutePath = visitPath(visitorEnv);
+        pathList.add(absolutePath);
+        // 对于情况一中的任务 levelOne#levelTwo#levelOneList#levelTwoList
+        // uId 和 uName 都会分析此节点，第二次分析的时候已经不需要为此节点创建任务和设置父亲节点了，只设置子节点即可
+        NodeTask parentTask = visitorEnv.getParentEnvironment().getTraverserContext().getNewAccumulate();
+        NodeTask currentNodeTask;
+        if (visitorEnv.getTraverserContext().getNewAccumulate() == null) {
+            currentNodeTask = NodeTask.newBuilder()
+                    .isTopTaskNode(false)
+                    .path(absolutePath)
+                    .isList(isList(visitorEnv))
                     .isAnnotated(!isRecursive)
-                    .future(new CompletableFuture<Object>())
+                    .parent(parentTask)
+                    .future(new CompletableFuture<>())
                     .build();
-            // kp: 将当前节点的任务作为其上下文累计值
-            environment.getTraverserContext().setAccumulate(task);
-            taskByPath.put(absoluteResultPath, task);
-            pathList.add(absoluteResultPath);
-            return;
+//            parentTask.addSubTaskList(currentNodeTask);
+            visitorEnv.getTraverserContext().setAccumulate(currentNodeTask);
+            taskByPath.put(absolutePath, currentNodeTask);
+        } else {
+            currentNodeTask = visitorEnv.getTraverserContext().getNewAccumulate();
         }
-
-        // kp 先递归解析父节点的原因是、在创建自节点对应的FutureTask时
-        //    需要设置parent、并且为父节点设置 addSubTaskList
-        handle(true, parentEnv, pathList, taskByPath);
-
-        NodeTask<Object> parentTask = parentEnv.getTraverserContext().getNewAccumulate();
-        String nestedKey = visitPath(environment);
-        NodeTask<Object> task = NodeTask.newBuilder()
-                .isTopNode(false)
-                .path(nestedKey)
-                .isList(isList(environment))
-                .isAnnotated(!isRecursive)
-                .parent(parentTask)
-                .future(new CompletableFuture<Object>())
-                .build();
-        parentTask.addSubTaskList(task);
-        // kp: 将当前节点的任务作为其上下文累计值
-        environment.getTraverserContext().setAccumulate(task);
-        taskByPath.put(nestedKey, task);
-        pathList.add(nestedKey);
+        parentTask.addSubTaskList(currentNodeTask);
     }
 
     // 当前字段是否是list 并且不是叶子节点
@@ -177,4 +207,19 @@ public class StateParser implements QueryVisitor {
     public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment queryVisitorFragmentSpreadEnvironment) {
 
     }
+
+
+    //  当前节点是否是列表字段中的元素
+    private boolean isInListPath(QueryVisitorFieldEnvironment visitorEnv) {
+        QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
+        while (parentEnv != null) {
+            if (parentEnv.getFieldDefinition().getType() instanceof GraphQLList) {
+                return true;
+            }
+            parentEnv = parentEnv.getParentEnvironment();
+        }
+
+        return false;
+    }
+
 }

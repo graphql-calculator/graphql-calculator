@@ -13,6 +13,7 @@ type Query {
     itemList(ids:[Int], ignore: String): [ItemBaseInfo]
     itemStockList(ids:[Int]):  [ItemStockInfo]
 
+    # todo 配置一个嵌套的type，例如 SellerInfo，里边的子实体绑定了fetcher作各种调度，丰富数据结构
 }
 
 type User{

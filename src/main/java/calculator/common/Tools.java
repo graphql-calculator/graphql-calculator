@@ -21,7 +21,9 @@ import graphql.Assert;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.execution.ResultPath;
 import graphql.language.Argument;
+import graphql.language.BooleanValue;
 import graphql.language.Directive;
+import graphql.language.FloatValue;
 import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
@@ -50,8 +52,16 @@ public class Tools {
             return ((StringValue) value).getValue();
         }
 
+        if (value instanceof BooleanValue) {
+            return ((BooleanValue) value).isValue();
+        }
+
         if (value instanceof IntValue) {
             return ((IntValue) value).getValue();
+        }
+
+        if (value instanceof FloatValue) {
+            return ((FloatValue) value).getValue();
         }
 
         return null;
@@ -140,13 +150,13 @@ public class Tools {
 
 
     // 当前任务是否嵌套在list路径中
-    public static boolean isInListPath(NodeTask<Object> task) {
+    public static boolean isInListPath(NodeTask task) {
         // Query root
         if (task.getParent() == null) {
             return false;
         }
 
-        NodeTask<Object> parentNode = task.getParent();
+        NodeTask parentNode = task.getParent();
         while (parentNode != null) {
             if (parentNode.isList()) {
                 return true;

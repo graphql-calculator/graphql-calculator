@@ -14,31 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.config;
 
+package calculator.engine;
 
-import calculator.engine.ObjectMapper;
-import calculator.engine.ObjectMapperImpl;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.runtime.type.AviatorFunction;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
-
-public interface Config {
-
-    // 指定 执行器 是为了防止公用的用问题，例如同名函数
-    AviatorEvaluatorInstance getAviatorEvaluator();
-
-    List<AviatorFunction> functions();
-
-
-    ObjectMapper getObjectMapper();
-
-    /**
-     * @return Get the thread pool which used in {@link calculator.engine.ExecutionEngine}.
-     */
-    Executor getExecutor();
+public class StateParseTest {
 }

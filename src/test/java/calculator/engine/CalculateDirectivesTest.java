@@ -17,6 +17,7 @@
 package calculator.engine;
 
 import calculator.config.Config;
+import calculator.config.ConfigImpl;
 import calculator.engine.annotation.Beta;
 import calculator.validate.Validator;
 import graphql.ExecutionInput;
@@ -46,9 +47,9 @@ public class CalculateDirectivesTest {
     private static final GraphQL graphQL;
 
     static {
-        wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema());
+        wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getCalSchema());
         graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(newInstance(Config.DEFAULT_CONFIG))
+                .instrumentation(newInstance(ConfigImpl.newConfig().build()))
                 .build();
     }
 
@@ -139,7 +140,7 @@ public class CalculateDirectivesTest {
     @Test
     public void sortByDirective() {
         String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sortBy(key:\"itemId\"){\n" +
+                "    itemList(ids:[3,2,1,4,5]) @sortBy(exp:\"itemId\"){\n" +
                 "        itemId\n" +
                 "        name\n" +
                 "    }\n" +
@@ -156,6 +157,28 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
         assert Objects.equals(execute("seq.get(seq.get(itemList,3),'itemId')", result.getData()), 4);
         assert Objects.equals(execute("seq.get(seq.get(itemList,4),'itemId')", result.getData()), 5);
+    }
+
+    @Test
+    public void reversedSortByDirective() {
+        String query = "query {\n" +
+                "    itemList(ids:[3,2,1,4,5]) @sortBy(exp:\"itemId\",reversed:true){\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
+        ExecutionResult result = graphQL.execute(query);
+        assert result != null;
+        assert result.getErrors().isEmpty();
+        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 5);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,3),'itemId')", result.getData()), 2);
+        assert Objects.equals(execute("seq.get(seq.get(itemList,4),'itemId')", result.getData()), 1);
     }
 
 

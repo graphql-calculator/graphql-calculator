@@ -25,7 +25,7 @@ public class FunctionTest {
 
         NodeTask task = NodeTask.newBuilder()
                 .future(CompletableFuture.completedFuture(1991))
-                .isTopNode(false)
+                .isTopTaskNode(false)
                 .isList(false)
                 .path("itemInfo.itemId")
                 .isAnnotated(true)

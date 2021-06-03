@@ -42,13 +42,13 @@ public class WrapperState implements InstrumentationState {
      * <p>
      * task by field absolute path.
      */
-    private final Map<String, NodeTask<Object>> taskByPath = new ConcurrentHashMap<>();
+    private final Map<String, NodeTask> taskByPath = new ConcurrentHashMap<>();
 
     public Map<String, List<String>> getSequenceTaskByNode() {
         return sequenceTaskByNode;
     }
 
-    public Map<String, NodeTask<Object>> getTaskByPath() {
+    public Map<String, NodeTask> getTaskByPath() {
         return taskByPath;
     }
 }
