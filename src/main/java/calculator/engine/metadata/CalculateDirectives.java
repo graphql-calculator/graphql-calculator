@@ -59,12 +59,17 @@ public class CalculateDirectives {
     // 过滤list
     public final static GraphQLDirective FILTER = GraphQLDirective.newDirective()
             .name("filter")
-            .description("filter the field by exp.")
+            .description("filter the list by predicate.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
                     .name("predicate")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencyNode")
+                    .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
             .build();
 
     public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
@@ -77,14 +82,14 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
-            .name("sortBy")
-            .description("sort list by exp.")
+
+    public final static GraphQLDirective SORT = GraphQLDirective.newDirective()
+            .name("sort")
+            .description("sort the list by specified key.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    // todo key -> exp：所有相关的代码看一遍
-                    .name("exp")
+                    .name("key")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
@@ -93,6 +98,9 @@ public class CalculateDirectives {
                     .type(GraphQLBoolean))
             .build();
 
+
+    // 根据表达式进行排序
+    // directive @sortBy(sortExp: String!, reversed: Boolean = false, dependencyNode: String) on FIELD
 
     public final static GraphQLDirective NODE = GraphQLDirective.newDirective()
             .name("node")
@@ -104,8 +112,10 @@ public class CalculateDirectives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
+    @Deprecated
     public final static GraphQLDirective LINK = GraphQLDirective.newDirective()
             .name("link")
+            .description("replace argument with node value.")
             .validLocation(FIELD)
             .repeatable(true)
             .argument(GraphQLArgument
@@ -125,7 +135,7 @@ public class CalculateDirectives {
         tmpMap.put(MAP.getName(), MAP);
         tmpMap.put(FILTER.getName(), FILTER);
         tmpMap.put(MOCK.getName(), MOCK);
-        tmpMap.put(SORT_BY.getName(), SORT_BY);
+        tmpMap.put(SORT.getName(), SORT);
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);

@@ -25,8 +25,6 @@ import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
-import graphql.language.Node;
-import graphql.schema.GraphQLList;
 import graphql.util.TraverserContext;
 
 import java.util.ArrayList;
@@ -36,19 +34,17 @@ import java.util.concurrent.CompletableFuture;
 
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.visitPath;
+import static calculator.common.VisitorUtils.isInListPath;
+import static calculator.common.VisitorUtils.isListNode;
 
 
 @Internal
-public class StateParser implements QueryVisitor {
+public class ExecutionEngineStateParser implements QueryVisitor {
 
     private WrapperState state;
 
-    private StateParser(WrapperState state) {
+    public ExecutionEngineStateParser(WrapperState state) {
         this.state = state;
-    }
-
-    public static StateParser newInstanceWithState(WrapperState state) {
-        return new StateParser(state);
     }
 
     @Override
@@ -153,7 +149,7 @@ public class StateParser implements QueryVisitor {
                 NodeTask task = NodeTask.newBuilder()
                         .isTopTaskNode(true)
                         .path(absolutePath)
-                        .isList(isList(visitorEnv))
+                        .isList(isListNode(visitorEnv))
                         .isAnnotated(!isRecursive)
                         .future(new CompletableFuture<>())
                         .build();
@@ -178,23 +174,17 @@ public class StateParser implements QueryVisitor {
             currentNodeTask = NodeTask.newBuilder()
                     .isTopTaskNode(false)
                     .path(absolutePath)
-                    .isList(isList(visitorEnv))
+                    .isList(isListNode(visitorEnv))
                     .isAnnotated(!isRecursive)
                     .parent(parentTask)
                     .future(new CompletableFuture<>())
                     .build();
-//            parentTask.addSubTaskList(currentNodeTask);
             visitorEnv.getTraverserContext().setAccumulate(currentNodeTask);
             taskByPath.put(absolutePath, currentNodeTask);
         } else {
             currentNodeTask = visitorEnv.getTraverserContext().getNewAccumulate();
         }
         parentTask.addSubTaskList(currentNodeTask);
-    }
-
-    // 当前字段是否是list 并且不是叶子节点
-    private boolean isList(QueryVisitorFieldEnvironment environment) {
-        return environment.getFieldDefinition().getType() instanceof GraphQLList;
     }
 
 
@@ -206,20 +196,6 @@ public class StateParser implements QueryVisitor {
     @Override
     public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment queryVisitorFragmentSpreadEnvironment) {
 
-    }
-
-
-    //  当前节点是否是列表字段中的元素
-    private boolean isInListPath(QueryVisitorFieldEnvironment visitorEnv) {
-        QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
-        while (parentEnv != null) {
-            if (parentEnv.getFieldDefinition().getType() instanceof GraphQLList) {
-                return true;
-            }
-            parentEnv = parentEnv.getParentEnvironment();
-        }
-
-        return false;
     }
 
 }

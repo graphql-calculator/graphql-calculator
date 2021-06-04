@@ -26,50 +26,45 @@ import graphql.language.SourceLocation;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static calculator.common.Tools.isValidEleName;
-import static calculator.common.Tools.pathForTraverse;
+import static calculator.common.VisitorUtils.getTopTaskEnv;
+import static calculator.common.VisitorUtils.parentPathSet;
+import static calculator.common.VisitorUtils.pathForTraverse;
 import static calculator.engine.metadata.CalculateDirectives.FILTER;
 import static calculator.engine.metadata.CalculateDirectives.MOCK;
 import static calculator.engine.metadata.CalculateDirectives.NODE;
 import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
+import static calculator.engine.metadata.CalculateDirectives.SORT;
 import static calculator.engine.function.ExpEvaluator.isValidExp;
 
 
-/**
- * 基本校验：
- * skipBy 表达式不为空且合法；
- * filter 表达式不为空且合法；
- * filter 必须放在list节点；
- * sortBy 必须定义在list上；
- * sortBy 的key必须存在于子元素中；
- * node 名称必须有效；
- * node 名称不能重复；
- * todo 别名的判断和出错信息打印；
- * 片段的判断和出错信息打印；
- * sortBy支持自定义函数；
- */
-public class BaseRules extends AbstractTraverRule {
+public class BasicRule extends AbstractRule {
 
-    // 1. @node是否重名;
-    private Map<String, String> nodeNameMap;
+    // <node名称, 注解的字段>
+    private final Map<String, String> nodeWithAnnotatedField = new LinkedHashMap<>();
 
-    public BaseRules() {
-        super();
-        this.nodeNameMap = new HashMap<>();
+    // <node名称, 依赖的顶层节点>
+    private final Map<String, String> nodeWithTopTask = new LinkedHashMap<>();
+
+    // <node名称, List<祖先节点>>
+    private final Map<String, Set<String>> nodeWithAncestorPath = new LinkedHashMap<>();
+
+
+    public Map<String, String> getNodeWithAnnotatedField() {
+        return nodeWithAnnotatedField;
     }
 
-
-    public Map<String, String> getNodeNameMap() {
-        return nodeNameMap;
+    public Map<String, String> getNodeWithTopTask() {
+        return nodeWithTopTask;
     }
 
-    public static BaseRules newInstance() {
-        return new BaseRules();
+    public Map<String, Set<String>> getNodeWithAncestorPath() {
+        return nodeWithAncestorPath;
     }
 
     @Override
@@ -126,19 +121,20 @@ public class BaseRules extends AbstractTraverRule {
                     addValidError(location, errorMsg);
                 }
 
-            } else if (Objects.equals(directiveName, SORT_BY.getName())) {
+            } else if (Objects.equals(directiveName, SORT.getName())) {
                 boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
                 if (!isListType) {
-                    String errorMsg = String.format("key must define on list type, instead @%s.", fieldPath);
+                    // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
+                    String errorMsg = String.format("sort key must define on list type, instead of {%s}.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
                 String key = (String) Tools.parseValue(
-                        directive.getArgument("exp").getValue()
+                        directive.getArgument("key").getValue()
                 );
                 if (key == null || key.isEmpty()) {
-                    String errorMsg = String.format("key can't be null, @%s.", fieldPath);
+                    String errorMsg = String.format("sort key used on {%s} can not be null.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -147,29 +143,39 @@ public class BaseRules extends AbstractTraverRule {
                         .map(selection -> ((Field) selection).getResultKey())
                         .anyMatch(key::equals);
 
-                // todo 报错信息；兼容片段
                 if (!validKey) {
-                    String errorMsg = String.format("invalid key name, @%s.", fieldPath);
+                    String errorMsg = String.format("non-exist key name on {%s}.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
+
             } else if (Objects.equals(directiveName, NODE.getName())) {
                 String nodeName = (String) Tools.parseValue(
                         directive.getArgument("name").getValue()
                 );
 
-                if (nodeNameMap.containsKey(nodeName)) {
+                // 验证节点名称是否已经被其他字段使用
+                if (nodeWithAnnotatedField.containsKey(nodeName)) {
                     String errorMsg = String.format("duplicate node name '%s' for %s and %s.",
-                            nodeName, nodeNameMap.get(nodeName), fieldPath
+                            nodeName, nodeWithAnnotatedField.get(nodeName), fieldPath
                     );
                     addValidError(location, errorMsg);
                 } else {
-                    nodeNameMap.put(nodeName, fieldPath);
+                    nodeWithAnnotatedField.put(nodeName, fieldPath);
                     if (!isValidEleName(nodeName)) {
                         String errorMsg = String.format("invalid node name 'nodeName' for %s.", fieldPath);
                         addValidError(location, errorMsg);
                     }
                 }
+
+                // 获取其顶层任务节点路径
+                QueryVisitorFieldEnvironment topTaskEnv = getTopTaskEnv(environment);
+                String topTaskFieldPath = pathForTraverse(topTaskEnv);
+                nodeWithTopTask.put(nodeName, topTaskFieldPath);
+
+                // 获取其父类节点路径
+                Set<String> parentPathSet = parentPathSet(environment);
+                nodeWithAncestorPath.put(nodeName, parentPathSet);
             }
         }
     }
@@ -177,20 +183,9 @@ public class BaseRules extends AbstractTraverRule {
 
     @Override
     public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment environment) {
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-
-        // todo
-
     }
 
     @Override
     public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
-        if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
-            return;
-        }
-
-        // todo
     }
 }

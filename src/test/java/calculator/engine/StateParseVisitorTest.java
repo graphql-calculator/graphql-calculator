@@ -62,7 +62,7 @@ public class StateParseVisitorTest {
                 .variables(Collections.emptyMap()).build();
 
         WrapperState state = new WrapperState();
-        StateParser visitor = StateParser.newInstanceWithState(state);
+        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser(state);
         traverser.visitDepthFirst(visitor);
 
         assert state.getTaskByPath().size() == 6;

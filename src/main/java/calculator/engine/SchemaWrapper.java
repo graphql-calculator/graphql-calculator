@@ -36,7 +36,7 @@ import static calculator.engine.metadata.CalculateDirectives.MAP;
 import static calculator.engine.metadata.CalculateDirectives.MOCK;
 import static calculator.engine.metadata.CalculateDirectives.NODE;
 import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
+import static calculator.engine.metadata.CalculateDirectives.SORT;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -62,7 +62,7 @@ public class SchemaWrapper {
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MOCK);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(FILTER);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MAP);
-        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT_BY);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
 

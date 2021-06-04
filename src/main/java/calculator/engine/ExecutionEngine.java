@@ -45,6 +45,8 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 import graphql.validation.ValidationError;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,12 +68,12 @@ import static calculator.engine.metadata.CalculateDirectives.FILTER;
 import static calculator.engine.metadata.CalculateDirectives.MAP;
 import static calculator.engine.metadata.CalculateDirectives.MOCK;
 import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT_BY;
+import static calculator.engine.metadata.CalculateDirectives.SORT;
 import static calculator.engine.function.ExpEvaluator.calExp;
 import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
+import static calculator.graphql.AsyncDataFetcher.async;
 import static graphql.execution.Async.toCompletableFuture;
 import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
-import static graphql.schema.AsyncDataFetcher.async;
 import static java.util.stream.Collectors.toList;
 import static calculator.engine.metadata.CalculateDirectives.LINK;
 
@@ -111,7 +113,7 @@ public class ExecutionEngine implements Instrumentation {
                 .variables(Collections.emptyMap()).build();
 
         WrapperState state = new WrapperState();
-        StateParser visitor = StateParser.newInstanceWithState(state);
+        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser(state);
         traverser.visitDepthFirst(visitor);
         return state;
     }
@@ -388,16 +390,17 @@ public class ExecutionEngine implements Instrumentation {
             // 过滤列表
             if (Objects.equals(FILTER.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
-                defaultDF = getFilterDF(aviatorEvaluator, defaultDF, predicate,instrumentationParameters.getInstrumentationState());
+                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
+                defaultDF = getFilterDF(aviatorEvaluator, defaultDF, predicate, dependencyNode, instrumentationParameters.getInstrumentationState());
                 continue;
             }
 
-            if (Objects.equals(SORT_BY.getName(), directive.getName())) {
-                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
-                String sortExp = getArgumentFromDirective(directive, "exp");
+            if (Objects.equals(SORT.getName(), directive.getName())) {
+                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
+                String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
-                defaultDF = wrapSortByDF(defaultDF, sortExp, reversed, instrumentationParameters.getInstrumentationState());
+                defaultDF = wrapSortByDF(defaultDF, sortKey, reversed, instrumentationParameters.getInstrumentationState());
                 continue;
             }
         }
@@ -426,32 +429,56 @@ public class ExecutionEngine implements Instrumentation {
     /**
      * 过滤list中的元素
      */
-    private DataFetcher<?> getFilterDF(AviatorEvaluatorInstance aviatorEvaluator, DataFetcher<?> defaultDF, String predicate, WrapperState state) {
+    private DataFetcher<?> getFilterDF(AviatorEvaluatorInstance aviatorEvaluator,
+                                       DataFetcher<?> defaultDF,
+                                       String predicate,
+                                       String dependencyNode,
+                                       WrapperState state) {
         return environment -> {
-            // 元素必须是序列化为Map的数据
-            // kp 对于 Collection<基本类型> 有没有坑
-            // kp 非常重要：考虑到使用的是 AsyncDataFetcher，结果可能包装成CompletableFuture中了
+            // 考虑到使用的是 AsyncDataFetcher，结果可能包装成CompletableFuture中了
             CompletableFuture<Object> resultFuture = toCompletableFuture(defaultDF.get(environment));
 
             return resultFuture.handle((res, ex) -> {
                 if (ex != null) {
                     throw new RuntimeException(ex);
                 }
+
                 if (res == null) {
                     return null;
                 }
 
-                Collection<?> collection = (Collection) res;
-                return collection.stream().filter(ele -> {
-                    Map<String, Object> fieldMap = getCalMap(ele,state);
-                    return (Boolean)calExp(aviatorEvaluator, predicate, fieldMap);
-                }).collect(Collectors.toList());
+
+                Map<String, Object> nodeEnv = null;
+                if (dependencyNode != null) {
+                    nodeEnv = new HashMap<>();
+                    NodeTask nodeTask = getNodeValueFromState(state, dependencyNode);
+                    if (!nodeTask.getFuture().isCompletedExceptionally()) {
+                        nodeEnv.put(dependencyNode, null);
+                    } else {
+                        nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                    }
+                }
+
+
+                List<Object> filteredList = new ArrayList<>();
+                for (Object ele : (Collection) res) {
+                    Map<String, Object> fieldMap = getCalMap(ele, state);
+                    // 如果为null则表示没有依赖的节点
+                    // 此时不应该在进行putAll操作
+                    if (nodeEnv != null) {
+                        fieldMap.putAll(nodeEnv);
+                    }
+                    if ((Boolean) calExp(aviatorEvaluator, predicate, fieldMap)) {
+                        filteredList.add(ele);
+                    }
+                }
+                return filteredList;
             });
         };
     }
 
     // 按照指定key对元素进行排列
-    private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF, String sortExp, Boolean reversed, WrapperState state) {
+    private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, WrapperState state) {
         return environment -> {
             CompletableFuture<?> resultFuture = toCompletableFuture(defaultDF.get(environment));
             return resultFuture.handle((res, ex) -> {
@@ -466,12 +493,12 @@ public class ExecutionEngine implements Instrumentation {
                 Collection<?> collection = (Collection<?>) res;
                 if (reversed) {
                     return collection.stream().sorted(
-                            Comparator.comparing(ele ->(Comparable) getCalMap(ele, state).get(sortExp)).reversed()
+                            Comparator.comparing(ele ->(Comparable) getCalMap(ele, state).get(sortKey)).reversed()
                     ).collect(Collectors.toList());
                 }
 
                 return collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable)  getCalMap(ele,state).get(sortExp))
+                        Comparator.comparing(ele -> (Comparable)  getCalMap(ele,state).get(sortKey))
                 ).collect(Collectors.toList());
             });
         };
@@ -492,8 +519,8 @@ public class ExecutionEngine implements Instrumentation {
         if (res == null) {
             return Collections.emptyMap();
         }
-        Map<String, Object> result = new LinkedHashMap<>();
 
+        Map<String, Object> result = new LinkedHashMap<>();
         if (res.getClass().isPrimitive()) {
             result.put("ele", res);
         } else {
@@ -503,6 +530,47 @@ public class ExecutionEngine implements Instrumentation {
         }
         result.put(FUNCTION_KEY, state);
         return result;
+    }
+
+    // todo logDebug
+    private NodeTask getNodeValueFromState(WrapperState state, String nodeName) {
+        Map<String, List<String>> sequenceTaskByNode = state.getSequenceTaskByNode();
+        List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
+
+        Map<String, NodeTask> taskByPath = state.getTaskByPath();
+        List<NodeTask> taskForNodeValue = taskNameForNode.stream().map(taskByPath::get).collect(toList());
+
+        NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
+
+
+        //
+
+//        for (CompletableFuture<Object> future : Arrays.asList(new CompletableFuture<>())) {
+//            future.whenCompleteAsync((ignored,ex)->{
+//                if(ex!=null){
+//                    for (NodeTask nodeTask : taskForNodeValue) {
+//                        nodeTask.getFuture().completeExceptionally(ex);
+//                    }
+//                }
+//            },executor);
+//        }
+//
+        //
+
+        // 从最上层
+        for (NodeTask task : taskForNodeValue) {
+            task.getFuture().whenComplete((ignore, ex) -> {
+                if (ex != null) {
+                    futureTask.getFuture().completeExceptionally(ex);
+                }
+            }).join();
+
+            // 如果有异常，则中断执行
+            if (futureTask.getFuture().isCompletedExceptionally()) {
+                return futureTask;
+            }
+        }
+        return futureTask;
     }
 
 }
