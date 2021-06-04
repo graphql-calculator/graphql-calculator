@@ -65,10 +65,10 @@ public class StateParseVisitorTest {
         StateParser visitor = StateParser.newInstanceWithState(state);
         traverser.visitDepthFirst(visitor);
 
-        assert state.getTaskByPath().size() == 7;
+        assert state.getTaskByPath().size() == 6;
         assert state.getSequenceTaskByNode().size() == 3;
-        assert state.getSequenceTaskByNode().get("itemCIdS").equals(Arrays.asList("item", "item#couponList", "item#couponList#couponId"));
-        assert listsWithSameElements(state.getSequenceTaskByNode().get("itemLimitationList"),(Arrays.asList("item", "item#couponList", "item#couponList#limitation")));
+        assert state.getSequenceTaskByNode().get("itemCIdS").equals(Arrays.asList("item#couponList", "item#couponList#couponId"));
+        assert listsWithSameElements(state.getSequenceTaskByNode().get("itemLimitationList"),(Arrays.asList("item#couponList", "item#couponList#limitation")));
         assert state.getSequenceTaskByNode().get("itemListCIdS").equals(Arrays.asList("itemList", "itemList#couponList", "itemList#couponList#couponId"));
 
         assert state.getTaskByPath().get("itemList").getSubTaskList().size() == 1;

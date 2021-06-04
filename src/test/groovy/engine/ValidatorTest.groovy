@@ -17,7 +17,7 @@
 
 package engine
 
-import calculator.config.Config
+import calculator.config.ConfigImpl
 import calculator.engine.SchemaWrapper
 import calculator.validate.Validator
 import spock.lang.Specification
@@ -26,7 +26,7 @@ import static calculator.engine.CalculateSchemaHolder.getCalSchema
 
 class ValidatorTest extends Specification {
 
-    def wrappedSchema = SchemaWrapper.wrap(Config.DEFAULT_CONFIG, getCalSchema())
+    def wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getCalSchema())
 
     def "filter on nonList"() {
         given:
@@ -52,7 +52,7 @@ class ValidatorTest extends Specification {
         given:
         def query = """
             query{
-                userInfoList(ids: [1,2,3]) @sortBy(key: "idx"){
+                userInfoList(ids: [1,2,3]) @sortBy(exp: "idx"){
                     userId
                     name
                     favoriteItemId
@@ -75,7 +75,7 @@ class ValidatorTest extends Specification {
         def query = """
             query(\$itemId: Int) {
                 item(id: \$itemId){
-                    itemId @sortBy(key:"id")
+                    itemId @sortBy(exp:"id")
                     name
                 }
             }

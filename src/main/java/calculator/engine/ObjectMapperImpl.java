@@ -19,6 +19,8 @@ package calculator.engine;
 
 import calculator.engine.annotation.Beta;
 
+import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.Map;
 
 @Beta
@@ -26,11 +28,31 @@ public class ObjectMapperImpl implements ObjectMapper{
 
     @Override
     public Map<String, Object> toMap(Object object) {
-        return null;
+        if (object == null) {
+            return null;
+        }
+
+        if (Map.class.isAssignableFrom(object.getClass())) {
+            return (Map<String, Object>) object;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        Field[] declaredFields = object.getClass().getDeclaredFields();
+        for (Field declaredField : declaredFields) {
+            declaredField.setAccessible(true);
+            try {
+                Object fieldValue = declaredField.get(object);
+                result.put(declaredField.getName(), fieldValue);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return result;
     }
 
     @Override
     public Map<String, Object> toNestedMap(Object object) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 }

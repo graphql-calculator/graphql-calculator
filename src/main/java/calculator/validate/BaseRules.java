@@ -135,7 +135,7 @@ public class BaseRules extends AbstractTraverRule {
                 }
 
                 String key = (String) Tools.parseValue(
-                        directive.getArgument("key").getValue()
+                        directive.getArgument("exp").getValue()
                 );
                 if (key == null || key.isEmpty()) {
                     String errorMsg = String.format("key can't be null, @%s.", fieldPath);

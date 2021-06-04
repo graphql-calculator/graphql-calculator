@@ -17,6 +17,7 @@
 package calculator.config;
 
 import calculator.engine.ObjectMapper;
+import calculator.engine.ObjectMapperImpl;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
@@ -25,13 +26,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * 默认配置实现
  */
 public class ConfigImpl implements Config {
-
-    private static final AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
 
     private final List<AviatorFunction> functionList;
 
@@ -39,12 +40,22 @@ public class ConfigImpl implements Config {
 
     private final ObjectMapper objectMapper;
 
-    public ConfigImpl(AviatorEvaluatorInstance aviatorEvaluator,
-                      List<AviatorFunction> functionList,
-                      ObjectMapper objectMapper) {
-        this.aviatorEvaluator = aviatorEvaluator != null ? aviatorEvaluator : DEFAULT_EVALUATOR;
+    private final Executor threadPool;
+
+    private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapperImpl();
+
+    private static final Executor DEFAULT_EXECUTOR = ForkJoinPool.commonPool();
+
+    private static final AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
+
+    private ConfigImpl(AviatorEvaluatorInstance aviatorEvaluator,
+                       List<AviatorFunction> functionList,
+                       ObjectMapper objectMapper,
+                       Executor threadPool) {
         this.functionList = functionList;
-        this.objectMapper = objectMapper != null ? objectMapper : ObjectMapper.DEFAULT_MAPPER;
+        this.aviatorEvaluator = aviatorEvaluator != null ? aviatorEvaluator : DEFAULT_EVALUATOR;
+        this.objectMapper = objectMapper != null ? objectMapper : DEFAULT_MAPPER;
+        this.threadPool = threadPool != null ? threadPool : DEFAULT_EXECUTOR;
     }
 
     @Override
@@ -62,6 +73,10 @@ public class ConfigImpl implements Config {
         return objectMapper;
     }
 
+    @Override
+    public Executor getExecutor() {
+        return threadPool;
+    }
 
     public static Builder newConfig() {
         return new Builder();
@@ -69,15 +84,21 @@ public class ConfigImpl implements Config {
 
     public static class Builder {
 
+        private Executor threadPool;
+
+        private ObjectMapper objectMapper;
+
         private AviatorEvaluatorInstance aviatorEvaluator;
 
         private final List<AviatorFunction> functionList = new ArrayList<>();
 
-        private ObjectMapper objectMapper;
+        public Builder threadPool(Executor objectMapper) {
+            this.threadPool = threadPool;
+            return this;
+        }
 
-        public Builder evaluatorInstance(AviatorEvaluatorInstance aviatorEvaluator) {
-            Objects.requireNonNull(aviatorEvaluator, "aviatorEvaluator can not be null.");
-            this.aviatorEvaluator = aviatorEvaluator;
+        public Builder objectMapper(ObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
             return this;
         }
 
@@ -87,19 +108,24 @@ public class ConfigImpl implements Config {
             return this;
         }
 
-        public Builder objectMapper(ObjectMapper objectMapper) {
-            this.objectMapper = objectMapper;
-            return this;
-        }
 
+        // 不是直接替换当前 functionList 是因为function在builder中期望只能增加、不能减少function，
+        // 并且不希望改变function列表的类型和顺序等。
         public Builder functionList(List<AviatorFunction> functionList) {
             Objects.requireNonNull(functionList, "functionList can not be null.");
             this.functionList.addAll(functionList);
             return this;
         }
 
+
+        public Builder evaluatorInstance(AviatorEvaluatorInstance aviatorEvaluator) {
+            Objects.requireNonNull(aviatorEvaluator, "aviatorEvaluator can not be null.");
+            this.aviatorEvaluator = aviatorEvaluator;
+            return this;
+        }
+
         public ConfigImpl build() {
-            return new ConfigImpl(aviatorEvaluator, functionList, objectMapper);
+            return new ConfigImpl(aviatorEvaluator, functionList, objectMapper, threadPool);
         }
     }
 }

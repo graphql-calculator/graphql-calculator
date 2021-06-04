@@ -24,8 +24,6 @@ import java.util.Map;
  */
 public interface ObjectMapper {
 
-    ObjectMapper DEFAULT_MAPPER = new ObjectMapperImpl();
-
     Map<String, Object> toMap(Object object);
 
     Map<String, Object> toNestedMap(Object object);

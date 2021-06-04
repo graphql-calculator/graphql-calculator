@@ -25,6 +25,7 @@ import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import calculator.engine.metadata.NodeTask;
@@ -53,8 +54,9 @@ public class GetByNode extends AbstractFunction {
             return AviatorNil.NIL;
         }
 
-        String taskPath = state.getSequenceTaskByNode().get(nodeName).get(0);
-        NodeTask<Object> futureTask = state.getTaskByPath().get(taskPath);
+        List<String> taskPaths = state.getSequenceTaskByNode().get(nodeName);
+        String taskPath = taskPaths.get(taskPaths.size() - 1);
+        NodeTask futureTask = state.getTaskByPath().get(taskPath);
         Object taskResult = futureTask.getFuture().join();
 
         return AviatorRuntimeJavaType.valueOf(taskResult);
