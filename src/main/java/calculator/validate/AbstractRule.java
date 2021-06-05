@@ -23,7 +23,7 @@ import graphql.validation.ValidationError;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractTraverRule implements QueryVisitor {
+public abstract class AbstractRule implements QueryVisitor {
 
     /**
      * the result of validation.
@@ -31,7 +31,7 @@ public abstract class AbstractTraverRule implements QueryVisitor {
     private List<ValidationError> errors;
 
 
-    public AbstractTraverRule() {
+    public AbstractRule() {
         this.errors = new ArrayList<>();
     }
 

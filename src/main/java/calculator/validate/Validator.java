@@ -26,6 +26,7 @@ import graphql.validation.ValidationError;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,34 +57,30 @@ public class Validator {
                 .document(Parser.parse(query))
                 .variables(Collections.emptyMap()).build();
 
-        // skipBy、mock、filter、map、sortBy、node 和 link的基本校验
-        BaseRules baseValidator = BaseRules.newInstance();
-        traverser.visitDepthFirst(baseValidator);
-        if (!baseValidator.getErrors().isEmpty()) {
-            return ParseAndValidateResult.newResult().validationErrors(baseValidator.getErrors()).build();
+        BasicRule basicRule = new BasicRule();
+        traverser.visitDepthFirst(basicRule);
+        if (!basicRule.getErrors().isEmpty()) {
+            return ParseAndValidateResult.newResult().validationErrors(basicRule.getErrors()).build();
         }
 
-        LinkRules linkValidator = LinkRules.newInstance();
-        linkValidator.setNodeNameMap(baseValidator.getNodeNameMap());
-        traverser.visitDepthFirst(linkValidator);
-        if (!linkValidator.getErrors().isEmpty()) {
-            return ParseAndValidateResult.newResult().validationErrors(linkValidator.getErrors()).build();
+
+        NodeRule nodeRule = new NodeRule(
+                basicRule.getNodeWithAnnotatedField(),
+                basicRule.getNodeWithTopTask(),
+                basicRule.getNodeWithAncestorPath()
+        );
+        traverser.visitDepthFirst(nodeRule);
+        // 不用在返回没有使用的节点，因为脏数据可能导致分析不够准确
+        if (!nodeRule.getErrors().isEmpty()) {
+            return ParseAndValidateResult.newResult().validationErrors(nodeRule.getErrors()).build();
         }
 
         // 是否有未使用的node节点
-        Set<String> usedNodeName = linkValidator.getUsedNodeName();
-        List<String> unUsedNodeName = baseValidator.getNodeNameMap().keySet().stream()
-                .filter(nodeName -> !usedNodeName.contains(nodeName))
-                .collect(Collectors.toList());
-        if (!unUsedNodeName.isEmpty()) {
-            String errorMsg = String.format(" unused node: %s.", unUsedNodeName.toString());
+        if (!nodeRule.getUnusedNode().isEmpty()) {
+            String errorMsg = String.format(" unused node: %s.", nodeRule.getUnusedNode().toString());
             ValidationError error = ValidationError.newValidationError().description(errorMsg).build();
             return ParseAndValidateResult.newResult().validationErrors(Collections.singletonList(error)).build();
         }
-
-        // todo
-        ScheduleRules scheduleValidator = ScheduleRules.newInstance();
-
 
         return ParseAndValidateResult.newResult().build();
     }

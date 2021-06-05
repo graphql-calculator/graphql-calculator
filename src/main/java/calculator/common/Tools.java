@@ -28,9 +28,10 @@ import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
 
+import static calculator.common.VisitorUtils.PATH_SEPARATOR;
+
 public class Tools {
 
-    public static final String PATH_SEPARATOR = "#";
 
     public static <T> T getArgumentFromDirective(Directive directive, String argName) {
         Argument argument = directive.getArgument(argName);
@@ -111,24 +112,6 @@ public class Tools {
 
         return sb.toString();
     }
-
-    public static String pathForTraverse(QueryVisitorFieldEnvironment environment) {
-        StringBuilder sb = new StringBuilder();
-        QueryVisitorFieldEnvironment tmpEnv = environment;
-        while (tmpEnv != null) {
-            String pathSeg = tmpEnv.getField().getResultKey();
-            if (sb.length() == 0) {
-                sb.append(pathSeg);
-            } else {
-                sb.insert(0, pathSeg + PATH_SEPARATOR);
-            }
-
-            tmpEnv = tmpEnv.getParentEnvironment();
-        }
-
-        return sb.toString();
-    }
-
 
     /**
      * 获取 environment 表示的当前节点的结果路径

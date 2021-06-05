@@ -16,15 +16,14 @@
  */
 package calculator.engine;
 
-import calculator.config.Config;
 import calculator.config.ConfigImpl;
-import calculator.engine.annotation.Beta;
 import calculator.validate.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -43,10 +42,9 @@ import static com.googlecode.aviator.AviatorEvaluator.execute;
 
 public class CalculateDirectivesTest {
 
-    private static final GraphQLSchema wrappedSchema;
-    private static final GraphQL graphQL;
-
-    static {
+    private final GraphQLSchema wrappedSchema;
+    private final GraphQL graphQL;
+    {
         wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getCalSchema());
         graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(newInstance(ConfigImpl.newConfig().build()))
@@ -140,7 +138,7 @@ public class CalculateDirectivesTest {
     @Test
     public void sortByDirective() {
         String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sortBy(exp:\"itemId\"){\n" +
+                "    itemList(ids:[3,2,1,4,5]) @sort(key:\"itemId\"){\n" +
                 "        itemId\n" +
                 "        name\n" +
                 "    }\n" +
@@ -162,7 +160,7 @@ public class CalculateDirectivesTest {
     @Test
     public void reversedSortByDirective() {
         String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sortBy(exp:\"itemId\",reversed:true){\n" +
+                "    itemList(ids:[3,2,1,4,5]) @sort(key:\"itemId\",reversed:true){\n" +
                 "        itemId\n" +
                 "        name\n" +
                 "    }\n" +
@@ -292,8 +290,7 @@ public class CalculateDirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
     }
 
-    @Beta
-    @Test
+    @Ignore("使用带有dependencyCode的map替换getByNode")
     public void testNodeFunction() {
         String query = "" +
                 "query ($itemIds:[Int]){\n" +

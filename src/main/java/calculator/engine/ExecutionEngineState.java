@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine.metadata;
+package calculator.engine;
 
+import calculator.engine.metadata.NodeTask;
 import graphql.execution.instrumentation.InstrumentationState;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 /**
  * Keep task for schedule.
- **/
-public class WrapperState implements InstrumentationState {
+ */
+public class ExecutionEngineState implements InstrumentationState {
 
     public static final String FUNCTION_KEY = "wrapperState";
 
@@ -35,14 +38,19 @@ public class WrapperState implements InstrumentationState {
      * <p>
      * Keys of tasks which the node depends on.
      */
-    private final Map<String, List<String>> sequenceTaskByNode = new LinkedHashMap<>();
+    private final Map<String, List<String>> sequenceTaskByNode;
 
     /**
      * 字段路径对应的异步任务
      * <p>
      * task by field absolute path.
      */
-    private final Map<String, NodeTask> taskByPath = new ConcurrentHashMap<>();
+    private final Map<String, NodeTask> taskByPath;
+
+    public ExecutionEngineState(Map<String, List<String>> sequenceTaskByNode, Map<String, NodeTask> taskByPath) {
+        this.sequenceTaskByNode = Collections.unmodifiableMap(sequenceTaskByNode);
+        this.taskByPath = Collections.unmodifiableMap(taskByPath);
+    }
 
     public Map<String, List<String>> getSequenceTaskByNode() {
         return sequenceTaskByNode;
@@ -50,5 +58,29 @@ public class WrapperState implements InstrumentationState {
 
     public Map<String, NodeTask> getTaskByPath() {
         return taskByPath;
+    }
+
+    public static Builder newExecutionState() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private Map<String, List<String>> sequenceTaskByNode = new LinkedHashMap<>();
+
+        private Map<String, NodeTask> taskByPath = new ConcurrentHashMap<>();
+
+        public Builder sequenceTaskByNode(String nodeName, List<String> taskList) {
+            sequenceTaskByNode.put(nodeName, taskList);
+            return this;
+        }
+
+        public Builder taskByPath(String nodeName, NodeTask task) {
+            taskByPath.put(nodeName, task);
+            return this;
+        }
+
+        public ExecutionEngineState build() {
+            return new ExecutionEngineState(sequenceTaskByNode, taskByPath);
+        }
     }
 }
