@@ -16,6 +16,8 @@
  */
 package calculator.validate;
 
+import calculator.common.Tools;
+import calculator.common.VisitorUtils;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -32,8 +34,9 @@ import java.util.Set;
 
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.VisitorUtils.pathForTraverse;
-import static calculator.engine.metadata.CalculateDirectives.FILTER;
-import static calculator.engine.metadata.CalculateDirectives.LINK;
+import static calculator.engine.function.ExpEvaluator.getExpArgument;
+import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.LINK;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
@@ -107,7 +110,7 @@ public class NodeRule extends AbstractRule {
                 String argumentName = getArgumentFromDirective(directive, "argument");
                 if (!argumentsOnField.contains(argumentName)) {
                     String errorMsg = format(
-                            "'%s' do not defined on {%s}.", argumentName, fieldFullPath
+                            "'%s' do not exist on {%s}.", argumentName, fieldFullPath
                     );
                     addValidError(directive.getSourceLocation(), errorMsg);
                     continue;
@@ -116,7 +119,7 @@ public class NodeRule extends AbstractRule {
                 // 两个node不能指向同一个参数
                 if (nodeByArgument.containsKey(argumentName)) {
                     String errorMsg = format(
-                            "node must not linked to the same argument: '%s', @link defined on '%s'@%s is invalid.",
+                            "node must not linked to the same argument '%s', @link defined on '%s' is invalid.",
                             argumentName, fieldFullPath
                     );
                     addValidError(directive.getSourceLocation(), errorMsg);
@@ -127,7 +130,15 @@ public class NodeRule extends AbstractRule {
             }
 
             if (Objects.equals(directive.getName(), FILTER.getName())) {
+
+
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
+                // emptyMap.containsKey(null)结果为true
+                if(dependencyNodeName == null){
+                    continue;
+                }
+
+                // 依赖的node必须存在。
                 if (!nodeWithAnnotatedField.containsKey(dependencyNodeName)) {
                     // 错误信息中，名称使用单引号''，路径使用花括号{}
                     String errorMsg = format(
@@ -136,7 +147,37 @@ public class NodeRule extends AbstractRule {
                     addValidError(directive.getSourceLocation(), errorMsg);
                     continue;
                 }
+
+                // 依赖的node必须被 @filter 使用了
+                String predicate = (String) Tools.parseValue(
+                        directive.getArgument("predicate").getValue()
+                );
+                List<String> arguments = getExpArgument(predicate);
+                if (!arguments.contains(dependencyNodeName)) {
+                    String errorMsg = format(
+                            "the node '%s' do not used by {%s}.", dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // 判断filter不在node依赖的任务节点中
+                QueryVisitorFieldEnvironment filterTopTaskEnv = VisitorUtils.getTopTaskEnv(environment);
+                String filterTopTask = pathForTraverse(filterTopTaskEnv);
+                String nodeTopTask = nodeWithTopTask.get(dependencyNodeName);
+                if (Objects.equals(nodeTopTask, filterTopTask)) {
+                    String errorMsg = format(
+                            "the node '%s' and field '%s' is in the same ancestor list field '%s'.",
+                            dependencyNodeName, fieldFullPath, nodeTopTask
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // todo 不在其父亲节点中？好像可以是父亲节点，但不能是子节点。
+
                 unusedNode.remove(dependencyNodeName);
+
             }
 
         }

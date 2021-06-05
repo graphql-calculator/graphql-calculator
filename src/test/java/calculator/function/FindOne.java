@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package calculator.engine.function;
+package calculator.function;
 
 import calculator.engine.annotation.Beta;
 import com.googlecode.aviator.runtime.function.AbstractFunction;

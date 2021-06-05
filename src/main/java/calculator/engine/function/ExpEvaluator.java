@@ -18,7 +18,9 @@ package calculator.engine.function;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
+import com.googlecode.aviator.Expression;
 
+import java.util.List;
 import java.util.Map;
 
 public class ExpEvaluator {
@@ -35,5 +37,10 @@ public class ExpEvaluator {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static List<String> getExpArgument(String scriptText) {
+        Expression expression = AviatorEvaluator.compile(scriptText);
+        return expression.getVariableFullNames();
     }
 }

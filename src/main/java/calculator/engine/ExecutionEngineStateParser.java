@@ -16,9 +16,8 @@
  */
 package calculator.engine;
 
-import calculator.engine.metadata.CalculateDirectives;
+import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.NodeTask;
-import calculator.engine.metadata.WrapperState;
 import graphql.Internal;
 import graphql.analysis.QueryVisitor;
 import graphql.analysis.QueryVisitorFieldEnvironment;
@@ -29,7 +28,6 @@ import graphql.util.TraverserContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static calculator.common.Tools.getArgumentFromDirective;
@@ -41,10 +39,11 @@ import static calculator.common.VisitorUtils.isListNode;
 @Internal
 public class ExecutionEngineStateParser implements QueryVisitor {
 
-    private WrapperState state;
+    private ExecutionEngineState.Builder builder = new ExecutionEngineState.Builder();
 
-    public ExecutionEngineStateParser(WrapperState state) {
-        this.state = state;
+
+    public ExecutionEngineState getExecutionEngineState() {
+        return builder.build();
     }
 
     @Override
@@ -54,20 +53,19 @@ public class ExecutionEngineStateParser implements QueryVisitor {
         }
 
         // 该节点被node注解，保存该节点及其父亲节点
-        List<Directive> directives = environment.getField().getDirectives(CalculateDirectives.NODE.getName());
+        List<Directive> directives = environment.getField().getDirectives(Directives.NODE.getName());
         if (directives != null && !directives.isEmpty()) {
 
             Directive nodeDir = directives.get(0);
             String nodeName = getArgumentFromDirective(nodeDir, "name");
-            Map<String, NodeTask> taskByPath = state.getTaskByPath();
 
             // 保存该节点及其父节点路径，例如a、a.b、a.b.c
             // 同时保存每个路径：1.是否是list下的节点；2.父节点和子节点；
             ArrayList<String> pathList = new ArrayList<>();
-            handle(false, environment, pathList, taskByPath);
+            handle(false, environment, pathList, builder);
             // kp traverserContext 是某一次visitor中所有节点共用的
             environment.getTraverserContext().setAccumulate(null);
-            state.getSequenceTaskByNode().put(nodeName, pathList);
+            builder.sequenceTaskByNode(nodeName, pathList);
         }
     }
 
@@ -79,12 +77,14 @@ public class ExecutionEngineStateParser implements QueryVisitor {
      * @param isRecursive 是否是递归调用
      * @param visitorEnv 当前节点visit上下文
      * @param pathList    kp 保存父节点、祖父节点... 的绝对路径。
-     * @param taskByPath  kp 保存字段路径对应的异步任务
+     * @param stateBuilder  kp 保存字段路径对应的异步任务
      */
     private void handle(boolean isRecursive,
                         QueryVisitorFieldEnvironment visitorEnv,
                         ArrayList<String> pathList,
-                        Map<String, NodeTask> taskByPath) {
+                        ExecutionEngineState.Builder stateBuilder
+//                        Map<String, NodeTask> taskByPath
+    ) {
 
         // 1. 一个node依赖任务列表的 "根节点任务"应该是在 其与 root 路径中、
         // 和 Query root 距离最远的 不在list中的节点，如下 uid 和 uName 依赖的上层任务从 levelOneList 开始算起，
@@ -154,14 +154,14 @@ public class ExecutionEngineStateParser implements QueryVisitor {
                         .future(new CompletableFuture<>())
                         .build();
                 visitorEnv.getTraverserContext().setAccumulate(task);
-                taskByPath.put(absolutePath, task);
+                stateBuilder.taskByPath(absolutePath, task);
             }
             return;
         }
 
         // 先递归解析父节点的原因：在创建自节点对应的NodeTask时需要设置parentTask，
         // 并将当前节点代表的任务设置为parentTask的子任务。
-        handle(true, visitorEnv.getParentEnvironment(), pathList, taskByPath);
+        handle(true, visitorEnv.getParentEnvironment(), pathList, stateBuilder);
 
         // 当前节点代表的 Node Task
         String absolutePath = visitPath(visitorEnv);
@@ -180,7 +180,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
                     .future(new CompletableFuture<>())
                     .build();
             visitorEnv.getTraverserContext().setAccumulate(currentNodeTask);
-            taskByPath.put(absolutePath, currentNodeTask);
+            stateBuilder.taskByPath(absolutePath, currentNodeTask);
         } else {
             currentNodeTask = visitorEnv.getTraverserContext().getNewAccumulate();
         }

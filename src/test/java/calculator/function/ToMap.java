@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package calculator.engine.function;
+package calculator.function;
 
 
 import calculator.engine.annotation.Beta;
@@ -28,11 +28,11 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * 将List_VO按照指定的key转换为map，重复的key则忽略。
+ * 将List_VO按照指定的key转换为Map_key_VO，重复的key则忽略。
  *
  * 示例见  calculator.directives.CalculateDirectivesTest#testNodeFunction。
  *
@@ -48,7 +48,6 @@ public class ToMap extends AbstractFunction {
         return FUNCTION_NAME;
     }
 
-    // 调用了三次
     @Override
     public AviatorObject call(Map<String, Object> env, AviatorObject listElement, AviatorObject fieldNameObj) {
         String fieldName = ((AviatorString) fieldNameObj).getLexeme(Collections.emptyMap());
@@ -57,12 +56,12 @@ public class ToMap extends AbstractFunction {
             return AviatorRuntimeJavaType.valueOf(Collections.emptyMap());
         }
 
-        Map<Object, Object> eleByKey = list.stream().collect(Collectors.toMap(
-                ele -> toMap(ele).get(fieldName),
-                ele -> ele,
-                (v1, v2) -> v1
-        ));
-        return AviatorRuntimeJavaType.valueOf(eleByKey);
+        Map<Object, Object> result =new LinkedHashMap<>();
+        for (Object ele : list) {
+            Map<String, Object> objectMap = toMap(ele);
+            result.putIfAbsent(objectMap.get(fieldName),objectMap);
+        }
+        return AviatorRuntimeJavaType.valueOf(result);
     }
 
     private Map<String, Object> toMap(Object object) {

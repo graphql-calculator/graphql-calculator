@@ -35,11 +35,11 @@ import static calculator.common.Tools.isValidEleName;
 import static calculator.common.VisitorUtils.getTopTaskEnv;
 import static calculator.common.VisitorUtils.parentPathSet;
 import static calculator.common.VisitorUtils.pathForTraverse;
-import static calculator.engine.metadata.CalculateDirectives.FILTER;
-import static calculator.engine.metadata.CalculateDirectives.MOCK;
-import static calculator.engine.metadata.CalculateDirectives.NODE;
-import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT;
+import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.MOCK;
+import static calculator.engine.metadata.Directives.NODE;
+import static calculator.engine.metadata.Directives.SKIP_BY;
+import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.function.ExpEvaluator.isValidExp;
 
 

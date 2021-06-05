@@ -18,7 +18,6 @@ package calculator.engine;
 
 import calculator.config.Config;
 import calculator.engine.metadata.NodeTask;
-import calculator.engine.metadata.WrapperState;
 import calculator.graphql.AsyncDataFetcher;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import graphql.ExecutionResult;
@@ -46,7 +45,6 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import graphql.validation.ValidationError;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -64,18 +62,18 @@ import java.util.stream.Collectors;
 import static calculator.common.Tools.fieldPath;
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.isInListPath;
-import static calculator.engine.metadata.CalculateDirectives.FILTER;
-import static calculator.engine.metadata.CalculateDirectives.MAP;
-import static calculator.engine.metadata.CalculateDirectives.MOCK;
-import static calculator.engine.metadata.CalculateDirectives.SKIP_BY;
-import static calculator.engine.metadata.CalculateDirectives.SORT;
+import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.MAP;
+import static calculator.engine.metadata.Directives.MOCK;
+import static calculator.engine.metadata.Directives.SKIP_BY;
+import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.function.ExpEvaluator.calExp;
-import static calculator.engine.metadata.WrapperState.FUNCTION_KEY;
+import static calculator.engine.ExecutionEngineState.FUNCTION_KEY;
 import static calculator.graphql.AsyncDataFetcher.async;
 import static graphql.execution.Async.toCompletableFuture;
 import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
 import static java.util.stream.Collectors.toList;
-import static calculator.engine.metadata.CalculateDirectives.LINK;
+import static calculator.engine.metadata.Directives.LINK;
 
 public class ExecutionEngine implements Instrumentation {
 
@@ -112,10 +110,9 @@ public class ExecutionEngine implements Instrumentation {
                 .document(Parser.parse(query))
                 .variables(Collections.emptyMap()).build();
 
-        WrapperState state = new WrapperState();
-        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser(state);
+        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser();
         traverser.visitDepthFirst(visitor);
-        return state;
+        return visitor.getExecutionEngineState();
     }
 
     @Override
@@ -197,7 +194,7 @@ public class ExecutionEngine implements Instrumentation {
             @Override
             public void onCompleted(ExecutionResult result, Throwable ex) {
 
-                WrapperState state = parameters.getInstrumentationState();
+                ExecutionEngineState state = parameters.getInstrumentationState();
                 ResultPath resultPath = parameters.getExecutionStepInfo().getPath();
                 NodeTask futureTask = parseNodeTask(state, resultPath);
                 if (futureTask == null) {
@@ -246,7 +243,7 @@ public class ExecutionEngine implements Instrumentation {
      * @param resultPath 当前节点
      * @return 当前节点对应的异步任务定义
      */
-    private NodeTask parseNodeTask(WrapperState state, ResultPath resultPath) {
+    private NodeTask parseNodeTask(ExecutionEngineState state, ResultPath resultPath) {
         if (state.getTaskByPath().isEmpty()) {
             return null;
         }
@@ -293,7 +290,7 @@ public class ExecutionEngine implements Instrumentation {
     private DataFetcher<?> wrapDFEnvironment(DataFetcher<?> dataFetcher,
                                              List<Directive> linkDirectiveList,
                                              InstrumentationFieldFetchParameters parameters) {
-        WrapperState scheduleState = parameters.getInstrumentationState();
+        ExecutionEngineState scheduleState = parameters.getInstrumentationState();
         Map<String, List<String>> sequenceTaskByNode = scheduleState.getSequenceTaskByNode();
         Map<String, NodeTask> taskByPath = scheduleState.getTaskByPath();
         DataFetchingEnvironment oldDFEnvironment = parameters.getEnvironment();
@@ -433,8 +430,8 @@ public class ExecutionEngine implements Instrumentation {
                                        DataFetcher<?> defaultDF,
                                        String predicate,
                                        String dependencyNode,
-                                       WrapperState state) {
-        return environment -> {
+                                       ExecutionEngineState state) {
+        return async(environment -> {
             // 考虑到使用的是 AsyncDataFetcher，结果可能包装成CompletableFuture中了
             CompletableFuture<Object> resultFuture = toCompletableFuture(defaultDF.get(environment));
 
@@ -452,7 +449,7 @@ public class ExecutionEngine implements Instrumentation {
                 if (dependencyNode != null) {
                     nodeEnv = new HashMap<>();
                     NodeTask nodeTask = getNodeValueFromState(state, dependencyNode);
-                    if (!nodeTask.getFuture().isCompletedExceptionally()) {
+                    if (nodeTask.getFuture().isCompletedExceptionally()) {
                         nodeEnv.put(dependencyNode, null);
                     } else {
                         nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
@@ -473,12 +470,12 @@ public class ExecutionEngine implements Instrumentation {
                     }
                 }
                 return filteredList;
-            });
-        };
+            }).join();
+        }, executor);
     }
 
     // 按照指定key对元素进行排列
-    private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, WrapperState state) {
+    private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, ExecutionEngineState state) {
         return environment -> {
             CompletableFuture<?> resultFuture = toCompletableFuture(defaultDF.get(environment));
             return resultFuture.handle((res, ex) -> {
@@ -505,7 +502,7 @@ public class ExecutionEngine implements Instrumentation {
     }
 
     // map：转换
-    private DataFetcher<?> getMapperDF(AviatorEvaluatorInstance aviatorEvaluator, String mapper, WrapperState state) {
+    private DataFetcher<?> getMapperDF(AviatorEvaluatorInstance aviatorEvaluator, String mapper, ExecutionEngineState state) {
         //  如果 mapper 的函数中使用main函数执行可能阻塞的任务、则会影响graphql引擎的计划执行，因此此处使用线程池
         return async(environment -> {
             Map<String, Object> objectMap = objectMapper.toMap(environment.getSource());
@@ -515,7 +512,7 @@ public class ExecutionEngine implements Instrumentation {
         }, executor);
     }
 
-    private Map<String, Object> getCalMap(Object res, WrapperState state) {
+    private Map<String, Object> getCalMap(Object res, ExecutionEngineState state) {
         if (res == null) {
             return Collections.emptyMap();
         }
@@ -533,7 +530,7 @@ public class ExecutionEngine implements Instrumentation {
     }
 
     // todo logDebug
-    private NodeTask getNodeValueFromState(WrapperState state, String nodeName) {
+    private NodeTask getNodeValueFromState(ExecutionEngineState state, String nodeName) {
         Map<String, List<String>> sequenceTaskByNode = state.getSequenceTaskByNode();
         List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
 

@@ -28,7 +28,7 @@ import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
-public class CalculateDirectives {
+public class Directives {
 
     private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
 
