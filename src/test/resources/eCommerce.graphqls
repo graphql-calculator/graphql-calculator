@@ -1,8 +1,9 @@
 
 # 指令定义
 #directive @map(mapper: String) on FIELD
-#directive @node(name: String, transform: String) on FIELD
+#directive @node(name: String) on FIELD
 #directive @link(node:String, argument:String) on FIELD
+#directive @filter(predicate:String!, dependencyNode:String) on FIELD
 
 #enum ParamTransformType{
 #    MAP

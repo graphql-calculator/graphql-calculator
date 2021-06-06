@@ -16,21 +16,25 @@
  */
 package calculator.engine;
 
-import calculator.exception.WrapperSchemaException;
+
 import calculator.config.Config;
-import calculator.engine.function.FindOne;
-import calculator.engine.function.GetByNode;
-import calculator.engine.function.ToMap;
+import calculator.exception.WrapperSchemaException;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import static calculator.engine.metadata.CalculateDirectives.PARAM_TRANSFORM_TYPE;
-import static calculator.engine.metadata.CalculateDirectives.getCalDirectiveByName;
+import static calculator.engine.metadata.Directives.PARAM_TRANSFORM_TYPE;
+import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.LINK;
+import static calculator.engine.metadata.Directives.MAP;
+import static calculator.engine.metadata.Directives.MOCK;
+import static calculator.engine.metadata.Directives.NODE;
+import static calculator.engine.metadata.Directives.SKIP_BY;
+import static calculator.engine.metadata.Directives.SORT;
+import static calculator.engine.metadata.Directives.getCalDirectiveByName;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -57,11 +61,16 @@ public class SchemaWrapper {
         }
 
         // add calculator type to schema
+        // 将配置中的指令放到schema中
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SKIP_BY);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MOCK);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(FILTER);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MAP);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
+        wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
         wrappedSchemaBuilder.additionalType(PARAM_TRANSFORM_TYPE);
 
-        config.getAviatorEvaluator().addFunction(new GetByNode());
-        config.getAviatorEvaluator().addFunction(new ToMap());
-        config.getAviatorEvaluator().addFunction(new FindOne());
         for (AviatorFunction function : config.functions()) {
             config.getAviatorEvaluator().addFunction(function);
         }
@@ -84,12 +93,9 @@ public class SchemaWrapper {
             throw new WrapperSchemaException(errorMsg);
         }
 
-        // todo 不要这样硬编码
-        List<String> engineFunc = Arrays.asList("getByNode", "toMap", "findOne");
         List<String> duplicateFuncNames = config.functions().stream()
                 .filter(function ->
                         config.getAviatorEvaluator().containsFunction(function.getName())
-                                || engineFunc.contains(function.getName())
                 )
                 .map(AviatorFunction::getName).collect(toList());
 

@@ -125,3 +125,46 @@
 #        stockAmount
 #    }
 #}
+
+# 依赖的节点没有被使用
+#query {
+#    itemList(ids: [1,2,3,4])
+#    @filter(predicate: "itemId>0",dependencyNode: "preferredItemIdList")
+#    {
+#        itemId
+#        name
+#    }
+#
+#    userInfo{
+#        preferredItemIdList @node(name:"preferredItemIdList")
+#    }
+#}
+
+# 使用最喜欢的商品列表过滤结果集
+#query {
+#    itemList(ids: [1,2,3,4])
+#    @filter(predicate: "listContain(preferredItemIdList,itemId)", dependencyNode: "preferredItemIdList")
+#    {
+#        itemId
+#        name
+#    }
+#
+#    userInfo(id:3){
+#        # 根据userDF逻辑，preferredItemIdList = [3,4,5]
+#        preferredItemIdList @node(name:"preferredItemIdList")
+#    }
+#}
+
+
+# 指令机器依赖的字段在同一个listField中
+#query {
+#    itemList(ids: [1,2,3,4])
+#    {
+#        itemId @node(name:"itemId")
+#        name
+#        couponList @filter(predicate: "func(itemId)", dependencyNode: "itemId")
+#        {
+#            couponId
+#        }
+#    }
+#}

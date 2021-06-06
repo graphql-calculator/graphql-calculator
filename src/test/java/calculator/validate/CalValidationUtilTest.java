@@ -22,7 +22,6 @@ import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
-
 import static calculator.engine.CalculateSchemaHolder.getCalSchema;
 
 public class CalValidationUtilTest {

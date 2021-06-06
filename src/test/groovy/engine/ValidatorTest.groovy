@@ -52,7 +52,7 @@ class ValidatorTest extends Specification {
         given:
         def query = """
             query{
-                userInfoList(ids: [1,2,3]) @sortBy(exp: "idx"){
+                userInfoList(ids: [1,2,3]) @sort(key: "idx"){
                     userId
                     name
                     favoriteItemId
@@ -67,7 +67,7 @@ class ValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "invalid key name, @userInfoList."
+        result.errors[0].description == "non-exist key name on {userInfoList}."
     }
 
     def "sortBy on nonList"() {
@@ -75,7 +75,7 @@ class ValidatorTest extends Specification {
         def query = """
             query(\$itemId: Int) {
                 item(id: \$itemId){
-                    itemId @sortBy(exp:"id")
+                    itemId @sort(key:"id")
                     name
                 }
             }
@@ -86,7 +86,7 @@ class ValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "key must define on list type, instead @item#itemId."
+        result.errors[0].description == "sort key must define on list type, instead of {item#itemId}."
     }
 
     def "the node used by @link must exist"() {
@@ -110,7 +110,7 @@ class ValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "the node 'nonExist' used by 'itemList'@SourceLocation{line=8, column=13} do not exist."
+        result.errors[0].description == "the node 'nonExist' used by {itemList} do not exist."
     }
 
     def "the argument which node linked must exist"() {
@@ -122,7 +122,7 @@ class ValidatorTest extends Specification {
                 name
                 favoriteItemId  @node(name:"itemIds")
             }
-            itemList(ids: 1)@link(argument:"nonExist",node:"itemIds"){
+            itemList(ids: 1)@link(argument:"nonExistArgument",node:"itemIds"){
                 itemId
                 name
             }
@@ -134,7 +134,7 @@ class ValidatorTest extends Specification {
 
         then:
         result.errors.size() == 1
-        result.errors[0].description == "'nonExist' do not defined on 'itemList'@SourceLocation{line=8, column=13}."
+        result.errors[0].description == "'nonExistArgument' do not exist on {itemList}."
     }
 
 
@@ -163,7 +163,7 @@ class ValidatorTest extends Specification {
 
         then:
         result.isFailure()
-        result.errors[0].description == "node must not linked to the same argument: 'ids', @link defined on 'itemList'@SourceLocation{line=9, column=17} is invalid."
+        result.errors[0].description == "node must not linked to the same argument 'ids', @link defined on 'itemList' is invalid."
     }
 
 

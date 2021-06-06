@@ -18,14 +18,11 @@ package calculator.config;
 
 
 import calculator.engine.ObjectMapper;
-import calculator.engine.ObjectMapperImpl;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 
 public interface Config {
 
