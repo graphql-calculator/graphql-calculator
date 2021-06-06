@@ -18,6 +18,8 @@ package calculator.engine.metadata;
 
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLEnumValueDefinition;
 import graphql.schema.GraphQLNonNull;
 
 import java.util.Collections;
@@ -28,6 +30,13 @@ import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
+/**
+ * the customized directives which to be provided to describe runtime operation,
+ *
+ * including query execution, type validation.
+ *
+ * details in https://spec.graphql.org/draft/#sec-Language.Directives.
+ */
 public class Directives {
 
     private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
@@ -107,7 +116,6 @@ public class Directives {
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    // 可能是基本类型、因此key是可选的 TODO delete
                     .name("name")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
@@ -128,6 +136,62 @@ public class Directives {
                     .type(GraphQLString))
             .build();
 
+    public enum ParamTransformType {
+        MAP("map"), LIST_MAP("listMap"), FILTER("filter");
+
+        String name;
+
+        ParamTransformType(String name) {
+            this.name = name;
+        }
+    }
+
+    public static final GraphQLEnumType ARGUMENT_TRANSFORM_TYPE = GraphQLEnumType.newEnum()
+            .name("ParamTransformType")
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("MAP")
+                            .value(ParamTransformType.MAP)
+                            .description("transform the argument by exp.").build()
+
+            )
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("LIST_MAP")
+                            .value(ParamTransformType.LIST_MAP)
+                            .description("transform each element of list argument by exp.").build()
+            )
+            .value(
+                    GraphQLEnumValueDefinition.newEnumValueDefinition()
+                            .name("FILTER")
+                            .value(ParamTransformType.FILTER)
+                            .description("filter the argument element by exp.").build()
+            ).build();
+
+    public final static GraphQLDirective ARGUMENT_TRANSFORM = GraphQLDirective.newDirective()
+            .name("argumentTransform")
+            .description("transform the argument by exp.")
+            .validLocation(FIELD)
+            .repeatable(true)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("argument")
+                    .description("the argument name defined on the annotated field.")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("operateType")
+                    .type(GraphQLNonNull.nonNull(ARGUMENT_TRANSFORM_TYPE)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("exp")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencyNode")
+                    .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
+            .build();
 
     static {
         Map<String, GraphQLDirective> tmpMap = new HashMap<>();
@@ -138,6 +202,7 @@ public class Directives {
         tmpMap.put(SORT.getName(), SORT);
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
+        tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

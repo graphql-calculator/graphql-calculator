@@ -38,7 +38,6 @@ import java.util.Map;
  *
  * 注：传递个该函数的VO类型最好转换为Map类型，否则会执行反射代码。
  */
-@Beta
 public class ToMap extends AbstractFunction {
 
     private static final String FUNCTION_NAME = "toMap";

@@ -16,8 +16,9 @@
  */
 package calculator.engine;
 
-import calculator.exception.WrapperSchemaException;
+
 import calculator.config.Config;
+import calculator.exception.WrapperSchemaException;
 import com.googlecode.aviator.runtime.type.AviatorFunction;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
@@ -25,7 +26,7 @@ import graphql.schema.GraphQLSchema;
 import java.util.List;
 import java.util.Set;
 
-import static calculator.engine.metadata.Directives.getCalDirectiveByName;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM_TYPE;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
@@ -33,6 +34,7 @@ import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.NODE;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
+import static calculator.engine.metadata.Directives.getCalDirectiveByName;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -53,6 +55,12 @@ public class SchemaWrapper {
 
         GraphQLSchema.Builder wrappedSchemaBuilder = GraphQLSchema.newSchema(existingSchema);
 
+        // add calculator directives to schema
+        for (GraphQLDirective calDirective : getCalDirectiveByName().values()) {
+            wrappedSchemaBuilder.additionalDirective(calDirective);
+        }
+
+        // add calculator type to schema
         // 将配置中的指令放到schema中
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SKIP_BY);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(MOCK);
@@ -61,6 +69,7 @@ public class SchemaWrapper {
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
+        wrappedSchemaBuilder.additionalType(ARGUMENT_TRANSFORM_TYPE);
 
         for (AviatorFunction function : config.functions()) {
             config.getAviatorEvaluator().addFunction(function);
