@@ -135,8 +135,8 @@ public class NodeRule extends AbstractRule {
                 }
             }
 
+            // todo 必须用在list节点上
             if (Objects.equals(directive.getName(), FILTER.getName())) {
-
 
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 // emptyMap.containsKey(null)结果为true
@@ -154,6 +154,16 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
                 unusedNode.remove(dependencyNodeName);
+
+                // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
+                if(argumentsOnField.contains(dependencyNodeName)){
+                    String errorMsg = format(
+                            "the node name '%s' must be different to field argument name %s.",
+                            dependencyNodeName, argumentsOnField
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
 
                 // 依赖的node必须被 @filter 使用了
                 String predicate = (String) Tools.parseValue(
@@ -207,7 +217,7 @@ public class NodeRule extends AbstractRule {
 
             }
 
-            if(Objects.equals(directive.getName(),ARGUMENT_TRANSFORM.getName())){
+            if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
 
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 if(dependencyNodeName == null){
@@ -224,6 +234,17 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
                 unusedNode.remove(dependencyNodeName);
+
+                // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
+                if(argumentsOnField.contains(dependencyNodeName)){
+                    String errorMsg = format(
+                            "the node name '%s' must be different to field argument name {%s}.",
+                            dependencyNodeName, argumentsOnField
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
 
                 // node必须被使用了
                 String predicate = (String) Tools.parseValue(

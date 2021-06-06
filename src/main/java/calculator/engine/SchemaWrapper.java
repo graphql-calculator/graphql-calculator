@@ -26,7 +26,7 @@ import graphql.schema.GraphQLSchema;
 import java.util.List;
 import java.util.Set;
 
-import static calculator.engine.metadata.Directives.PARAM_TRANSFORM_TYPE;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM_TYPE;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
@@ -69,7 +69,7 @@ public class SchemaWrapper {
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(SORT);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(NODE);
         wrappedSchemaBuilder = wrappedSchemaBuilder.additionalDirective(LINK);
-        wrappedSchemaBuilder.additionalType(PARAM_TRANSFORM_TYPE);
+        wrappedSchemaBuilder.additionalType(ARGUMENT_TRANSFORM_TYPE);
 
         for (AviatorFunction function : config.functions()) {
             config.getAviatorEvaluator().addFunction(function);

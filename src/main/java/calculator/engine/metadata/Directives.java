@@ -146,7 +146,7 @@ public class Directives {
         }
     }
 
-    public static final GraphQLEnumType PARAM_TRANSFORM_TYPE = GraphQLEnumType.newEnum()
+    public static final GraphQLEnumType ARGUMENT_TRANSFORM_TYPE = GraphQLEnumType.newEnum()
             .name("ParamTransformType")
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
@@ -181,7 +181,7 @@ public class Directives {
             .argument(GraphQLArgument
                     .newArgument()
                     .name("operateType")
-                    .type(GraphQLNonNull.nonNull(PARAM_TRANSFORM_TYPE)))
+                    .type(GraphQLNonNull.nonNull(ARGUMENT_TRANSFORM_TYPE)))
             .argument(GraphQLArgument
                     .newArgument()
                     .name("exp")

@@ -17,12 +17,15 @@
 package calculator.validate;
 
 import calculator.common.Tools;
+import calculator.engine.metadata.Directives;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Directive;
 import graphql.language.Field;
 import graphql.language.SourceLocation;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
 
@@ -31,10 +34,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.isValidEleName;
 import static calculator.common.VisitorUtils.getTopTaskEnv;
 import static calculator.common.VisitorUtils.parentPathSet;
 import static calculator.common.VisitorUtils.pathForTraverse;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.NODE;
@@ -149,6 +154,23 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
+            } else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
+
+                // filter 或者 list_map 用在了非list上
+                String argumentName = getArgumentFromDirective(directive, "argument");
+                GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
+                        environment.getFieldDefinition().getArgument(argumentName).getType()
+                );
+
+                String operateType = getArgumentFromDirective(directive, "operateType");
+                if ((Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())
+                        || Objects.equals(operateType, Directives.ParamTransformType.FILTER.name()))
+                        && !(innerType instanceof GraphQLList)
+                ) {
+                    String errorMsg = String.format("%s operation can not used on basic field {}.", operateType, fieldPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
             } else if (Objects.equals(directiveName, NODE.getName())) {
                 String nodeName = (String) Tools.parseValue(
                         directive.getArgument("name").getValue()

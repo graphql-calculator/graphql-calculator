@@ -68,6 +68,7 @@ import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
+import static calculator.engine.metadata.Directives.ParamTransformType.LIST_MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.ExecutionEngineState.FUNCTION_KEY;
@@ -573,6 +574,7 @@ public class ExecutionEngine implements Instrumentation {
                 }
             }
 
+            // 如果是列表元素过滤
             if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
                 List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
                 if (argument == null) {
@@ -591,17 +593,22 @@ public class ExecutionEngine implements Instrumentation {
                 return finalDF.get(newEnvironment);
             }
 
+            // 如果是列表元素转换
+            if (Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())) {
+
+
+            }
+
+            // 如果是 元素类型参数 转换
             if(Objects.equals(operateType,Directives.ParamTransformType.MAP.name())){
 
-                Map<String,Object> transformEnv = new HashMap<>();
-                transformEnv.putAll(environment.getArguments());
+                Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
                 if (nodeEnv != null) {
                     transformEnv.putAll(nodeEnv);
                 }
                 Object newParam = aviatorEvaluator.execute(exp, transformEnv);
 
-                Map<String, Object> newArguments = new HashMap<>();
-                newArguments.putAll(environment.getArguments());
+                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
                 newArguments.put(argumentName, newParam);
 
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
@@ -609,7 +616,6 @@ public class ExecutionEngine implements Instrumentation {
 
                 return finalDF.get(newEnvironment);
             }
-
 
             return finalDF.get(environment);
         };
@@ -638,9 +644,6 @@ public class ExecutionEngine implements Instrumentation {
         List<NodeTask> taskForNodeValue = taskNameForNode.stream().map(taskByPath::get).collect(toList());
 
         NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
-
-
-        //
 
 //        for (CompletableFuture<Object> future : Arrays.asList(new CompletableFuture<>())) {
 //            future.whenCompleteAsync((ignored,ex)->{

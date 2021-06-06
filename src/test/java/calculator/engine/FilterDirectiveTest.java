@@ -172,5 +172,27 @@ public class FilterDirectiveTest {
         );
     }
 
+    @Test
+    public void nodeNameSameToArgumentNameTest() {
+        String query = "" +
+                "query {\n" +
+                "    itemList(ids: [1,2,3,4])\n" +
+                "    @filter(predicate: \"func(ids)\",dependencyNode: \"ids\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
+                "    \n" +
+                "    userInfo{\n" +
+                "        preferredItemIdList @node(name:\"ids\")\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        assert validateResult.isFailure();
+        assert Objects.equals(validateResult.getValidationErrors().get(0).getDescription(),
+                "the node name 'ids' must be different to field argument name [ids].");
+    }
+
 
 }

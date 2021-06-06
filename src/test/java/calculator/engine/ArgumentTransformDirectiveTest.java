@@ -19,7 +19,6 @@ package calculator.engine;
 
 import calculator.config.ConfigImpl;
 import calculator.validate.Validator;
-import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
@@ -27,14 +26,15 @@ import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static calculator.engine.CalculateSchemaHolder.getCalSchema;
 import static calculator.engine.ExecutionEngine.newInstance;
 
-public class ParamTransformDirectiveTest {
+public class ArgumentTransformDirectiveTest {
 
 
     private static final GraphQLSchema wrappedSchema;
@@ -80,15 +80,19 @@ public class ParamTransformDirectiveTest {
         ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         assert !validateResult.isFailure();
 
-        ExecutionInput input = ExecutionInput.newExecutionInput()
-                .query(query)
-                .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)))
-                .build();
-
         ExecutionResult result = graphQL.execute(query);
         assert result != null;
         assert result.getErrors().isEmpty();
-        assert ((Map<String, List>) result.getData()).get("couponList").size() == 3;
+        assert Objects.equals(((Map<String, Map>) result.getData()).get("userInfo").get("preferredItemIdList"), Arrays.asList(3, 4, 5));
+
+        Map<Integer, String> itemNameById = ((Map<String, List<Map>>) result.getData()).get("itemList").stream().collect(Collectors.toMap(
+                entry -> (Integer) entry.get("itemId"),
+                entry -> (String) entry.get("name")
+        ));
+
+        assert Objects.equals(itemNameById.get(3), "3_item_name");
+        assert Objects.equals(itemNameById.get(4), "4_item_name");
+        assert Objects.equals(itemNameById.get(5), "5_item_name");
 
     }
 
