@@ -4,6 +4,12 @@
 #directive @node(name: String) on FIELD
 #directive @link(node:String, argument:String) on FIELD
 #directive @filter(predicate:String!, dependencyNode:String) on FIELD
+#enum ParamTransformType{
+#    MAP
+#    MAP_LIST
+#    FILTER
+#}
+#directive @argumentTransform(argument:String, operateType:ParamTransformType, exp:String, dependencyNode:String) on FIELD
 
 type Query {
     userInfo(id: Int):User

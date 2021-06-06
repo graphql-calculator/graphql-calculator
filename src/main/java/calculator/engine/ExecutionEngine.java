@@ -17,6 +17,7 @@
 package calculator.engine;
 
 import calculator.config.Config;
+import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.NodeTask;
 import calculator.graphql.AsyncDataFetcher;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
@@ -57,23 +58,24 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static calculator.common.Tools.fieldPath;
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.isInListPath;
+import static calculator.engine.function.ExpEvaluator.calExp;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
+import static calculator.engine.metadata.Directives.ParamTransformType.LIST_MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
-import static calculator.engine.function.ExpEvaluator.calExp;
 import static calculator.engine.ExecutionEngineState.FUNCTION_KEY;
 import static calculator.graphql.AsyncDataFetcher.async;
 import static graphql.execution.Async.toCompletableFuture;
 import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
 import static java.util.stream.Collectors.toList;
-import static calculator.engine.metadata.Directives.LINK;
 
 public class ExecutionEngine implements Instrumentation {
 
@@ -400,6 +402,16 @@ public class ExecutionEngine implements Instrumentation {
                 defaultDF = wrapSortByDF(defaultDF, sortKey, reversed, instrumentationParameters.getInstrumentationState());
                 continue;
             }
+
+            if(Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName())){
+                String argument = getArgumentFromDirective(directive, "argument");
+                String operateType = getArgumentFromDirective(directive, "operateType");
+                String exp = getArgumentFromDirective(directive, "exp");
+                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
+                defaultDF = transformParamDF(argument, operateType, exp, dependencyNode, defaultDF,instrumentationParameters.getInstrumentationState());
+                continue;
+            }
+
         }
 
         //  skipBy放在最外层包装，因为如果跳过该字段，其他逻辑也不必在执行
@@ -491,12 +503,12 @@ public class ExecutionEngine implements Instrumentation {
                 if (reversed) {
                     return collection.stream().sorted(
                             Comparator.comparing(ele ->(Comparable) getCalMap(ele, state).get(sortKey)).reversed()
-                    ).collect(Collectors.toList());
+                    ).collect(toList());
                 }
 
                 return collection.stream().sorted(
                         Comparator.comparing(ele -> (Comparable)  getCalMap(ele,state).get(sortKey))
-                ).collect(Collectors.toList());
+                ).collect(toList());
             });
         };
     }
@@ -529,6 +541,100 @@ public class ExecutionEngine implements Instrumentation {
         return result;
     }
 
+
+    // todo 校验 name 必须存在与 query 中
+    // todo 校验 exp 必须是可编译的
+    // TODO paren这个常量也需要有说明
+    // typeName: String -> Enum
+    private DataFetcher<?> transformParamDF(String argumentName,
+                                            String operateType,
+                                            String exp,
+                                            String dependencyNode,
+                                            DataFetcher<?> defaultDF,
+                                            ExecutionEngineState engineState) {
+        final DataFetcher<?> finalDF;
+        final Executor exec;
+        if (defaultDF instanceof AsyncDataFetcher) {
+            finalDF = ((AsyncDataFetcher) defaultDF).getWrappedDataFetcher();
+            exec = ((AsyncDataFetcher) defaultDF).getExecutor();
+        } else {
+            finalDF = defaultDF;
+            exec = executor;
+        }
+
+        DataFetcher<?> wrappedFetcher = environment -> {
+
+            Map<String, Object> nodeEnv = null;
+            if (dependencyNode != null) {
+                nodeEnv = new HashMap<>();
+                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
+                if (nodeTask.getFuture().isCompletedExceptionally()) {
+                } else {
+                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                }
+            }
+
+            // 如果是列表元素过滤
+            if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
+                List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
+                if (argument == null) {
+                    return finalDF.get(environment);
+                }
+
+                argument = argument.stream().filter(ele -> {
+                    Boolean isValid = (Boolean) aviatorEvaluator.execute(exp, Collections.singletonMap("param", ele));
+                    return isValid != null && isValid;
+                }).collect(toList());
+
+                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                newArguments.put(argumentName, argument);
+                DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
+                        .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+                return finalDF.get(newEnvironment);
+            }
+
+            // 如果是列表元素转换
+            if (Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())) {
+
+
+            }
+
+            // 如果是 元素类型参数 转换
+            if(Objects.equals(operateType,Directives.ParamTransformType.MAP.name())){
+
+                Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
+                if (nodeEnv != null) {
+                    transformEnv.putAll(nodeEnv);
+                }
+                Object newParam = aviatorEvaluator.execute(exp, transformEnv);
+
+                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                newArguments.put(argumentName, newParam);
+
+                DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
+                        .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+
+                return finalDF.get(newEnvironment);
+            }
+
+            return finalDF.get(environment);
+        };
+
+        // 如果当前节点依赖了其他节点，也将其异步化，
+        // 比如：
+        // query{
+        //      directiveField @dir(dependencyNode:"nodeX")
+        //      nodeField @node(name:"nodeX")
+        // }
+        //
+        // 如果串行执行则线程会阻塞在 directiveField 的解析中
+        if (defaultDF instanceof AsyncDataFetcher || dependencyNode != null) {
+            return async(wrappedFetcher, exec);
+        } else {
+            return wrappedFetcher;
+        }
+    }
+
     // todo logDebug
     private NodeTask getNodeValueFromState(ExecutionEngineState state, String nodeName) {
         Map<String, List<String>> sequenceTaskByNode = state.getSequenceTaskByNode();
@@ -538,9 +644,6 @@ public class ExecutionEngine implements Instrumentation {
         List<NodeTask> taskForNodeValue = taskNameForNode.stream().map(taskByPath::get).collect(toList());
 
         NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
-
-
-        //
 
 //        for (CompletableFuture<Object> future : Arrays.asList(new CompletableFuture<>())) {
 //            future.whenCompleteAsync((ignored,ex)->{

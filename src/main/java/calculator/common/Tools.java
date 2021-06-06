@@ -23,6 +23,7 @@ import graphql.execution.ResultPath;
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
 import graphql.language.Directive;
+import graphql.language.EnumValue;
 import graphql.language.FloatValue;
 import graphql.language.IntValue;
 import graphql.language.StringValue;
@@ -43,7 +44,7 @@ public class Tools {
     }
 
     /**
-     * todo 解析Value：这个方法不太安全，因为没新增一种Value类型，这里都要新增一种情况
+     * 该放放只用于当前组件，场景有限。
      *
      * @param value val
      * @return val
@@ -63,6 +64,11 @@ public class Tools {
 
         if (value instanceof FloatValue) {
             return ((FloatValue) value).getValue();
+        }
+
+        // todo 绑定
+        if (value instanceof EnumValue) {
+            return ((EnumValue) value).getName();
         }
 
         return null;

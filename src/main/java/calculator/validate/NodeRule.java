@@ -17,7 +17,6 @@
 package calculator.validate;
 
 import calculator.common.Tools;
-import calculator.common.VisitorUtils;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -33,16 +32,23 @@ import java.util.Objects;
 import java.util.Set;
 
 import static calculator.common.Tools.getArgumentFromDirective;
+import static calculator.common.VisitorUtils.getTopTaskEnv;
+import static calculator.common.VisitorUtils.parentPathSet;
 import static calculator.common.VisitorUtils.pathForTraverse;
 import static calculator.engine.function.ExpEvaluator.getExpArgument;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
+
 /**
- * - 环校验：是否都在一个list里边 / 是否有相同的list父节点；也不能依赖父亲节点；TODO：多看几个sql
- *         // todo @node节点的完成不依赖使用到node的节点，所以只有上述两种情况：父亲节点和同一个顶层任务节点下的节点、包括顶层任务节点本身。
+ * 检查指令上node的用法是否正确，核心思想为 使用到了node节点的字段不能是该node节点所依赖字段，分为以下两种情况：
+ *  1. 当node节点不是在list元素是，使用到node节点的字段不能是其子节点。执行完成的顺序是由下到上的；
+ *  2. 当node节点是list元素的节点，则与使用到该node节点的字段不能在同一个list中，即不能是同一个top任务。
+ *
+ * check whether the usage of node on directives is correct.
  */
 public class NodeRule extends AbstractRule {
 
@@ -129,8 +135,8 @@ public class NodeRule extends AbstractRule {
                 }
             }
 
+            // todo 必须用在list节点上
             if (Objects.equals(directive.getName(), FILTER.getName())) {
-
 
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 // emptyMap.containsKey(null)结果为true
@@ -143,6 +149,17 @@ public class NodeRule extends AbstractRule {
                     // 错误信息中，名称使用单引号''，路径使用花括号{}
                     String errorMsg = format(
                             "the node '%s' used by {%s} do not exist.", dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+                unusedNode.remove(dependencyNodeName);
+
+                // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
+                if(argumentsOnField.contains(dependencyNodeName)){
+                    String errorMsg = format(
+                            "the node name '%s' must be different to field argument name %s.",
+                            dependencyNodeName, argumentsOnField
                     );
                     addValidError(directive.getSourceLocation(), errorMsg);
                     continue;
@@ -161,8 +178,20 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
-                // 判断filter不在node依赖的任务节点中
-                QueryVisitorFieldEnvironment filterTopTaskEnv = VisitorUtils.getTopTaskEnv(environment);
+                // 不能在同一个节点上，这种情况是 两个节点共享同一个祖先节点的特殊情况，判断成本小。
+                String nodeAnnotatedFieldPath = nodeWithAnnotatedField.get(dependencyNodeName);
+                if (Objects.equals(fieldFullPath, nodeAnnotatedFieldPath)) {
+                    String errorMsg = format(
+                            "the node '%s' and filter can not annotated on the same field {%s}.",
+                            dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+
+                // 判断filter不在node依赖的任务节点中（同时也会校验到两者不能放到同一个节点上）
+                QueryVisitorFieldEnvironment filterTopTaskEnv = getTopTaskEnv(environment);
                 String filterTopTask = pathForTraverse(filterTopTaskEnv);
                 String nodeTopTask = nodeWithTopTask.get(dependencyNodeName);
                 if (Objects.equals(nodeTopTask, filterTopTask)) {
@@ -174,9 +203,61 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
-                // todo 不在其父亲节点中？好像可以是父亲节点，但不能是子节点。
+                // node 不是该指令注解节点的父亲节点。
+                // 对于没有list元素的单节点链路，两者不共享同一个topTaskNode，但是父子关系也会使其依赖关系有循环。
+                Set<String> parentPathSet = parentPathSet(environment);
+                if (parentPathSet.contains(nodeAnnotatedFieldPath)) {
+                    String errorMsg = format(
+                            "the field {%s} can not depend on its ancestor {%s} (node '%s').",
+                            fieldFullPath, nodeAnnotatedFieldPath,dependencyNodeName
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
 
+            }
+
+            if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
+
+                String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
+                if(dependencyNodeName == null){
+                    continue;
+                }
+
+                // 依赖的node必须存在。
+                if (!nodeWithAnnotatedField.containsKey(dependencyNodeName)) {
+                    // 错误信息中，名称使用单引号''，路径使用花括号{}
+                    String errorMsg = format(
+                            "the node '%s' used by {%s} do not exist.", dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
                 unusedNode.remove(dependencyNodeName);
+
+                // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
+                if(argumentsOnField.contains(dependencyNodeName)){
+                    String errorMsg = format(
+                            "the node name '%s' must be different to field argument name {%s}.",
+                            dependencyNodeName, argumentsOnField
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+
+                // node必须被使用了
+                String predicate = (String) Tools.parseValue(
+                        directive.getArgument("exp").getValue()
+                );
+                List<String> arguments = getExpArgument(predicate);
+                if (!arguments.contains(dependencyNodeName)) {
+                    String errorMsg = format(
+                            "the node '%s' do not used by {%s}.", dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
 
             }
 
