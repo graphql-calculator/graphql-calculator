@@ -117,7 +117,7 @@ public class Tools {
      * 获取 environment 表示的当前节点的结果路径
      *
      * @param environment 被访问的Field节点环境变量
-     * @return 当前节点的绝对路径，用 {@link #PATH_SEPARATOR} 分割
+     * @return 当前节点的绝对路径，用 # 分割
      */
     public static String visitPath(QueryVisitorFieldEnvironment environment) {
         if (environment == null) {

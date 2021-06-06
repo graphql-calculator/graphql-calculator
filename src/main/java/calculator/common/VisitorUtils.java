@@ -105,7 +105,7 @@ public class VisitorUtils {
      * 顶层任务节点查找逻辑见 {@link ExecutionEngineStateParser#handle}
      *
      * @param visitorEnv 当前任务节点
-     * @return
+     * @return 当前任务节点的所依赖的顶层任务节点
      */
     public static QueryVisitorFieldEnvironment getTopTaskEnv(QueryVisitorFieldEnvironment visitorEnv) {
         QueryVisitorFieldEnvironment result = visitorEnv;

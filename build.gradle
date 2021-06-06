@@ -77,8 +77,8 @@ publishing {
             def releaseUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
             url = version.endsWith('SNAPSHOT') ? snapshotUrl : releaseUrl
             credentials {
-                username =  'OSS_USER_NAME'
-                password = 'OSS_PASSWORD'
+                username =  'dugk'
+                password = '@Kongtiao123'
             }
         }
     }
@@ -100,11 +100,11 @@ uploadArchives {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: 'OSS_USER_NAME', password: 'OSS_PASSWORD')
+                authentication(userName: 'dugk', password: '@Kongtiao123')
             }
 
             snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: 'OSS_USER_NAME', password: 'OSS_PASSWORD')
+                authentication(userName: 'dugk', password: '@Kongtiao123')
             }
 
             pom.project {
