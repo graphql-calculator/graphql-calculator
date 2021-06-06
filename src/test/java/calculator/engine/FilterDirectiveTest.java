@@ -104,7 +104,28 @@ public class FilterDirectiveTest {
     }
 
     @Test
-    public void filterAndDependencyInTheSameListFieldTest() {
+    public void filterAndDependencyOnTheSameFieldTest() {
+        String query = "" +
+                "query{\n" +
+                "    userInfoList @filter(predicate:\"func(uList)\",dependencyNode: \"uList\") @node(name: \"uList\")\n" +
+                "    {\n" +
+                "        userId\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult parseAndValidateResult = Validator.validateQuery(
+                query, wrappedSchema
+        );
+
+        assert parseAndValidateResult.getValidationErrors().size() == 1;
+        assert parseAndValidateResult.getValidationErrors().get(0).getDescription().equals(
+                "the node 'uList' and filter can not annotated on the same field {userInfoList}."
+        );
+    }
+
+    @Test
+    public void filterAndDependencyShareSameAncestorTest() {
         String query = "" +
                 "query {\n" +
                 "    itemList(ids: [1,2,3,4])\n" +
@@ -125,8 +146,31 @@ public class FilterDirectiveTest {
         assert parseAndValidateResult.getValidationErrors().size() == 1;
         assert parseAndValidateResult.getValidationErrors().get(0).getDescription().equals(
                 "the node 'itemId' and field 'itemList#couponList' is in the same ancestor list field 'itemList'."
-
         );
     }
+
+
+    @Test
+    public void filterCanNotDependOnAncestorNodeTest() {
+        String query = "" +
+                "query{\n" +
+                "    userInfo @node(name: \"uInfo\")\n" +
+                "    {\n" +
+                "        userId\n" +
+                "        name\n" +
+                "        preferredItemIdList  @filter(predicate:\"func(uInfo)\",dependencyNode: \"uInfo\")\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult parseAndValidateResult = Validator.validateQuery(
+                query, wrappedSchema
+        );
+
+        assert parseAndValidateResult.getValidationErrors().size() == 1;
+        assert parseAndValidateResult.getValidationErrors().get(0).getDescription().equals(
+                "the field {userInfo#preferredItemIdList} can not depend on its ancestor {userInfo} (node 'uInfo')."
+        );
+    }
+
 
 }

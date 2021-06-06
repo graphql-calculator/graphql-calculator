@@ -137,7 +137,7 @@ public class Directives {
             .build();
 
     public enum ParamTransformType {
-        MAP("map"), MAP_LIST("mapList"), FILTER("filter");
+        MAP("map"), LIST_MAP("listMap"), FILTER("filter");
 
         String name;
 
@@ -151,41 +151,46 @@ public class Directives {
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
                             .name("MAP")
-//                            .value(ParamTransformType.MAP)
+                            .value(ParamTransformType.MAP)
                             .description("transform the argument by exp.").build()
 
             )
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
-                            .name("MAP_LIST")
-//                            .value(ParamTransformType.MAP_LIST)
-                            .description("transform each argument element by exp.").build()
+                            .name("LIST_MAP")
+                            .value(ParamTransformType.LIST_MAP)
+                            .description("transform each element of list argument by exp.").build()
             )
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
                             .name("FILTER")
-//                            .value(ParamTransformType.FILTER)
+                            .value(ParamTransformType.FILTER)
                             .description("filter the argument element by exp.").build()
             ).build();
 
-    public final static GraphQLDirective PARAM_TRANSFORM = GraphQLDirective.newDirective()
-            .name("paramTransform")
+    public final static GraphQLDirective ARGUMENT_TRANSFORM = GraphQLDirective.newDirective()
+            .name("argumentTransform")
             .description("transform the argument by exp.")
             .validLocation(FIELD)
             .repeatable(true)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("name")
+                    .name("argument")
                     .description("the argument name defined on the annotated field.")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("type")
+                    .name("operateType")
                     .type(GraphQLNonNull.nonNull(PARAM_TRANSFORM_TYPE)))
             .argument(GraphQLArgument
                     .newArgument()
                     .name("exp")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencyNode")
+                    .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
             .build();
 
     static {
@@ -197,7 +202,7 @@ public class Directives {
         tmpMap.put(SORT.getName(), SORT);
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
-        tmpMap.put(PARAM_TRANSFORM.getName(),PARAM_TRANSFORM);
+        tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

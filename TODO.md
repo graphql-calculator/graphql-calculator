@@ -11,11 +11,11 @@
 - TODO：dependency等这次代码的单元测试；
 
 - TODO
- 环校验：是否都在一个list里边 / 是否有相同的list父节点；也不能依赖父亲节点；TODO：多看几个sql
-        // todo @node节点的完成不依赖使用到node的节点，所以只有上述两种情况：父亲节点和同一个顶层任务节点下的节点、包括顶层任务节点本身。
+list-map, list-filter不能用在基本类型上
 
-#  如果 field_2 执行失败了，则field会永远阻塞下去
-#  所以最好的方式是也分析出 field_2，从顶层任务节点开始分析结束情况，但是在之上的任务节点失败则中断等待。
+- TODO:
+如果 field_2 执行失败了，则field会永远阻塞下去
+所以最好的方式是也分析出 field_2，从顶层任务节点开始分析结束情况，但是在之上的任务节点失败则中断等待。
 query{
      field_1 @link(node:"arg"")
      field_2{
@@ -24,10 +24,7 @@ query{
                 innerField @node(name:"arg")
             }
      }
-
 }
-
-- TODO: 去掉函数中查询异步任务的逻辑。
 
 
 # 注意
@@ -37,3 +34,10 @@ query{
 - 功能：https://spectrum.chat/graphql-java?tab=posts；
 
 - 如果依赖的节点任务异常，则获取的数据为null——一个节点有问题不应该影响另一个节点。
+
+
+# 线程池的使用
+
+所有依赖了node节点字段的解析都是异步的。
+
+TODO 是不是这种自动化的异步就可以了，使用者不用在把所有自定义fetcher绑定了异步fetcher。

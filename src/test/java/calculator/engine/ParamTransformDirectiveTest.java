@@ -18,9 +18,11 @@
 package calculator.engine;
 
 import calculator.config.ConfigImpl;
+import calculator.validate.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
+import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
@@ -57,32 +59,37 @@ public class ParamTransformDirectiveTest {
     }
 
 
-//    @Test
-//    public void filterListParam() {
-//        String query = "" +
-//                "query ($itemIds:[Int]){\n" +
-//                "            itemList(ids: $itemIds) @paramTransform(type: FILTER,name: \"ids\",exp: \"param>5\")\n" +
-//                "            {\n" +
-//                "                itemId\n" +
-//                "                        name\n" +
-//                "                stockAmount\n" +
-//                "            }\n" +
-//                "        }";
-//
-////        todo 校验
-////        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-////        assert !validateResult.isFailure();
-//
-//        ExecutionInput input = ExecutionInput.newExecutionInput()
-//                .query(query)
-//                .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)))
-//                .build();
-//
-//        ExecutionResult result = graphQL.execute(input);
-//        assert result != null;
-//        assert result.getErrors().isEmpty();
-//        assert ((Map<String, List>) result.getData()).get("couponList").size() == 3;
-//
-//    }
+    @Test
+    public void filterListParam() {
+        String query = "" +
+                "query{\n" +
+                "    userInfo(id:3){\n" +
+                "        preferredItemIdList @node(name: \"itemIds\")\n" +
+                "    }\n" +
+                "\n" +
+                // todo 表达式环境变量为原来的所有参数+依赖的节点。TODO source
+                // todo 依赖的节点名称不能根参数名称一样
+                "    itemList(ids:[])\n" +
+                "    @argumentTransform(operateType: MAP,argument: \"ids\",exp: \"itemIds\",dependencyNode: \"itemIds\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
+        ExecutionInput input = ExecutionInput.newExecutionInput()
+                .query(query)
+                .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)))
+                .build();
+
+        ExecutionResult result = graphQL.execute(query);
+        assert result != null;
+        assert result.getErrors().isEmpty();
+        assert ((Map<String, List>) result.getData()).get("couponList").size() == 3;
+
+    }
 
 }

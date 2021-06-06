@@ -168,3 +168,37 @@
 #        }
 #    }
 #}
+
+# 指令及其所依赖的节点不能放到同一个节点上
+#query{
+#    userInfoList @filter(predicate:"func(uList)",dependencyNode: "uList") @node(name: "uList")
+#    {
+#        userId
+#        name
+#    }
+#}
+
+# 不能依赖其父亲节点
+#query{
+#    userInfo @node(name: "uInfo")
+#    {
+#        userId
+#        name
+#        preferredItemIdList  @filter(predicate:"func(uInfo)",dependencyNode: "uInfo")
+#    }
+#}
+
+
+# 激情一个节点的值赋值给另一个节点
+#query{
+#    userInfo(id:3){
+#        preferredItemIdList @node(name: "itemIds")
+#    }
+#
+#    itemList(ids:[])
+#    @argumentTransform(operateType: MAP,argument: "ids",exp: "itemIds",dependencyNode: "itemIds")
+#    {
+#        itemId
+#        name
+#    }
+#}

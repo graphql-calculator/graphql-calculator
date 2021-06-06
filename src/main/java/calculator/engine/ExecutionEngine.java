@@ -17,6 +17,7 @@
 package calculator.engine;
 
 import calculator.config.Config;
+import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.NodeTask;
 import calculator.graphql.AsyncDataFetcher;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
@@ -57,17 +58,16 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static calculator.common.Tools.fieldPath;
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.isInListPath;
 import static calculator.engine.function.ExpEvaluator.calExp;
+import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
-import static calculator.engine.metadata.Directives.PARAM_TRANSFORM;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.ExecutionEngineState.FUNCTION_KEY;
@@ -402,11 +402,12 @@ public class ExecutionEngine implements Instrumentation {
                 continue;
             }
 
-            if(Objects.equals(PARAM_TRANSFORM.getName(), directive.getName())){
-                String name = getArgumentFromDirective(directive, "name");
+            if(Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName())){
+                String argument = getArgumentFromDirective(directive, "argument");
+                String operateType = getArgumentFromDirective(directive, "operateType");
                 String exp = getArgumentFromDirective(directive, "exp");
-                String typeName = getArgumentFromDirective(directive, "type");
-                defaultDF = transformParamDF(name, exp, typeName, defaultDF);
+                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
+                defaultDF = transformParamDF(argument, operateType, exp, dependencyNode, defaultDF,instrumentationParameters.getInstrumentationState());
                 continue;
             }
 
@@ -542,8 +543,14 @@ public class ExecutionEngine implements Instrumentation {
 
     // todo 校验 name 必须存在与 query 中
     // todo 校验 exp 必须是可编译的
+    // TODO paren这个常量也需要有说明
     // typeName: String -> Enum
-    private DataFetcher<?> transformParamDF(String name, String exp, String typeName, DataFetcher<?> defaultDF) {
+    private DataFetcher<?> transformParamDF(String argumentName,
+                                            String operateType,
+                                            String exp,
+                                            String dependencyNode,
+                                            DataFetcher<?> defaultDF,
+                                            ExecutionEngineState engineState) {
         final DataFetcher<?> finalDF;
         final Executor exec;
         if (defaultDF instanceof AsyncDataFetcher) {
@@ -555,8 +562,19 @@ public class ExecutionEngine implements Instrumentation {
         }
 
         DataFetcher<?> wrappedFetcher = environment -> {
-            if (Objects.equals(typeName, "FILTER")) {
-                List<Object> argument = environment.getArgumentOrDefault(name, Collections.emptyList());
+
+            Map<String, Object> nodeEnv = null;
+            if (dependencyNode != null) {
+                nodeEnv = new HashMap<>();
+                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
+                if (nodeTask.getFuture().isCompletedExceptionally()) {
+                } else {
+                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                }
+            }
+
+            if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
+                List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
                 if (argument == null) {
                     return finalDF.get(environment);
                 }
@@ -567,16 +585,44 @@ public class ExecutionEngine implements Instrumentation {
                 }).collect(toList());
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
-                newArguments.put(name, argument);
+                newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+                return finalDF.get(newEnvironment);
+            }
+
+            if(Objects.equals(operateType,Directives.ParamTransformType.MAP.name())){
+
+                Map<String,Object> transformEnv = new HashMap<>();
+                transformEnv.putAll(environment.getArguments());
+                if (nodeEnv != null) {
+                    transformEnv.putAll(nodeEnv);
+                }
+                Object newParam = aviatorEvaluator.execute(exp, transformEnv);
+
+                Map<String, Object> newArguments = new HashMap<>();
+                newArguments.putAll(environment.getArguments());
+                newArguments.put(argumentName, newParam);
+
+                DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
+                        .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+
                 return finalDF.get(newEnvironment);
             }
 
 
             return finalDF.get(environment);
         };
-        if (defaultDF instanceof AsyncDataFetcher) {
+
+        // 如果当前节点依赖了其他节点，也将其异步化，
+        // 比如：
+        // query{
+        //      directiveField @dir(dependencyNode:"nodeX")
+        //      nodeField @node(name:"nodeX")
+        // }
+        //
+        // 如果串行执行则线程会阻塞在 directiveField 的解析中
+        if (defaultDF instanceof AsyncDataFetcher || dependencyNode != null) {
             return async(wrappedFetcher, exec);
         } else {
             return wrappedFetcher;
