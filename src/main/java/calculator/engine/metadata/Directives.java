@@ -32,9 +32,9 @@ import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
 /**
  * the customized directives which to be provided to describe runtime operation,
- *
+ * <p>
  * including query execution, type validation.
- *
+ * <p>
  * details in https://spec.graphql.org/draft/#sec-Language.Directives.
  */
 public class Directives {
@@ -105,6 +105,27 @@ public class Directives {
                     .name("reversed")
                     .defaultValue(false)
                     .type(GraphQLBoolean))
+            .build();
+
+
+    public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
+            .name("sortBy")
+            .description("sort the list by exp result.")
+            .validLocation(FIELD)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("exp")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("reversed")
+                    .defaultValue(false)
+                    .type(GraphQLBoolean))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencyNode")
+                    .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
             .build();
 
 
@@ -203,6 +224,7 @@ public class Directives {
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
         tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
+        tmpMap.put(SORT_BY.getName(), SORT_BY);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

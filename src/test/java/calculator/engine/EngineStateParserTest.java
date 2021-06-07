@@ -31,9 +31,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static calculator.engine.TestUtil.listsWithSameElements;
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 
-public class ExecutionEngineStateParserTest {
+public class EngineStateParserTest {
 
     private static ConfigImpl baseConfig = ConfigImpl.newConfig().build();
 

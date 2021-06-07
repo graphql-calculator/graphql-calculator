@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 import static calculator.engine.ExecutionEngine.newInstance;
 
 public class FilterDirectiveTest {

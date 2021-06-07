@@ -202,3 +202,17 @@
 #        name
 #    }
 #}
+
+
+# 有依赖关系的sortBy
+#query{
+#    userInfo(id:2){
+#        userId @node(name:"uId")
+#    }
+#
+#    itemList(ids: [1,2,3,4]) @sortBy(exp:"itemId/uId", dependencyNode:"uId")
+#    {
+#        itemId
+#        name
+#    }
+#}

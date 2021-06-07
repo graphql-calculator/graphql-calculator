@@ -31,10 +31,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 import static calculator.engine.ExecutionEngine.newInstance;
 
-public class ArgumentTransformDirectiveTest {
+public class ArgumentDirectiveTest {
 
 
     private static final GraphQLSchema wrappedSchema;

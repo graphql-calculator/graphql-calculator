@@ -29,6 +29,9 @@ import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
 
+import java.lang.reflect.Array;
+import java.util.Collection;
+
 import static calculator.common.VisitorUtils.PATH_SEPARATOR;
 
 public class Tools {
@@ -155,6 +158,18 @@ public class Tools {
         }
 
         return false;
+    }
+
+    public static int arraySize(Object object) {
+        if (object instanceof Collection) {
+            return ((Collection<?>) object).size();
+        }
+
+        if (object.getClass().isArray()) {
+            return Array.getLength(object);
+        }
+
+        return 0;
     }
 
 }

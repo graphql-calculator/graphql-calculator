@@ -1,7 +1,10 @@
 
-
+重点：@filter——对结果进行处理；@argumentTransform：对参数进行处理实现调度。
 
 # TODO
+
+0. node支持transform；
+
 1. skipBy支持dependencyNode
 
 2. map支持dependencyNode
@@ -42,3 +45,10 @@ query{
 - 如果依赖的节点任务异常，则获取的数据为null——一个节点有问题不应该影响另一个节点；
 
 - 所有依赖了node节点字段的解析都是需要是异步的。
+
+# 开发流程
+
+1. 根据业务场景设计指令；
+2. 校验；
+3. ExecutionEngine开发；
+4. 单元测试。

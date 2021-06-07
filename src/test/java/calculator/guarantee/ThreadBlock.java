@@ -17,13 +17,12 @@
 
 package calculator.guarantee;
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 import static calculator.engine.ExecutionEngine.newInstance;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import calculator.config.Config;
 import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
 import org.junit.Test;

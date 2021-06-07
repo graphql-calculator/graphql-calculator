@@ -22,7 +22,7 @@ import calculator.engine.SchemaWrapper
 import calculator.validate.Validator
 import spock.lang.Specification
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema
+import static calculator.engine.SchemaHolder.getCalSchema
 
 class ValidatorTest extends Specification {
 
@@ -68,25 +68,6 @@ class ValidatorTest extends Specification {
         then:
         result.errors.size() == 1
         result.errors[0].description == "non-exist key name on {userInfoList}."
-    }
-
-    def "sortBy on nonList"() {
-        given:
-        def query = """
-            query(\$itemId: Int) {
-                item(id: \$itemId){
-                    itemId @sort(key:"id")
-                    name
-                }
-            }
-        """
-
-        when:
-        def result = Validator.validateQuery(query, wrappedSchema)
-
-        then:
-        result.errors.size() == 1
-        result.errors[0].description == "sort key must define on list type, instead of {item#itemId}."
     }
 
     def "the node used by @link must exist"() {

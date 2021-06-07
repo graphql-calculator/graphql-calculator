@@ -25,6 +25,7 @@ import graphql.language.Directive;
 import graphql.language.Field;
 import graphql.language.SourceLocation;
 import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
@@ -46,6 +47,7 @@ import static calculator.engine.metadata.Directives.NODE;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.function.ExpEvaluator.isValidExp;
+import static calculator.engine.metadata.Directives.SORT_BY;
 
 
 public class BasicRule extends AbstractRule {
@@ -127,10 +129,14 @@ public class BasicRule extends AbstractRule {
                 }
 
             } else if (Objects.equals(directiveName, SORT.getName())) {
-                boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
-                if (!isListType) {
+
+                GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
+                        environment.getFieldDefinition().getType()
+                );
+
+                if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
-                    String errorMsg = String.format("sort key must define on list type, instead of {%s}.", fieldPath);
+                    String errorMsg = String.format("sort must annotated on list type, instead of {%s}.", fieldPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -154,7 +160,29 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-            } else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
+            } else if (Objects.equals(directiveName, SORT_BY.getName())) {
+                String exp = (String) Tools.parseValue(
+                        directive.getArgument("exp").getValue()
+                );
+
+                if (!isValidExp(exp)) {
+                    String errorMsg = String.format("invalid exp for %s on %s.", exp, fieldPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+                GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
+                        environment.getFieldDefinition().getType()
+                );
+
+                if (!GraphQLTypeUtil.isList(innerType)) {
+                    // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
+                    String errorMsg = String.format("sortBy must annotated on list type, instead of {%s}.", fieldPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+            } if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
                 // filter 或者 list_map 用在了非list上
                 String argumentName = getArgumentFromDirective(directive, "argument");
