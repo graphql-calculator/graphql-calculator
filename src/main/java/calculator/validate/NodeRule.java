@@ -39,6 +39,7 @@ import static calculator.engine.function.ExpEvaluator.getExpArgument;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
+import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
@@ -100,16 +101,11 @@ public class NodeRule extends AbstractRule {
             if (Objects.equals(directive.getName(), LINK.getName())) {
 
                 // node必须存在
-                String nodeName = getArgumentFromDirective(directive, "node");
-                if (!nodeWithAnnotatedField.containsKey(nodeName)) {
-                    // 错误信息中，名称使用单引号''，路径使用花括号{}
-                    String errorMsg = format(
-                            "the node '%s' used by {%s} do not exist.", nodeName, fieldFullPath
-                    );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                String dependencyNodeName = getArgumentFromDirective(directive, "node");
+                // 依赖的节点是否存在，存在这从unusedNode中删除
+                if (!validateExist(fieldFullPath, directive, dependencyNodeName)) {
                     continue;
                 }
-                unusedNode.remove(nodeName);
 
 
                 // argument 必须定义在查询语句中
@@ -131,12 +127,69 @@ public class NodeRule extends AbstractRule {
                     addValidError(directive.getSourceLocation(), errorMsg);
                     continue;
                 } else {
-                    nodeByArgument.put(argumentName, nodeName);
+                    nodeByArgument.put(argumentName, dependencyNodeName);
                 }
-            }
+            } else if (Objects.equals(directive.getName(), SORT_BY.getName())) {
+                String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
+                // emptyMap.containsKey(null)结果为true
+                if(dependencyNodeName == null){
+                    continue;
+                }
 
-            // todo 必须用在list节点上
-            if (Objects.equals(directive.getName(), FILTER.getName())) {
+                // 依赖的节点是否存在，存在这从unusedNode中删除
+                if (!validateExist(fieldFullPath, directive, dependencyNodeName)) {
+                    continue;
+                }
+
+
+                // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
+                if(argumentsOnField.contains(dependencyNodeName)){
+                    String errorMsg = format(
+                            "the node name '%s' must be different to field argument name %s.",
+                            dependencyNodeName, argumentsOnField
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // 依赖的node必须被 @filter 使用了
+                String predicate = (String) Tools.parseValue(
+                        directive.getArgument("exp").getValue()
+                );
+                List<String> arguments = getExpArgument(predicate);
+                if (!arguments.contains(dependencyNodeName)) {
+                    String errorMsg = format(
+                            "the node '%s' do not used by {%s}.", dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // 不能在同一个节点上，这种情况是 两个节点共享同一个祖先节点的特殊情况，判断成本小。
+                String nodeAnnotatedFieldPath = nodeWithAnnotatedField.get(dependencyNodeName);
+                if (Objects.equals(fieldFullPath, nodeAnnotatedFieldPath)) {
+                    String errorMsg = format(
+                            "the node '%s' and filter can not annotated on the same field {%s}.",
+                            dependencyNodeName, fieldFullPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // 判断filter不在node依赖的任务节点中（同时也会校验到两者不能放到同一个节点上）
+                QueryVisitorFieldEnvironment filterTopTaskEnv = getTopTaskEnv(environment);
+                String filterTopTask = pathForTraverse(filterTopTaskEnv);
+                String nodeTopTask = nodeWithTopTask.get(dependencyNodeName);
+                if (Objects.equals(nodeTopTask, filterTopTask)) {
+                    String errorMsg = format(
+                            "the node '%s' and field '%s' is in the same ancestor list field '%s'.",
+                            dependencyNodeName, fieldFullPath, nodeTopTask
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+            } else if (Objects.equals(directive.getName(), FILTER.getName())) {
 
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 // emptyMap.containsKey(null)结果为true
@@ -144,16 +197,10 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
-                // 依赖的node必须存在。
-                if (!nodeWithAnnotatedField.containsKey(dependencyNodeName)) {
-                    // 错误信息中，名称使用单引号''，路径使用花括号{}
-                    String errorMsg = format(
-                            "the node '%s' used by {%s} do not exist.", dependencyNodeName, fieldFullPath
-                    );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                // 依赖的节点是否存在，存在这从unusedNode中删除
+                if (!validateExist(fieldFullPath, directive, dependencyNodeName)) {
                     continue;
                 }
-                unusedNode.remove(dependencyNodeName);
 
                 // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
                 if(argumentsOnField.contains(dependencyNodeName)){
@@ -224,16 +271,10 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
-                // 依赖的node必须存在。
-                if (!nodeWithAnnotatedField.containsKey(dependencyNodeName)) {
-                    // 错误信息中，名称使用单引号''，路径使用花括号{}
-                    String errorMsg = format(
-                            "the node '%s' used by {%s} do not exist.", dependencyNodeName, fieldFullPath
-                    );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                // 依赖的节点是否存在，存在这从unusedNode中删除
+                if (!validateExist(fieldFullPath, directive, dependencyNodeName)) {
                     continue;
                 }
-                unusedNode.remove(dependencyNodeName);
 
                 // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
                 if(argumentsOnField.contains(dependencyNodeName)){
@@ -273,5 +314,28 @@ public class NodeRule extends AbstractRule {
     @Override
     public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment environment) {
 
+    }
+
+    /**
+     * 校验依赖的节点是否存在，存在这从unusedNode中删除。
+     *
+     * @param fieldFullPath 字段全路径
+     * @param directive 字段上的指令
+     * @param dependencyNodeName 指令依赖的节点名称
+     *
+     * @return 是否校验成功
+     */
+    private boolean validateExist(String fieldFullPath, Directive directive, String dependencyNodeName) {
+        // 依赖的node必须存在。
+        if (!nodeWithAnnotatedField.containsKey(dependencyNodeName)) {
+            // 错误信息中，名称使用单引号''，路径使用花括号{}
+            String errorMsg = format(
+                    "the node '%s' used by {%s} do not exist.", dependencyNodeName, fieldFullPath
+            );
+            addValidError(directive.getSourceLocation(), errorMsg);
+            return false;
+        }
+        unusedNode.remove(dependencyNodeName);
+        return true;
     }
 }

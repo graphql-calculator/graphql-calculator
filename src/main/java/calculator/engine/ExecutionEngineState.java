@@ -31,8 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ExecutionEngineState implements InstrumentationState {
 
-    public static final String FUNCTION_KEY = "wrapperState";
-
     /**
      * 一个节点依赖的字段绝对路径、从外到内<nodeName,List<absolutePath>>
      * <p>

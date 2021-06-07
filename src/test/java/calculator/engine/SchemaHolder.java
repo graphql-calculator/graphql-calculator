@@ -47,7 +47,7 @@ import java.util.stream.IntStream;
  * R get(T, AbortPolicy<List<Error>,R> )
  * }
  */
-public class CalculateSchemaHolder {
+public class SchemaHolder {
 
     private static GraphQLSchema calSchema;
 
@@ -146,7 +146,7 @@ public class CalculateSchemaHolder {
 
     public static GraphQLSchema getCalSchema() {
         if (calSchema == null) {
-            synchronized (CalculateSchemaHolder.class) {
+            synchronized (SchemaHolder.class) {
                 if (calSchema == null) {
                     Map<String, DataFetcher> queryFetcher = new HashMap<>();
                     queryFetcher.put("userInfo", async(userDF));

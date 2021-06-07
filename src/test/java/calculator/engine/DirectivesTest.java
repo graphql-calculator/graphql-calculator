@@ -34,13 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 import static calculator.engine.TestUtil.getFromNestedMap;
 import static calculator.engine.ExecutionEngine.newInstance;
 import static com.googlecode.aviator.AviatorEvaluator.execute;
 
 
-public class CalculateDirectivesTest {
+public class DirectivesTest {
 
     private final GraphQLSchema wrappedSchema;
     private final GraphQL graphQL;
@@ -134,51 +134,6 @@ public class CalculateDirectivesTest {
         assert ((Map<String, List>) result.getData()).get("couponList").size() == 3;
 
     }
-
-    @Test
-    public void sortByDirective() {
-        String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sort(key:\"itemId\"){\n" +
-                "        itemId\n" +
-                "        name\n" +
-                "    }\n" +
-                "}";
-
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-        assert !validateResult.isFailure();
-
-        ExecutionResult result = graphQL.execute(query);
-        assert result != null;
-        assert result.getErrors().isEmpty();
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 1);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,3),'itemId')", result.getData()), 4);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,4),'itemId')", result.getData()), 5);
-    }
-
-    @Test
-    public void reversedSortByDirective() {
-        String query = "query {\n" +
-                "    itemList(ids:[3,2,1,4,5]) @sort(key:\"itemId\",reversed:true){\n" +
-                "        itemId\n" +
-                "        name\n" +
-                "    }\n" +
-                "}";
-
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-        assert !validateResult.isFailure();
-
-        ExecutionResult result = graphQL.execute(query);
-        assert result != null;
-        assert result.getErrors().isEmpty();
-        assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 5);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 3);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,3),'itemId')", result.getData()), 2);
-        assert Objects.equals(execute("seq.get(seq.get(itemList,4),'itemId')", result.getData()), 1);
-    }
-
 
     @Test
     public void scheduleTest() {

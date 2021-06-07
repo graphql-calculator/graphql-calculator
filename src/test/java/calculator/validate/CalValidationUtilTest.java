@@ -22,7 +22,7 @@ import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
-import static calculator.engine.CalculateSchemaHolder.getCalSchema;
+import static calculator.engine.SchemaHolder.getCalSchema;
 
 public class CalValidationUtilTest {
 
