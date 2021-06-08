@@ -121,6 +121,7 @@ public class SchemaHolder {
 
         Map<String, Object> couponInfo = new HashMap<>();
         couponInfo.put("couponId", id);
+        couponInfo.put("base", id * 10 + 1);
         couponInfo.put("price", id * 10);
         couponInfo.put("couponText", "面额" + id * 10 + "元");
         return couponInfo;

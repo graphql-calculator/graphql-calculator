@@ -32,7 +32,33 @@ query{
 
 8. `@require`：即使不是非空字段，在这个查询里边也必须出现，否则所在实体为空；
 
-9. 是不是这种自动化的异步就可以了，使用者不用在把所有自定义fetcher绑定了异步fetcher。
+9. 是不是这种自动化的异步就可以了，使用者不用在把所有自定义fetcher绑定了异步fetcher；
+
+10. 检测如下环：核心思想仍然是分析 其开始执行前依赖的节点是否包括自己。
+当前先作如下校验：使用了依赖node节点的指令、不可同时成为node（如果子节点成为node呢？）
+query{
+    a: userInfo
+    @node(name: "a")
+    // 不管是什么处理指令，都是依赖其node进行开始，都是转换后fetcher的前置逻辑
+    @map(mapper: "func(b)",dependencyNode: "b")
+    {
+        userId
+    }
+    
+    b: userInfo
+    @node(name: "b")
+    @map(mapper: "func(c)",dependencyNode: "c")
+    {
+        userId
+    }
+    
+    c: userInfo
+    @node(name: "c")
+    @map(mapper: "func(a)",dependencyNode: "a")
+    {
+        userId
+    }
+}
 
 # 注意
 
@@ -44,7 +70,7 @@ query{
 
 - 如果依赖的节点任务异常，则获取的数据为null——一个节点有问题不应该影响另一个节点；
 
-- 所有依赖了node节点字段的解析都是需要是异步的。
+- 所有依赖了node节点字段的解析都是需要是异步的。？没有依赖了节点的解析不应该是异步的？
 
 # 开发流程
 

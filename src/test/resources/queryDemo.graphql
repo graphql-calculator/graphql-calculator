@@ -216,3 +216,27 @@
 #        name
 #    }
 #}
+
+
+# 数据调度 + 夸类型数据补齐
+#query{
+#    userInfoList(ids:[1,2,3,4])
+#    @node(name: "itemIds", mapper: "favoriteItemId")
+#    {
+#        userId
+#        name
+#        favoriteItemId
+#        itemId: userId @map(mapper: "seq.get(seq.get(itemList,favoriteItemId),'itemId')",dependencyNode: "itemList")
+#        itemName: name @map(mapper: "seq.get(seq.get(itemList,favoriteItemId),'name')",dependencyNode: "itemList")
+#        itemPrice: userId @map(mapper: "seq.get(seq.get(itemList,favoriteItemId),'salePrice')",dependencyNode: "itemList")
+#    }
+#
+#    itemList(ids:1)
+#    @argumentTransform(argument: "ids",operateType: MAP, exp:"itemIds", dependencyNode: "itemIds")
+#    @node(name: "itemList", mapper: "toMap('itemId')")
+#    {
+#        itemId
+#        name
+#        salePrice
+#    }
+#}

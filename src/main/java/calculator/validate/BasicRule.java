@@ -26,7 +26,6 @@ import graphql.language.Directive;
 import graphql.language.Field;
 import graphql.language.SourceLocation;
 import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
@@ -43,6 +42,7 @@ import static calculator.common.VisitorUtils.parentPathSet;
 import static calculator.common.VisitorUtils.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.NODE;
 import static calculator.engine.metadata.Directives.SKIP_BY;
@@ -188,7 +188,15 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-            } if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
+            } else if (Objects.equals(directiveName, MAP.getName())) {
+
+                String mapper = getArgumentFromDirective(directive, "mapper");
+                if (!isValidExp(mapper)) {
+                    String errorMsg = String.format("invalidate mapper '%s' for %s on %s.", mapper, directive.getName(), fieldPath);
+                    addValidError(location, errorMsg);
+                }
+
+            }else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
                 String exp = getArgumentFromDirective(directive, "exp");
                 if (!isValidExp(exp)) {

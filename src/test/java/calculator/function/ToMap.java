@@ -18,7 +18,6 @@
 package calculator.function;
 
 
-import calculator.engine.annotation.Beta;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
 import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;

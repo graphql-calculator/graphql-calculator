@@ -41,6 +41,6 @@ public class ExpEvaluator {
 
     public static List<String> getExpArgument(String scriptText) {
         Expression expression = AviatorEvaluator.compile(scriptText);
-        return expression.getVariableFullNames();
+        return expression.getVariableNames();
     }
 }
