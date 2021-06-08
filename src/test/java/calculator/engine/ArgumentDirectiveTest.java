@@ -48,19 +48,70 @@ public class ArgumentDirectiveTest {
     }
 
 
+    // 对参数元素进行过滤
     @Test
-    public void mapBasicParam() {
+    public void filterListArgumentElement() {
+        String query = "" +
+                "query{\n" +
+                "\n" +
+                "    itemList(ids:[1,2,3,4])\n" +
+                "    @argumentTransform(operateType: FILTER,argument: \"ids\",exp: \"ele%2==0\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
 
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
+        ExecutionResult result = graphQL.execute(query);
+        assert result != null;
+        assert result.getErrors().isEmpty();
+        Map<Integer, String> itemNameById = ((Map<String, List<Map>>) result.getData()).get("itemList").stream().collect(Collectors.toMap(
+                entry -> (Integer) entry.get("itemId"),
+                entry -> (String) entry.get("name")
+        ));
+
+        assert Objects.equals(itemNameById.get(2), "2_item_name");
+        assert Objects.equals(itemNameById.get(4), "4_item_name");
     }
 
-    @Test
-    public void mapListParam() {
 
+    // 对参数元素进行转换
+    @Test
+    public void mapListArgumentElement() {
+        String query = "" +
+                "query{\n" +
+                "\n" +
+                "    itemList(ids:[1,2,3])\n" +
+                "    @argumentTransform(operateType: LIST_MAP,argument: \"ids\",exp: \"long(ele+1)\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        name\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        assert !validateResult.isFailure();
+
+        ExecutionResult result = graphQL.execute(query);
+        assert result != null;
+        assert result.getErrors().isEmpty();
+        Map<Integer, String> itemNameById = ((Map<String, List<Map>>) result.getData()).get("itemList").stream().collect(Collectors.toMap(
+                entry -> (Integer) entry.get("itemId"),
+                entry -> (String) entry.get("name")
+        ));
+
+        assert Objects.equals(itemNameById.get(2), "2_item_name");
+        assert Objects.equals(itemNameById.get(3), "3_item_name");
+        assert Objects.equals(itemNameById.get(4), "4_item_name");
     }
 
 
+    // 对列表参数进行替换，依赖了其他节点
     @Test
-    public void filterListParam() {
+    public void mapArgumentWithDependencyNode() {
         String query = "" +
                 "query{\n" +
                 "    userInfo(id:3){\n" +
@@ -93,7 +144,6 @@ public class ArgumentDirectiveTest {
         assert Objects.equals(itemNameById.get(3), "3_item_name");
         assert Objects.equals(itemNameById.get(4), "4_item_name");
         assert Objects.equals(itemNameById.get(5), "5_item_name");
-
     }
 
 }

@@ -610,19 +610,13 @@ public class ExecutionEngine implements Instrumentation {
                                             String dependencyNode,
                                             DataFetcher<?> defaultDF,
                                             ExecutionEngineState engineState) {
-        final DataFetcher<?> finalDF;
-        final Executor exec;
-        if (defaultDF instanceof AsyncDataFetcher) {
-            finalDF = ((AsyncDataFetcher) defaultDF).getWrappedDataFetcher();
-            exec = ((AsyncDataFetcher) defaultDF).getExecutor();
-        } else {
-            finalDF = defaultDF;
-            exec = executor;
-        }
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedFetcher = environment -> {
 
-            Map<String, Object> nodeEnv = null;
+            final Map<String, Object> nodeEnv;
             if (dependencyNode != null) {
                 nodeEnv = new HashMap<>();
                 NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
@@ -630,17 +624,19 @@ public class ExecutionEngine implements Instrumentation {
                 } else {
                     nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
                 }
+            } else {
+                nodeEnv = null;
             }
 
             // 如果是列表元素过滤
             if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
                 List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
                 if (argument == null) {
-                    return finalDF.get(environment);
+                    return innerDataFetcher.get(environment);
                 }
 
                 argument = argument.stream().filter(ele -> {
-                    Boolean isValid = (Boolean) aviatorEvaluator.execute(exp, Collections.singletonMap("param", ele));
+                    Boolean isValid = (Boolean) aviatorEvaluator.execute(exp, Collections.singletonMap("ele", ele));
                     return isValid != null && isValid;
                 }).collect(toList());
 
@@ -648,13 +644,32 @@ public class ExecutionEngine implements Instrumentation {
                 newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
-                return finalDF.get(newEnvironment);
+                return innerDataFetcher.get(newEnvironment);
             }
 
-            // 如果是列表元素转换
+            // 如果是参数列表元素转换
             if (Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())) {
+                List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
+                if (argument == null) {
+                    return innerDataFetcher.get(environment);
+                }
 
+                argument = argument.stream().map(ele -> {
+                    Map<String, Object> transformEnv = new HashMap<>();
+                    if (nodeEnv != null) {
+                        transformEnv.putAll(nodeEnv);
+                    }
+                    // todo node节点名称也不能跟ele一样。TODO 取一个合适的名字
+                    transformEnv.put("ele", ele);
+                    return aviatorEvaluator.execute(exp, transformEnv);
+                }).collect(toList());
 
+                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                newArguments.put(argumentName, argument);
+                DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
+                        .newDataFetchingEnvironment(environment).arguments(newArguments).build();
+
+                return innerDataFetcher.get(newEnvironment);
             }
 
             // 如果是 元素类型参数 转换
@@ -672,10 +687,10 @@ public class ExecutionEngine implements Instrumentation {
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
 
-                return finalDF.get(newEnvironment);
+                return innerDataFetcher.get(newEnvironment);
             }
 
-            return finalDF.get(environment);
+            return innerDataFetcher.get(environment);
         };
 
         // 如果当前节点依赖了其他节点，也将其异步化，
@@ -687,7 +702,7 @@ public class ExecutionEngine implements Instrumentation {
         //
         // 如果串行执行则线程会阻塞在 directiveField 的解析中
         if (defaultDF instanceof AsyncDataFetcher || dependencyNode != null) {
-            return async(wrappedFetcher, exec);
+            return async(wrappedFetcher, innerExecutor);
         } else {
             return wrappedFetcher;
         }

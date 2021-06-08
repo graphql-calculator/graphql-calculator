@@ -87,14 +87,14 @@ public class SchemaHolder {
 
     private static DataFetcher itemListDF = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        List<Integer> ids = (List<Integer>) arguments.get("ids");
+        List<Number> ids = (List<Number>) arguments.get("ids");
 
         List<Map<String, Object>> itemInfoList = new ArrayList<>();
-        for (Integer id : ids) {
+        for (Number id : ids) {
             Map<String, Object> itemInfo = new HashMap<>();
             itemInfo.put("itemId", id);
             itemInfo.put("name", id + "_item_name");
-            itemInfo.put("salePrice", id * 20);
+            itemInfo.put("salePrice", id.longValue() * 20);
             itemInfo.put("withCouponIdList", ids);
             itemInfoList.add(itemInfo);
         }
