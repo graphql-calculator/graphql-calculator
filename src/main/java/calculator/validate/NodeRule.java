@@ -24,6 +24,7 @@ import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.util.TraverserContext;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -250,6 +251,7 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
+                // todo 此时应该是可以获取父亲结果
                 // node 不是该指令注解节点的父亲节点。
                 // 对于没有list元素的单节点链路，两者不共享同一个topTaskNode，但是父子关系也会使其依赖关系有循环。
                 Set<String> parentPathSet = parentPathSet(environment);
@@ -277,12 +279,7 @@ public class NodeRule extends AbstractRule {
                 }
 
                 // node节点名称不能和字段上参数名称一样，因为都会作为环境变量的key执行表达式计算
-                if(argumentsOnField.contains(dependencyNodeName)){
-                    String errorMsg = format(
-                            "the node name '%s' must be different to field argument name {%s}.",
-                            dependencyNodeName, argumentsOnField
-                    );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencyNodeName)) {
                     continue;
                 }
 
@@ -291,13 +288,18 @@ public class NodeRule extends AbstractRule {
                 String predicate = (String) Tools.parseValue(
                         directive.getArgument("exp").getValue()
                 );
-                List<String> arguments = getExpArgument(predicate);
-                if (!arguments.contains(dependencyNodeName)) {
-                    String errorMsg = format(
-                            "the node '%s' do not used by {%s}.", dependencyNodeName, fieldFullPath
-                    );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                if (validateNodeUsageOnExp(fieldFullPath,directive,dependencyNodeName,predicate)) {
                     continue;
+                }
+
+                // 不能在同一个节点上，这种情况是 两个节点共享同一个祖先节点的特殊情况，判断成本小。
+                if (!validateOnSameField(fieldFullPath, directive, dependencyNodeName)) {
+                    continue;
+                }
+
+                // node 不能在其子节点上，因为不可依赖自节点的结果进行请求
+                if(nodeWithAncestorPath.getOrDefault(dependencyNodeName, Collections.emptySet()).contains(fieldFullPath)){
+
                 }
 
             }
@@ -336,6 +338,77 @@ public class NodeRule extends AbstractRule {
             return false;
         }
         unusedNode.remove(dependencyNodeName);
+        return true;
+    }
+
+
+    /**
+     * 指令及其使用的node节点不能是同一个节点：
+     * 1. 如果指令依赖node进行开始，则依赖关系会形成环；
+     * 2. 如果指令依赖node对结果进行处理，例如filter、map，则本来就可以获取到这些数据，没必要在多余的将其注册为节点；
+     *
+     * @param fieldFullPath 字段全路径
+     * @param directive 字段上的指令
+     * @param dependencyNodeName 指令依赖的节点名称
+     * @return
+     */
+    private boolean validateOnSameField(String fieldFullPath, Directive directive, String dependencyNodeName) {
+        // 不能在同一个节点上，这种情况是 两个节点共享同一个祖先节点的特殊情况，判断成本小。
+        String nodeAnnotatedFieldPath = nodeWithAnnotatedField.get(dependencyNodeName);
+        if (Objects.equals(fieldFullPath, nodeAnnotatedFieldPath)) {
+            String errorMsg = format(
+                    "the node '%s' and '%s' can not annotated on the same field {%s}.",
+                    dependencyNodeName, directive.getName(), fieldFullPath
+            );
+            addValidError(directive.getSourceLocation(), errorMsg);
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * 校验指令依赖的节点是否在表达式中被使用了
+     *
+     * @param fieldFullPath 字段全路径
+     * @param directive 字段上的指令
+     * @param dependencyNodeName 指令依赖的节点名称
+     * @param exp 指令表达式
+     * @return 校验结果
+     */
+    private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, String dependencyNodeName, String exp) {
+        List<String> arguments = getExpArgument(exp);
+        if (!arguments.contains(dependencyNodeName)) {
+            String errorMsg = format(
+                    "the node '%s' do not used by '%s' on {%s}.", dependencyNodeName, directive.getName(), fieldFullPath
+            );
+            addValidError(directive.getSourceLocation(), errorMsg);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 校验节点名称是否跟参数名称一样，因为参数和节点都会作表达式计算的key
+     *
+     * @param fieldFullPath 字段全路径
+     * @param argumentsOnField 请求字段上的参数
+     * @param directive 字段上的指令
+     * @param dependencyNodeName 指令依赖的节点名称
+     * @return 校验结果
+     */
+    private boolean validateNodeNameNotSameWithArgument(String fieldFullPath, Set<String> argumentsOnField, Directive directive, String dependencyNodeName) {
+        if (argumentsOnField.contains(dependencyNodeName)) {
+            String errorMsg = format(
+                    "the node name '%s' on {%s} must be different to field argument name {%s}.",
+                    dependencyNodeName, fieldFullPath, argumentsOnField
+            );
+            addValidError(directive.getSourceLocation(), errorMsg);
+            return false;
+        }
+
         return true;
     }
 }

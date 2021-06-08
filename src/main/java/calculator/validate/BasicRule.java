@@ -21,6 +21,7 @@ import calculator.engine.metadata.Directives;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
+import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.Field;
 import graphql.language.SourceLocation;
@@ -48,6 +49,8 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.function.ExpEvaluator.isValidExp;
 import static calculator.engine.metadata.Directives.SORT_BY;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toSet;
 
 
 public class BasicRule extends AbstractRule {
@@ -83,6 +86,9 @@ public class BasicRule extends AbstractRule {
 
         String fieldPath = pathForTraverse(environment);
         SourceLocation location = environment.getField().getSourceLocation();
+
+        Set<String> argumentsOnField = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
+
 
         for (Directive directive : environment.getField().getDirectives()) {
             String directiveName = directive.getName();
@@ -184,12 +190,26 @@ public class BasicRule extends AbstractRule {
 
             } if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
-                // filter 或者 list_map 用在了非list上
+                String exp = getArgumentFromDirective(directive, "exp");
+                if (!isValidExp(exp)) {
+                    String errorMsg = String.format("invalidate script for %s on %s.", exp, fieldPath);
+                    addValidError(location, errorMsg);
+                }
+
                 String argumentName = getArgumentFromDirective(directive, "argument");
+                // argument必须存在
+                if (!argumentsOnField.contains(argumentName)) {
+                    String errorMsg = format(
+                            "'%s' do not exist on {%s}.", argumentName, fieldPath
+                    );
+                    addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                // filter 或者 list_map 用在了非list上
                 GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
                         environment.getFieldDefinition().getArgument(argumentName).getType()
                 );
-
                 String operateType = getArgumentFromDirective(directive, "operateType");
                 if ((Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())
                         || Objects.equals(operateType, Directives.ParamTransformType.FILTER.name()))
@@ -199,6 +219,7 @@ public class BasicRule extends AbstractRule {
                     addValidError(location, errorMsg);
                     continue;
                 }
+
             } else if (Objects.equals(directiveName, NODE.getName())) {
                 String nodeName = (String) Tools.parseValue(
                         directive.getArgument("name").getValue()
