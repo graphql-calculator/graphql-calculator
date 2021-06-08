@@ -1,6 +1,6 @@
 
 # 指令定义
-#directive @map(mapper: String) on FIELD
+#directive @map(mapper:String!, dependencyNode:String) on FIELD
 #directive @node(name: String) on FIELD
 #directive @link(node:String, argument:String) on FIELD
 #directive @filter(predicate:String!, dependencyNode:String) on FIELD
@@ -10,7 +10,7 @@
 #    FILTER
 #}
 #directive @argumentTransform(argument:String, operateType:ParamTransformType, exp:String, dependencyNode:String) on FIELD
-
+#
 type Query {
     userInfo(id: Int):User
     userInfoList(ids: [Int]): [User]
@@ -59,6 +59,9 @@ type Sku{
 
 type Coupon{
     couponId: Int
+    # 门槛
+    base: Int
+    # 券价格
     price: Int
     limitation: Int
     couponText: String

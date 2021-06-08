@@ -40,6 +40,7 @@ import static calculator.engine.function.ExpEvaluator.getExpArgument;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.LINK;
+import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
@@ -130,6 +131,28 @@ public class NodeRule extends AbstractRule {
                 } else {
                     nodeByArgument.put(argumentName, dependencyNodeName);
                 }
+            }else if(Objects.equals(directive.getName(), MAP.getName())){
+
+                String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
+                if(dependencyNodeName == null){
+                    continue;
+                }
+
+                // node 必须存在
+                if (!validateExist(fieldFullPath, directive, dependencyNodeName)) {
+                    continue;
+                }
+
+                // node节点必须被使用了
+                String mapper = (String) Tools.parseValue(
+                        directive.getArgument("mapper").getValue()
+                );
+                if (!validateNodeUsageOnExp(fieldFullPath,directive,dependencyNodeName,mapper)) {
+                    continue;
+                }
+
+                // node 节点名称可以和 fetchSource的key一样，因为fetchSource到实体字段的映射是由df实现的、不可认为输出类型的字段就是fetchSource的key。
+
             } else if (Objects.equals(directive.getName(), SORT_BY.getName())) {
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 // emptyMap.containsKey(null)结果为true
@@ -264,9 +287,7 @@ public class NodeRule extends AbstractRule {
                     continue;
                 }
 
-            }
-
-            if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
+            } else if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
 
                 String dependencyNodeName = getArgumentFromDirective(directive, "dependencyNode");
                 if(dependencyNodeName == null){

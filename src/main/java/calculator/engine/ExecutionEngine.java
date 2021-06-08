@@ -329,10 +329,9 @@ public class ExecutionEngine implements Instrumentation {
 
     /**
      * get result from node task.
-     * todo 抽象成公共方法。
      *
      * @param taskForNodeValue tasks which the node rely on
-     * @return
+     * @return 包含结果并且已经完成的 NodeTask 节点
      */
     private NodeTask getValueFromTasks(List<NodeTask> taskForNodeValue) {
         NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
@@ -356,9 +355,9 @@ public class ExecutionEngine implements Instrumentation {
      * 对dataFetcher进行一次包装，如果有 mock、则直接返回mock值，如果有filter、则直接根据filter过滤
      * 根据出现顺序进行判断：根据顺序判断是为了提高灵活性
      *
-     * @param dirOnField
-     * @param environment
-     * @param instrumentationParameters
+     * @param dirOnField 字段上的指令
+     * @param environment df环境变量
+     * @param instrumentationParameters 包含执行上下文信息
      * @return
      */
     private DataFetcher<?> wrappedDataFetcher(List<Directive> dirOnField,
@@ -382,7 +381,8 @@ public class ExecutionEngine implements Instrumentation {
             // 结果处理
             if (Objects.equals(MAP.getName(), directive.getName())) {
                 String mapper = getArgumentFromDirective(directive, "mapper");
-                defaultDF = getMapperDF(mapper, instrumentationParameters.getInstrumentationState());
+                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
+                defaultDF = getMapperDF(defaultDF, mapper, dependencyNode, instrumentationParameters.getInstrumentationState());
                 continue;
             }
 
@@ -399,7 +399,7 @@ public class ExecutionEngine implements Instrumentation {
                 String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
-                defaultDF = wrapSortDF(defaultDF, sortKey, reversed, instrumentationParameters.getInstrumentationState());
+                defaultDF = wrapSortDF(defaultDF, sortKey, reversed);
                 continue;
             }
 
@@ -427,7 +427,7 @@ public class ExecutionEngine implements Instrumentation {
         //  skipBy放在最外层包装，因为如果跳过该字段，其他逻辑也不必在执行
         if (skip != null) {
             if (Objects.equals(SKIP_BY.getName(), skip.getName())) {
-                DataFetcher finalDefaultDF = defaultDF;
+                DataFetcher<?> finalDefaultDF = defaultDF;
                 Directive finalSkip = skip;
                 defaultDF = env -> {
                     Map<String, Object> arguments = environment.getArguments();
@@ -492,7 +492,7 @@ public class ExecutionEngine implements Instrumentation {
     }
 
     // 按照指定key对元素进行排列
-    private DataFetcher<?> wrapSortDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, ExecutionEngineState engineState) {
+    private DataFetcher<?> wrapSortDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
@@ -573,36 +573,40 @@ public class ExecutionEngine implements Instrumentation {
         }, innerExecutor);
     }
 
-    // map：转换
-    private DataFetcher<?> getMapperDF(String mapper, ExecutionEngineState state) {
-        //  如果 mapper 的函数中使用main函数执行可能阻塞的任务、则会影响graphql引擎的计划执行，因此此处使用线程池
+    // directive @map(mapper:String!, dependencyNode:String) on FIELD
+    private DataFetcher<?> getMapperDF(DataFetcher<?> defaultDF, String mapper, String dependencyNode, ExecutionEngineState engineState) {
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+
         return async(environment -> {
-            Map<String, Object> objectMap = objectMapper.toMap(environment.getSource());
-            Map<String, Object> variable = objectMap == null ? Collections.emptyMap() : objectMap;
-            return calExp(aviatorEvaluator, mapper, variable);
-        }, executor);
+            final Map<String, Object> nodeEnv;
+            if (dependencyNode != null) {
+                nodeEnv = new HashMap<>();
+                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
+                if (nodeTask.getFuture().isCompletedExceptionally()) {
+                    nodeEnv.put(dependencyNode, null);
+                } else {
+                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                }
+            } else {
+                nodeEnv = null;
+            }
+
+
+            Object fieldValue = innerDataFetcher.get(environment);
+            HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
+            expEnv.put(environment.getField().getResultKey(), fieldValue);
+            if (nodeEnv != null) {
+                expEnv.putAll(nodeEnv);
+            }
+
+            return calExp(aviatorEvaluator, mapper, expEnv);
+        }, innerExecutor);
     }
 
-    private Map<String, Object> getCalMap(Object res) {
-        if (res == null) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        if (res.getClass().isPrimitive()) {
-            result.put("ele", res);
-        } else {
-            Map<String, Object> objectMap = objectMapper.toMap(res);
-            objectMap = objectMap != null ? objectMap : Collections.emptyMap();
-            result.putAll(objectMap);
-        }
-        return result;
-    }
-
-
-    // todo 校验 name 必须存在与 query 中
-    // todo 校验 exp 必须是可编译的
-    // TODO paren这个常量也需要有说明
+    // TODO ele这个常量也需要有说明
     // typeName: String -> Enum
     private DataFetcher<?> transformParamDF(String argumentName,
                                             String operateType,
@@ -621,6 +625,7 @@ public class ExecutionEngine implements Instrumentation {
                 nodeEnv = new HashMap<>();
                 NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
                 if (nodeTask.getFuture().isCompletedExceptionally()) {
+                    nodeEnv.put(dependencyNode, null);
                 } else {
                     nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
                 }
@@ -745,5 +750,22 @@ public class ExecutionEngine implements Instrumentation {
         }
         return futureTask;
     }
+
+    private Map<String, Object> getCalMap(Object res) {
+        if (res == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (res.getClass().isPrimitive()) {
+            result.put("ele", res);
+        } else {
+            Map<String, Object> objectMap = objectMapper.toMap(res);
+            objectMap = objectMap != null ? objectMap : Collections.emptyMap();
+            result.putAll(objectMap);
+        }
+        return result;
+    }
+
 
 }
