@@ -81,16 +81,6 @@ public class Directives {
                     .type(GraphQLString))
             .build();
 
-    public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
-            .name("map")
-            .description("transform the field value by exp.")
-            .validLocation(FIELD)
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("mapper")
-                    .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .build();
-
 
     public final static GraphQLDirective SORT = GraphQLDirective.newDirective()
             .name("sort")
@@ -128,6 +118,22 @@ public class Directives {
                     .type(GraphQLString))
             .build();
 
+    // directive @map(mapper:String!, dependencyNode:String) on FIELD
+    public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
+            .name("map")
+            .description("transform the field value by exp.")
+            .validLocation(FIELD)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("mapper")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            // 用依赖的节点对结果进行处理
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencyNode")
+                    .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
+            .build();
 
     // 根据表达式进行排序
     // directive @sortBy(sortExp: String!, reversed: Boolean = false, dependencyNode: String) on FIELD
@@ -189,6 +195,7 @@ public class Directives {
                             .description("filter the argument element by exp.").build()
             ).build();
 
+    // directive @argumentTransform(argument:String!, operaType:ParamTransformType, exp:String, dependencyNode:String) on FIELD
     public final static GraphQLDirective ARGUMENT_TRANSFORM = GraphQLDirective.newDirective()
             .name("argumentTransform")
             .description("transform the argument by exp.")

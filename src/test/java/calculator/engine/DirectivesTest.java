@@ -23,13 +23,11 @@ import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -96,24 +94,7 @@ public class DirectivesTest {
     }
 
 
-    @Test
-    public void mapTest() {
-        String query = "query {\n" +
-                "    userInfo(id:5){\n" +
-                "        email\n" +
-                "        netName: email @map(mapper:\"'netName:' + email\")\n" +
-                "    }\n" +
-                "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-        assert !validateResult.isFailure();
-
-        ExecutionResult mapResult = graphQL.execute(query);
-        assert mapResult != null;
-        assert mapResult.getErrors().isEmpty();
-        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.email"), "5dugk@foxmail.com");
-        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.netName"), "netName:5dugk@foxmail.com");
-    }
 
     @Test
     public void filterTest() {
@@ -243,37 +224,6 @@ public class DirectivesTest {
         assert Objects.equals(execute("seq.get(seq.get(itemList,0),'itemId')", result.getData()), 2);
         assert Objects.equals(execute("seq.get(seq.get(itemList,1),'itemId')", result.getData()), 4);
         assert Objects.equals(execute("seq.get(seq.get(itemList,2),'itemId')", result.getData()), 6);
-    }
-
-    @Ignore("使用带有dependencyCode的map替换getByNode")
-    public void testNodeFunction() {
-        String query = "" +
-                "query ($itemIds:[Int]){\n" +
-                "    itemList(ids: $itemIds){\n" +
-                "        itemId\n" +
-                "        name\n" +
-                "        stockAmount @map(mapper: \" seq.get(" +
-                "                                           seq.get(" +
-                "                                                   toMap(getByNode('stockInfoList'),'itemId')" +
-                "                                           ,itemId)" +
-                "                                     ,'stockAmount') \")\n" +
-                "    }\n" +
-                "    itemStockList(ids: $itemIds) @node(name:\"stockInfoList\")\n" +
-                "    {\n" +
-                "        itemId\n" +
-                "        stockAmount\n" +
-                "    }\n" +
-                "\n" +
-                "}";
-
-//        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-//        unused node: [stockInfoList].
-//        assert !validateResult.isFailure();
-        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3))).build();
-        ExecutionResult result = graphQL.execute(input);
-
-        assert result.getErrors().isEmpty();
-        assert ((LinkedHashMap<String, Object>) result.getData()).size() == 2;
     }
 
 }
