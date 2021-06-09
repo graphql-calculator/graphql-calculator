@@ -17,14 +17,14 @@
 
 package calculator.engine;
 
+
+import calculator.engine.annotation.PublicApi;
+
 import java.util.Map;
 
-/**
- * 将普通对象转换为Map
- */
+@PublicApi
 public interface ObjectMapper {
 
     Map<String, Object> toMap(Object object);
 
-    Map<String, Object> toNestedMap(Object object);
 }

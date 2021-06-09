@@ -14,26 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.config;
 
+package calculator.engine.annotation;
 
-import calculator.engine.ObjectMapper;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.runtime.type.AviatorFunction;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.List;
-import java.util.concurrent.Executor;
+import static java.lang.annotation.ElementType.CONSTRUCTOR;
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PACKAGE;
+import static java.lang.annotation.ElementType.TYPE;
 
-public interface Config {
-
-    AviatorEvaluatorInstance getAviatorEvaluator();
-
-    List<AviatorFunction> functions();
-
-    ObjectMapper getObjectMapper();
-
-    /**
-     * @return Get the thread pool which used in {@link calculator.engine.ExecutionEngine}.
-     */
-    Executor getExecutor();
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = {PACKAGE, TYPE, FIELD, METHOD, CONSTRUCTOR})
+public @interface PublicApi {
 }

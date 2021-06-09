@@ -1,0 +1,112 @@
+# https://www.zhihu.com/question/26679255/answer/1187193899
+type Query {
+    # c端 用户
+    consumer: Consumer
+
+    # b端 商家
+    business: Business
+
+    # 商品信息
+    commodity: Commodity
+
+    # 营销
+    marketing: Marketing
+
+    # M端：供应链、结算、风控
+    # management: Management
+
+    toolInfo: ToolInfo
+}
+
+
+# ---------------------------------------------------- c端用户 ------------------------------------------------------------------
+
+type Consumer{
+    userInfo(userId: Int):User
+    userInfoList(userIds: [Int]): [User]
+    # todo 新老客
+}
+
+type User{
+    userId: Int
+    age: Int
+    name: String
+    email: String
+}
+
+# ---------------------------------------------------- b端商家 ------------------------------------------------------------------
+
+type Business{
+    sellerInfo (sellerId: Int): SellerInfo
+    sellerInfoList(sellerIds: [Int]): [SellerInfo]
+}
+
+type SellerInfo{
+    sellerId: Int
+    age: Int
+    name: String
+    email: String
+}
+
+# ---------------------------------------------------- 商品 ------------------------------------------------------------------
+
+type Commodity{
+    item(itemId: Int): ItemBaseInfo
+    itemList(itemIds:[Int]): [ItemBaseInfo]
+}
+
+type ItemBaseInfo{
+    itemId: Int
+    sellerId: Int
+    name: String
+    salePrice: Int
+    stockAmount: Int
+    onSale: Boolean
+    skuList: [Sku]
+}
+
+type Sku{
+    skuId: Int
+    itemId:Int
+    color: String
+    size: Int
+}
+
+# ---------------------------------------------------- 营销 ------------------------------------------------------------------
+
+
+type Marketing{
+    coupon(couponId: Int): Coupon
+    couponList(couponIds: [Int]): [Coupon]
+    couponValidation(userId: Int, couponIds: [Int]): [AcquireResult]
+}
+
+
+type Coupon{
+    couponId: Int
+    # 门槛
+    base: Int
+    # 券价格
+    price: Int
+    # 数量
+    limitation: Int
+    # 文案
+    couponText: String
+    # 券可用的商品
+    bindingItemIds: [Int]
+}
+
+type AcquireResult{
+    userId: Int
+    couponId: Int
+    isValid: Boolean
+    msg: String
+}
+
+# ---------------------------------------------------- 通用工具 ------------------------------------------------------------------
+
+type ToolInfo{
+    # 用户进行ab实验 abKey 时命中的实验落点
+    abInfo(userId: Int, abKey: String): Int
+}
+

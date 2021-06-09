@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package calculator.engine;
+package calculator.engine.directive;
 
-public class StateParseTest {
+public class SkipByTest {
 }

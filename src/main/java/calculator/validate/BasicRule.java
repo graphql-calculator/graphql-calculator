@@ -16,7 +16,7 @@
  */
 package calculator.validate;
 
-import calculator.common.Tools;
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
@@ -30,61 +30,85 @@ import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.util.TraverserContext;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static calculator.common.Tools.getArgumentFromDirective;
-import static calculator.common.Tools.isValidEleName;
-import static calculator.common.VisitorUtils.getTopTaskEnv;
-import static calculator.common.VisitorUtils.parentPathSet;
-import static calculator.common.VisitorUtils.pathForTraverse;
+import static calculator.common.CommonUtil.getArgumentFromDirective;
+import static calculator.common.CommonUtil.isValidEleName;
+import static calculator.common.CommonUtil.parseValue;
+import static calculator.common.VisitorUtil.getTopTaskEnv;
+import static calculator.common.VisitorUtil.parentPathSet;
+import static calculator.common.VisitorUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
+import static calculator.engine.metadata.Directives.FETCH_SOURCE;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
-import static calculator.engine.metadata.Directives.NODE;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
-import static calculator.engine.function.ExpEvaluator.isValidExp;
+import static calculator.engine.function.ExpProcessor.isValidExp;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
 
+@Internal
 public class BasicRule extends AbstractRule {
 
-    // <node名称, 注解的字段>
-    private final Map<String, String> nodeWithAnnotatedField = new LinkedHashMap<>();
+    // <sourceName, annotatedField>
+    private final Map<String, String> sourceWithAnnotatedField = new LinkedHashMap<>();
 
-    // <node名称, 依赖的顶层节点>
-    private final Map<String, String> nodeWithTopTask = new LinkedHashMap<>();
+    // <sourceName, topTaskFieldPath>
+    private final Map<String, String> sourceWithTopTask = new LinkedHashMap<>();
 
-    // <node名称, List<祖先节点>>
-    private final Map<String, Set<String>> nodeWithAncestorPath = new LinkedHashMap<>();
+    // <sourceName, List<ancestorNode>>
+    private final Map<String, Set<String>> sourceWithAncestorPath = new LinkedHashMap<>();
+
+    // <fieldFullPath, topTaskFieldPath>
+    private final Map<String, String> fieldWithTopTask = new LinkedHashMap<>();
+
+    // <fieldFullPath, List<sourceName>>
+    private final Map<String, List<String>> sourceUsedByField = new LinkedHashMap<>();
+
+    // <fieldFullPath, List<ancestorNode>>
+    private final Map<String, Set<String>> fieldWithAncestorPath = new LinkedHashMap<>();
 
 
-    public Map<String, String> getNodeWithAnnotatedField() {
-        return nodeWithAnnotatedField;
+    public Map<String, String> getSourceWithAnnotatedField() {
+        return sourceWithAnnotatedField;
     }
 
-    public Map<String, String> getNodeWithTopTask() {
-        return nodeWithTopTask;
+    public Map<String, String> getSourceWithTopTask() {
+        return sourceWithTopTask;
     }
 
-    public Map<String, Set<String>> getNodeWithAncestorPath() {
-        return nodeWithAncestorPath;
+    public Map<String, Set<String>> getSourceWithAncestorPath() {
+        return sourceWithAncestorPath;
+    }
+
+    public Map<String, String> getFieldWithTopTask() {
+        return fieldWithTopTask;
+    }
+
+    public Map<String, List<String>> getSourceUsedByField() {
+        return sourceUsedByField;
+    }
+
+    public Map<String, Set<String>> getFieldWithAncestorPath() {
+        return fieldWithAncestorPath;
     }
 
     @Override
     public void visitField(QueryVisitorFieldEnvironment environment) {
-        // 不是进入该节点则返回
         if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
             return;
         }
 
-        String fieldPath = pathForTraverse(environment);
+        String fieldFullPath = pathForTraverse(environment);
         SourceLocation location = environment.getField().getSourceLocation();
 
         Set<String> argumentsOnField = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
@@ -92,47 +116,59 @@ public class BasicRule extends AbstractRule {
 
         for (Directive directive : environment.getField().getDirectives()) {
             String directiveName = directive.getName();
-            // 如果是node、则查看是否已经在中保存过
 
             if (Objects.equals(directiveName, SKIP_BY.getName())) {
-                String exp = (String) Tools.parseValue(
-                        directive.getArgument("exp").getValue()
+                String expression = (String) parseValue(
+                        directive.getArgument("expression").getValue()
                 );
 
-                if (exp == null || exp.isEmpty()) {
-                    String errorMsg = String.format("exp can't be empty, @%s.", fieldPath);
+                if (expression == null || expression.isEmpty()) {
+                    String errorMsg = String.format("the expression for @skipBy on {%s} can not be empty.", fieldFullPath);
                     addValidError(location, errorMsg);
+                    continue;
                 }
 
-                if (!isValidExp(exp)) {
-                    String errorMsg = String.format("invalid exp for %s on %s.", exp, fieldPath);
+                if (!isValidExp(expression)) {
+                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
                     addValidError(location, errorMsg);
+                    continue;
                 }
+
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, MOCK.getName())) {
                 //注意，value可以为空串、模拟返回结果为空的情况；
 
             } else if (Objects.equals(directiveName, FILTER.getName())) {
-                boolean isListType = GraphQLTypeUtil.isList(environment.getFieldDefinition().getType());
-                if (!isListType) {
-                    String errorMsg = String.format("predicate must define on list type, instead @%s.", fieldPath);
+
+                GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
+                        environment.getFieldDefinition().getType()
+                );
+                if (!GraphQLTypeUtil.isList(innerType)) {
+                    String errorMsg = String.format("@filter must define on list type, instead {%s}.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
-                String predicate = (String) Tools.parseValue(
+                String predicate = (String) parseValue(
                         directive.getArgument("predicate").getValue()
                 );
                 if (predicate == null || predicate.isEmpty()) {
-                    String errorMsg = String.format("script can't be empty, @%s.", fieldPath);
+                    String errorMsg = String.format("the predicate for @filter on {%s} can not be empty.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
                 if (!isValidExp(predicate)) {
-                    String errorMsg = String.format("invalidate script for %s on %s.", predicate, fieldPath);
+                    String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}.", predicate, fieldFullPath);
                     addValidError(location, errorMsg);
                 }
+
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, SORT.getName())) {
 
@@ -142,16 +178,16 @@ public class BasicRule extends AbstractRule {
 
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
-                    String errorMsg = String.format("sort must annotated on list type, instead of {%s}.", fieldPath);
+                    String errorMsg = String.format("@sort must annotated on list type, instead of {%s}.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
-                String key = (String) Tools.parseValue(
+                String key = (String) parseValue(
                         directive.getArgument("key").getValue()
                 );
                 if (key == null || key.isEmpty()) {
-                    String errorMsg = String.format("sort key used on {%s} can not be null.", fieldPath);
+                    String errorMsg = String.format("sort key used on {%s} can not be null.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -161,18 +197,18 @@ public class BasicRule extends AbstractRule {
                         .anyMatch(key::equals);
 
                 if (!validKey) {
-                    String errorMsg = String.format("non-exist key name on {%s}.", fieldPath);
+                    String errorMsg = String.format("non-exist key name '%s' for @sort on {%s}.", key, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
             } else if (Objects.equals(directiveName, SORT_BY.getName())) {
-                String exp = (String) Tools.parseValue(
-                        directive.getArgument("exp").getValue()
+                String expression = (String) parseValue(
+                        directive.getArgument("expression").getValue()
                 );
 
-                if (!isValidExp(exp)) {
-                    String errorMsg = String.format("invalid exp for %s on %s.", exp, fieldPath);
+                if (!isValidExp(expression)) {
+                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -183,34 +219,44 @@ public class BasicRule extends AbstractRule {
 
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
-                    String errorMsg = String.format("sortBy must annotated on list type, instead of {%s}.", fieldPath);
+                    String errorMsg = String.format("@sortBy must annotated on list type, instead of {%s}.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
+
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
-                String mapper = getArgumentFromDirective(directive, "mapper");
+                String mapper = getArgumentFromDirective(directive, "expression");
                 if (!isValidExp(mapper)) {
-                    String errorMsg = String.format("invalidate mapper '%s' for %s on %s.", mapper, directive.getName(), fieldPath);
+                    String errorMsg = String.format("invalid expression '%s' for @map on {%s}.", mapper, fieldFullPath);
                     addValidError(location, errorMsg);
+                    continue;
                 }
 
-            }else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
-                String exp = getArgumentFromDirective(directive, "exp");
-                if (!isValidExp(exp)) {
-                    String errorMsg = String.format("invalidate script for %s on %s.", exp, fieldPath);
-                    addValidError(location, errorMsg);
-                }
+            } else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
-                String argumentName = getArgumentFromDirective(directive, "argument");
+                String argumentName = getArgumentFromDirective(directive, "argumentName");
                 // argument必须存在
                 if (!argumentsOnField.contains(argumentName)) {
                     String errorMsg = format(
-                            "'%s' do not exist on {%s}.", argumentName, fieldPath
+                            "@argumentTransform on {%s} use non-exist argument '%s'.", fieldFullPath, argumentName
                     );
                     addValidError(directive.getSourceLocation(), errorMsg);
+                    continue;
+                }
+
+                String expression = getArgumentFromDirective(directive, "expression");
+                if (!isValidExp(expression)) {
+                    String errorMsg = String.format("invalid expression '%s' for @argumentTransform on {%s}.", expression, fieldFullPath);
+                    addValidError(location, errorMsg);
                     continue;
                 }
 
@@ -223,38 +269,80 @@ public class BasicRule extends AbstractRule {
                         || Objects.equals(operateType, Directives.ParamTransformType.FILTER.name()))
                         && !(innerType instanceof GraphQLList)
                 ) {
-                    String errorMsg = String.format("%s operation can not used on basic field {}.", operateType, fieldPath);
+                    String errorMsg = String.format("%s operation for @argumentTransform can not used on basic field {%s}.", operateType, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
-            } else if (Objects.equals(directiveName, NODE.getName())) {
-                String nodeName = (String) Tools.parseValue(
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
+
+            } else if (Objects.equals(directiveName, FETCH_SOURCE.getName())) {
+                String sourceName = (String) parseValue(
                         directive.getArgument("name").getValue()
                 );
 
                 // 验证节点名称是否已经被其他字段使用
-                if (nodeWithAnnotatedField.containsKey(nodeName)) {
-                    String errorMsg = String.format("duplicate node name '%s' for %s and %s.",
-                            nodeName, nodeWithAnnotatedField.get(nodeName), fieldPath
+                if (sourceWithAnnotatedField.containsKey(sourceName)) {
+                    String errorMsg = String.format("duplicate source name '%s' for {%s} and {%s}.",
+                            sourceName, sourceWithAnnotatedField.get(sourceName), fieldFullPath
                     );
                     addValidError(location, errorMsg);
                 } else {
-                    nodeWithAnnotatedField.put(nodeName, fieldPath);
-                    if (!isValidEleName(nodeName)) {
-                        String errorMsg = String.format("invalid node name 'nodeName' for %s.", fieldPath);
+                    sourceWithAnnotatedField.put(sourceName, fieldFullPath);
+                    if (!isValidEleName(sourceName)) {
+                        String errorMsg = String.format("invalid source name '%s' for {%s}.", sourceName, fieldFullPath);
                         addValidError(location, errorMsg);
                     }
+                }
+
+                String sourceConvert = getArgumentFromDirective(directive, "sourceConvert");
+                if (sourceConvert != null && !isValidExp(sourceConvert)) {
+                    String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}.", sourceConvert, fieldFullPath);
+                    addValidError(location, errorMsg);
                 }
 
                 // 获取其顶层任务节点路径
                 QueryVisitorFieldEnvironment topTaskEnv = getTopTaskEnv(environment);
                 String topTaskFieldPath = pathForTraverse(topTaskEnv);
-                nodeWithTopTask.put(nodeName, topTaskFieldPath);
+                sourceWithTopTask.put(sourceName, topTaskFieldPath);
 
                 // 获取其父类节点路径
                 Set<String> parentPathSet = parentPathSet(environment);
-                nodeWithAncestorPath.put(nodeName, parentPathSet);
+                sourceWithAncestorPath.put(sourceName, parentPathSet);
+
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet);
+            }
+        }
+    }
+
+    private void checkAndSetFieldWithTopTask(String fieldFullPath, Directive directive, QueryVisitorFieldEnvironment visitorFieldEnvironment) {
+        Argument sourceArgument = directive.getArgument("dependencySource");
+
+        if (sourceArgument != null && sourceArgument.getValue() != null) {
+            QueryVisitorFieldEnvironment topTaskEnv = getTopTaskEnv(visitorFieldEnvironment);
+            String topTaskFieldPath = pathForTraverse(topTaskEnv);
+            fieldWithTopTask.put(fieldFullPath, topTaskFieldPath);
+        }
+    }
+
+    //    // <fieldFullPath, List<sourceName>>
+    //    private final Map<String, List<String>> sourceUsedByField = new LinkedHashMap<>();
+    private void checkAndSetSourceUsedByFieldInfo(String fieldFullPath,Directive directive) {
+        Argument sourceArgument = directive.getArgument("dependencySource");
+
+        if (sourceArgument != null && sourceArgument.getValue() != null) {
+            String dependencySource = (String) parseValue(sourceArgument.getValue());
+
+            if (sourceUsedByField.containsKey(fieldFullPath)) {
+                sourceUsedByField.get(fieldFullPath).add(dependencySource);
+            } else {
+                ArrayList<String> sourceNames = new ArrayList<>();
+                sourceNames.add(dependencySource);
+                sourceUsedByField.put(fieldFullPath, sourceNames);
             }
         }
     }

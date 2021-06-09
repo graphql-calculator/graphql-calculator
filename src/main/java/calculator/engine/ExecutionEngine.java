@@ -18,32 +18,26 @@ package calculator.engine;
 
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
-import calculator.engine.metadata.NodeTask;
+import calculator.engine.metadata.FetchSourceTask;
 import calculator.graphql.AsyncDataFetcher;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
+import graphql.execution.DataFetcherResult;
 import graphql.execution.ResultPath;
+import graphql.execution.ValueUnboxer;
 import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
-import graphql.execution.instrumentation.Instrumentation;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
-import graphql.execution.instrumentation.SimpleInstrumentationContext;
+import graphql.execution.instrumentation.SimpleInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationExecuteOperationParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationValidationParameters;
 import graphql.language.Directive;
-import graphql.language.Document;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
-import graphql.validation.ValidationError;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,29 +48,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import static calculator.common.Tools.arraySize;
-import static calculator.common.Tools.fieldPath;
-import static calculator.common.Tools.getArgumentFromDirective;
-import static calculator.common.Tools.isInListPath;
-import static calculator.engine.function.ExpEvaluator.calExp;
+import static calculator.common.CommonUtil.arraySize;
+import static calculator.common.CommonUtil.fieldPath;
+import static calculator.common.CommonUtil.getArgumentFromDirective;
+import static calculator.engine.function.ExpProcessor.calExp;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
-import static calculator.engine.metadata.Directives.LINK;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static calculator.graphql.AsyncDataFetcher.async;
-import static graphql.execution.instrumentation.SimpleInstrumentationContext.noOp;
 import static java.util.stream.Collectors.toList;
 
-public class ExecutionEngine implements Instrumentation {
+public class ExecutionEngine extends SimpleInstrumentation {
 
     private final Executor executor;
 
@@ -84,15 +74,10 @@ public class ExecutionEngine implements Instrumentation {
 
     private final AviatorEvaluatorInstance aviatorEvaluator;
 
-
     private ExecutionEngine(Executor executor, ObjectMapper objectMapper, AviatorEvaluatorInstance aviatorEvaluator) {
-        Objects.requireNonNull(executor);
-        Objects.requireNonNull(objectMapper);
-        Objects.requireNonNull(aviatorEvaluator);
-
-        this.executor = executor;
-        this.objectMapper = objectMapper;
-        this.aviatorEvaluator = aviatorEvaluator;
+        this.executor = Objects.requireNonNull(executor);
+        this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.aviatorEvaluator = Objects.requireNonNull(aviatorEvaluator);
     }
 
     public static ExecutionEngine newInstance(Config config) {
@@ -100,8 +85,6 @@ public class ExecutionEngine implements Instrumentation {
     }
 
     // ============================================== create InstrumentationState for engine  ==============================================
-
-    //  需要预分析，因为对于 person-> name @node("personName")，如果不预先分析、就不会知道person也是dag任务
     @Override
     public InstrumentationState createState(InstrumentationCreateStateParameters parameters) {
 
@@ -111,286 +94,180 @@ public class ExecutionEngine implements Instrumentation {
                 .document(Parser.parse(query))
                 .variables(Collections.emptyMap()).build();
 
-        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser();
-        traverser.visitDepthFirst(visitor);
-        return visitor.getExecutionEngineState();
+        ExecutionEngineStateParser stateParser = new ExecutionEngineStateParser();
+        traverser.visitDepthFirst(stateParser);
+        return stateParser.getExecutionEngineState();
     }
 
+    // ============================================== alter InstrumentationState for engine  ================================================
     @Override
-    public InstrumentationContext<ExecutionResult> beginExecution(InstrumentationExecutionParameters parameters) {
-        return new SimpleInstrumentationContext<>();
+    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+        return saveFetchedValueContext(
+                parameters.getInstrumentationState(),
+                parameters.getExecutionStepInfo().getPath(),
+                parameters.getEnvironment().getField().getResultKey()
+        );
     }
 
-    @Override
-    public InstrumentationContext<Document> beginParse(InstrumentationExecutionParameters parameters) {
-        return new SimpleInstrumentationContext<>();
-    }
-
-    @Override
-    public InstrumentationContext<List<ValidationError>> beginValidation(InstrumentationValidationParameters parameters) {
-        return new SimpleInstrumentationContext<>();
-    }
-
-    @Override
-    public InstrumentationContext<ExecutionResult> beginExecuteOperation(InstrumentationExecuteOperationParameters parameters) {
-        return new SimpleInstrumentationContext<>();
-    }
 
     @Override
     public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
         return new ExecutionStrategyInstrumentationContext() {
             @Override
             public void onDispatched(CompletableFuture<ExecutionResult> result) {
+                String fieldFullPath = fieldPath(parameters.getExecutionStrategyParameters().getPath());
+                FetchSourceTask fetchSourceTask = parseFetchSourceTask(
+                        parameters.getInstrumentationState(), fieldFullPath
+                );
+                if (fetchSourceTask == null) {
+                    return;
+                }
+
+                if (fetchSourceTask.isTopTask()) {
+                    completeChildrenTask(fetchSourceTask);
+                }
             }
 
             @Override
             public void onCompleted(ExecutionResult result, Throwable t) {
+
             }
         };
     }
 
-    @Override
-    public InstrumentationContext<ExecutionResult> beginField(InstrumentationFieldParameters parameters) {
-        return new SimpleInstrumentationContext<>();
-    }
-
-    @Override
-    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+    private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
         return new InstrumentationContext<Object>() {
 
             @Override
-            public void onDispatched(CompletableFuture result) {
+            public void onDispatched(CompletableFuture<Object> future) {
+                String fieldFullPath = fieldPath(resultPath);
+                FetchSourceTask sourceTask = parseFetchSourceTask(engineState, fieldFullPath);
+                if (sourceTask == null) {
+                    return;
+                }
+
+                if (sourceTask.isInList()) {
+                    sourceTask.addListElementResultFuture(future);
+                } else {
+                    future.whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            sourceTask.getTaskFuture().completeExceptionally(ex);
+                            return;
+                        }
+
+                        if (sourceTask.getMapper() == null) {
+                            sourceTask.getTaskFuture().complete(result);
+                        } else {
+                            try {
+                                Object mappedValue = aviatorEvaluator.execute(
+                                        sourceTask.getMapper(), getCalMap(result), true
+                                );
+                                sourceTask.getTaskFuture().complete(mappedValue);
+                            } catch (Throwable t) {
+                                sourceTask.getTaskFuture().completeExceptionally(t);
+                            }
+                        }
+                    });
+                }
 
             }
 
             @Override
             public void onCompleted(Object result, Throwable t) {
-
             }
         };
     }
 
-    @Override
-    public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
-        // kp fieldList 肯定也不是叶子结点，并且会在 beginFieldComplete 处被切一下
-        return noOp();
+    private FetchSourceTask parseFetchSourceTask(ExecutionEngineState engineState, String fieldFullPath) {
+        return engineState.getFetchSourceTaskByPath().get(fieldFullPath);
     }
 
-    // ============================================== instrument operation =================================================
+    private void completeChildrenTask(FetchSourceTask sourceTask) {
+        for (FetchSourceTask child : sourceTask.getChildrenTaskList()) {
+            completeChildrenTask(child);
 
-    // 如果是 调度任务节点，则在完成时更新state中对应的任务状态
-    @Override
-    public InstrumentationContext<ExecutionResult> beginFieldComplete(InstrumentationFieldCompleteParameters parameters) {
-        // fieldList 也会在这里切一下
-        return getContextOpt(parameters).orElse(noOp());
-    }
-
-    private Optional<InstrumentationContext<ExecutionResult>> getContextOpt(InstrumentationFieldCompleteParameters parameters) {
-
-        InstrumentationContext<ExecutionResult> instrumentationContext = new InstrumentationContext<ExecutionResult>() {
-            @Override
-            public void onDispatched(CompletableFuture<ExecutionResult> future) {
+            if (child.getTaskFuture().isDone()) {
+                continue;
             }
 
-            @Override
-            public void onCompleted(ExecutionResult result, Throwable ex) {
+            if (!child.isAnnotatedNode()) {
+                child.completeWithDummyValue();
+            }
 
-                ExecutionEngineState state = parameters.getInstrumentationState();
-                ResultPath resultPath = parameters.getExecutionStepInfo().getPath();
-                NodeTask futureTask = parseNodeTask(state, resultPath);
-                if (futureTask == null) {
-                    return;
-                }
-
-                // 对于[VO]的情况、已经有元素解析失败、则其余元素是否解析成功没有必要了
-                // TODO 应该是分情况：如果 [VO!] 则全部忽略，如果是 [VO] 则聚合成功的部分返回
-                //      参考graphql sec: https://spec.graphql.org/draft/#sec-Combining-List-and-Non-Null
-                if (futureTask.getFuture().isCompletedExceptionally()) {
-                    // 保存已有的异常信息
-                    if (ex != null) {
-                        futureTask.getFuture().whenComplete(
-                                (ignore, existEx) -> existEx.addSuppressed(ex)
-                        );
-                    }
-                    return;
-                }
-
+            ArrayList<CompletableFuture<Object>> elementResultFuture = child.getListElementFutures();
+            CompletableFuture[] elementFutureArray = elementResultFuture.toArray(new CompletableFuture[0]);
+            CompletableFuture.allOf(elementFutureArray).whenComplete((ignore, ex) -> {
                 if (ex != null) {
-                    futureTask.getFuture().completeExceptionally(ex);
+                    child.getTaskFuture().completeExceptionally(ex);
                     return;
                 }
 
-                if (result.getData() != null) {
-                    // kp 防止取一半的数据：见 tag_completeSubTask
-                    if (isInListPath(futureTask)) {
-                        futureTask.getTmpResult().add(result.getData());
-                    } else {
-                        futureTask.getFuture().complete(result.getData());
-                        // kp tag_completeSubTask
-                        completeSubTask(futureTask);
-                    }
-                } else {
-                    // 对于没有结果的情况、仍然抛出异常，来终止程序运行
-                    // 这里是否需要让调度器感知异常信息？不需要，包含在结果中了
-                    futureTask.getFuture().completeExceptionally(new Throwable("empty result for " + fieldPath(resultPath)));
+                ArrayList<Object> listResult = new ArrayList<>(elementResultFuture.size());
+                for (CompletableFuture<Object> elementFuture : elementResultFuture) {
+                    listResult.add(elementFuture.join());
                 }
-            }
-        };
-        return Optional.of(instrumentationContext);
-    }
 
-    /**
-     * @param state      全局状态
-     * @param resultPath 当前节点
-     * @return 当前节点对应的异步任务定义
-     */
-    private NodeTask parseNodeTask(ExecutionEngineState state, ResultPath resultPath) {
-        if (state.getTaskByPath().isEmpty()) {
-            return null;
-        }
-
-        String fieldPath = fieldPath(resultPath);
-        if (!state.getTaskByPath().containsKey(fieldPath)) {
-            return null;
-        }
-
-        return state.getTaskByPath().get(fieldPath);
-    }
-
-    private void completeSubTask(NodeTask futureTask) {
-        if (futureTask == null || futureTask.getSubTaskList().isEmpty()) {
-            return;
-        }
-
-        for (NodeTask subTask : futureTask.getSubTaskList()) {
-            if (isInListPath(subTask) && !subTask.getFuture().isDone()) {
-                subTask.getFuture().complete(subTask.getTmpResult());
-            }
-            completeSubTask(subTask);
+                if (child.getMapper() == null) {
+                    child.getTaskFuture().complete(listResult);
+                } else {
+                    try {
+                        Object mappedValue = aviatorEvaluator.execute(
+                                child.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), listResult)
+                        );
+                        child.getTaskFuture().complete(mappedValue);
+                    } catch (Throwable t) {
+                        child.getTaskFuture().completeExceptionally(t);
+                    }
+                }
+            });
         }
     }
 
-    // 如果有link节点，则分析其每一个依赖的任务，并更新参数
+
+    // ============================================== alter runtime execution for engine  ================================================
+
+
     @Override
     public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters) {
-        // link 优先级比较高
-        List<Directive> linkDirectiveList = parameters.getEnvironment().getField().getDirectives(LINK.getName());
-        if (linkDirectiveList != null && !linkDirectiveList.isEmpty()) {
-            return wrapDFEnvironment(dataFetcher, linkDirectiveList, parameters);
-        }
-
-        List<Directive> dirOnField = parameters.getEnvironment().getField().getDirectives();
-        if (!dirOnField.isEmpty()) {
-            // 如果 指令就是为了动态改变 的运行时行为，那么这里就有必要直接返回
-            return wrappedDataFetcher(dirOnField, parameters.getEnvironment(), dataFetcher, parameters);
+        List<Directive> directives = parameters.getEnvironment().getField().getDirectives();
+        if (!directives.isEmpty()) {
+            return wrappedDataFetcher(
+                    directives,
+                    parameters.getEnvironment(),
+                    dataFetcher,
+                    parameters.getInstrumentationState(),
+                    parameters.getExecutionContext().getValueUnboxer()
+            );
         }
 
         return dataFetcher;
     }
 
-    private DataFetcher<?> wrapDFEnvironment(DataFetcher<?> dataFetcher,
-                                             List<Directive> linkDirectiveList,
-                                             InstrumentationFieldFetchParameters parameters) {
-        ExecutionEngineState scheduleState = parameters.getInstrumentationState();
-        Map<String, List<String>> sequenceTaskByNode = scheduleState.getSequenceTaskByNode();
-        Map<String, NodeTask> taskByPath = scheduleState.getTaskByPath();
-        DataFetchingEnvironment oldDFEnvironment = parameters.getEnvironment();
-        Map<String, Object> newArguments = new HashMap<>(oldDFEnvironment.getArguments());
-
-        Executor threadPool = executor;
-        final DataFetcher<?> finalFetcher;
-        if (dataFetcher instanceof AsyncDataFetcher) {
-            finalFetcher = ((AsyncDataFetcher<?>) dataFetcher).getWrappedDataFetcher();
-            threadPool = ((AsyncDataFetcher<?>) dataFetcher).getExecutor();
-        } else {
-            finalFetcher = dataFetcher;
-        }
-
-        return async(environment -> {
-            for (Directive linkDir : linkDirectiveList) {
-                // 获取当前依赖的任务列表
-                String nodeName = getArgumentFromDirective(linkDir, "node");
-                List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
-                List<NodeTask> taskList = taskNameForNode.stream().map(taskByPath::get).collect(toList());
-                NodeTask valueTask = getValueFromTasks(taskList);
-                if (valueTask.getFuture().isCompletedExceptionally()) {
-                    // 当前逻辑是如果参数获取失败，则该数据也不再进行解析
-                    return null;
-                } else {
-                    String argumentName = getArgumentFromDirective(linkDir, "argument");
-                    newArguments.put(argumentName, valueTask.getFuture().join());
-                }
-            }
-            DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
-                    .newDataFetchingEnvironment(oldDFEnvironment).arguments(newArguments).build();
-            return finalFetcher.get(newEnvironment);
-        }, threadPool);
-    }
-
-    /**
-     * get result from node task.
-     *
-     * @param taskForNodeValue tasks which the node rely on
-     * @return 包含结果并且已经完成的 NodeTask 节点
-     */
-    private NodeTask getValueFromTasks(List<NodeTask> taskForNodeValue) {
-        NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
-
-        for (NodeTask task : taskForNodeValue) {
-            task.getFuture().whenComplete((ignore, ex) -> {
-                if (ex != null) {
-                    futureTask.getFuture().completeExceptionally(ex);
-                }
-            }).join();
-
-            // 如果有异常，则中断执行
-            if (futureTask.getFuture().isCompletedExceptionally()) {
-                return futureTask;
-            }
-        }
-        return futureTask;
-    }
-
-    /**
-     * 对dataFetcher进行一次包装，如果有 mock、则直接返回mock值，如果有filter、则直接根据filter过滤
-     * 根据出现顺序进行判断：根据顺序判断是为了提高灵活性
-     *
-     * @param dirOnField 字段上的指令
-     * @param environment df环境变量
-     * @param instrumentationParameters 包含执行上下文信息
-     * @return
-     */
     private DataFetcher<?> wrappedDataFetcher(List<Directive> dirOnField,
                                               DataFetchingEnvironment environment,
-                                              DataFetcher<?> defaultDF,
-                                              InstrumentationFieldFetchParameters instrumentationParameters) {
+                                              DataFetcher<?> dataFetcher,
+                                              ExecutionEngineState engineState,
+                                              ValueUnboxer valueUnboxer) {
 
-        // kp skip在最外层执行、防止冗余的操作
-        Directive skip = null;
         for (Directive directive : dirOnField) {
             if (Objects.equals(SKIP_BY.getName(), directive.getName())) {
-                skip = directive;
+                String expression = getArgumentFromDirective(directive, "expression");
+                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                dataFetcher = wrapSkipDataFetcher(dataFetcher, expression, engineState,dependencySource);
                 continue;
             }
 
             if (Objects.equals(MOCK.getName(), directive.getName())) {
-                defaultDF = ignore -> getArgumentFromDirective(directive, "value");
+                dataFetcher = ignore -> getArgumentFromDirective(directive, "value");
                 continue;
             }
 
-            // 结果处理
-            if (Objects.equals(MAP.getName(), directive.getName())) {
-                String mapper = getArgumentFromDirective(directive, "mapper");
-                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
-                defaultDF = getMapperDF(defaultDF, mapper, dependencyNode, instrumentationParameters.getInstrumentationState());
-                continue;
-            }
-
-            // 结果处理：过滤列表
             if (Objects.equals(FILTER.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
-                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
-                defaultDF = getFilterDF(defaultDF, predicate, dependencyNode, instrumentationParameters.getInstrumentationState());
+                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                dataFetcher = wrapFilterDataFetcher(
+                        dataFetcher, predicate, dependencySource, engineState
+                );
                 continue;
             }
 
@@ -399,79 +276,104 @@ public class ExecutionEngine implements Instrumentation {
                 String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
-                defaultDF = wrapSortDF(defaultDF, sortKey, reversed);
+                dataFetcher = wrapSortDataFetcher(dataFetcher, sortKey, reversed);
                 continue;
             }
 
             if (Objects.equals(SORT_BY.getName(), directive.getName())) {
-                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
-                String exp = getArgumentFromDirective(directive, "exp");
+                String expression = getArgumentFromDirective(directive, "expression");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
-                reversed = reversed != null ? reversed : defaultReversed.get();
-                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
-                defaultDF = wrapSortByDF(defaultDF, exp, reversed, dependencyNode, instrumentationParameters.getInstrumentationState());
+                reversed = reversed != null
+                        ? reversed
+                        : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
+                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                dataFetcher = wrapSortByDataFetcher(
+                        dataFetcher, expression, reversed, dependencySource, engineState, valueUnboxer
+                );
+                continue;
+            }
+
+            if (Objects.equals(MAP.getName(), directive.getName())) {
+                String expression = getArgumentFromDirective(directive, "expression");
+                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                dataFetcher = wrapMapDataFetcher(
+                        dataFetcher, expression, dependencySource, engineState
+                );
                 continue;
             }
 
             if (Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName())) {
-                String argument = getArgumentFromDirective(directive, "argument");
+                String argumentName = getArgumentFromDirective(directive, "argumentName");
                 String operateType = getArgumentFromDirective(directive, "operateType");
-                String exp = getArgumentFromDirective(directive, "exp");
-                String dependencyNode = getArgumentFromDirective(directive, "dependencyNode");
-                defaultDF = transformParamDF(argument, operateType, exp, dependencyNode, defaultDF, instrumentationParameters.getInstrumentationState());
+                String expression = getArgumentFromDirective(directive, "expression");
+                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                dataFetcher = wrapArgumentTransformDataFetcher(
+                        argumentName, operateType, expression, dependencySource, dataFetcher, engineState
+                );
                 continue;
             }
 
         }
 
-        //  skipBy放在最外层包装，因为如果跳过该字段，其他逻辑也不必在执行
-        if (skip != null) {
-            if (Objects.equals(SKIP_BY.getName(), skip.getName())) {
-                DataFetcher<?> finalDefaultDF = defaultDF;
-                Directive finalSkip = skip;
-                defaultDF = env -> {
-                    Map<String, Object> arguments = environment.getArguments();
-                    String exp = getArgumentFromDirective(finalSkip, "exp");
-                    Boolean isSkip = (Boolean) calExp(aviatorEvaluator, exp, arguments);
-
-                    if (isSkip) {
-                        return null;
-                    }
-                    return finalDefaultDF.get(env);
-                };
-            }
-        }
-
-        return defaultDF;
+        return dataFetcher;
     }
 
-    /**
-     * 过滤list中的元素
-     */
-    private DataFetcher<?> getFilterDF(DataFetcher<?> defaultDF,
-                                       String predicate,
-                                       String dependencyNode,
-                                       ExecutionEngineState engineState) {
+
+    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, String expression, ExecutionEngineState engineState, String dependencySource) {
+        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcher;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
+
+
+        DataFetcher<?> wrappedDataFetcher = environment -> {
+            Map<String, Object> env = new LinkedHashMap<>(environment.getArguments());
+            if (dependencySource != null) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    env.put(dependencySource, null);
+                } else {
+                    env.put(dependencySource, sourceTask.getTaskFuture().join());
+                }
+            }
+
+            Boolean isSkip = (Boolean) calExp(aviatorEvaluator, expression, env);
+            if (isSkip) {
+                return null;
+            }
+
+            return innerDataFetcher.get(environment);
+        };
+
+        if (isAsyncFetcher) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+        return innerDataFetcher;
+    }
+
+
+    private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF,
+                                                 String predicate,
+                                                 String dependencySource,
+                                                 ExecutionEngineState engineState) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
-        return async(environment -> {
+        DataFetcher<?> wrappedFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
 
             if (originalResult == null) {
                 return null;
             }
 
-            Map<String, Object> nodeEnv = null;
-            if (dependencyNode != null) {
-                nodeEnv = new HashMap<>();
-                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
-                if (nodeTask.getFuture().isCompletedExceptionally()) {
-                    nodeEnv.put(dependencyNode, null);
+            Map<String, Object> sourceEnv = null;
+            if (dependencySource != null) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv = Collections.singletonMap(dependencySource, null);
                 } else {
-                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
                 }
             }
 
@@ -480,24 +382,28 @@ public class ExecutionEngine implements Instrumentation {
                 Map<String, Object> fieldMap = getCalMap(ele);
                 // 如果为null则表示没有依赖的节点
                 // 此时不应该在进行putAll操作
-                if (nodeEnv != null) {
-                    fieldMap.putAll(nodeEnv);
+                if (sourceEnv != null) {
+                    fieldMap.putAll(sourceEnv);
                 }
                 if ((Boolean) calExp(aviatorEvaluator, predicate, fieldMap)) {
                     filteredList.add(ele);
                 }
             }
             return filteredList;
-        }, innerExecutor);
+        };
+
+        if (isAsyncFetcher || dependencySource != null) {
+            return async(wrappedFetcher, innerExecutor);
+        }
+        return wrappedFetcher;
     }
 
-    // 按照指定key对元素进行排列
-    private DataFetcher<?> wrapSortDF(DataFetcher<?> defaultDF, String sortKey, Boolean reversed) {
+    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
-        return async(environment -> {
+        DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
 
             if (originalResult == null) {
@@ -514,136 +420,174 @@ public class ExecutionEngine implements Instrumentation {
             return collection.stream().sorted(
                     Comparator.comparing(ele -> (Comparable) getCalMap(ele).get(sortKey))
             ).collect(toList());
-        }, innerExecutor);
+        };
+
+        if (isAsyncFetcher) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+        return wrappedDataFetcher;
     }
 
 
-    private DataFetcher<?> wrapSortByDF(DataFetcher<?> defaultDF,
-                                        String sortExp,
-                                        Boolean reversed,
-                                        String dependencyNode,
-                                        ExecutionEngineState engineState) {
+    private DataFetcher<?> wrapSortByDataFetcher(DataFetcher<?> defaultDF,
+                                                 String sortExp,
+                                                 Boolean reversed,
+                                                 String dependencySource,
+                                                 ExecutionEngineState engineState,
+                                                 ValueUnboxer valueUnboxer) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
-        return async(environment -> {
+        DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
 
-            if (arraySize(originalResult) == 0) {
+            Collection<Object> collectionData;
+            if (originalResult instanceof DataFetcherResult) {
+                collectionData = (Collection<Object>) valueUnboxer.unbox(((DataFetcherResult) originalResult).getData());
+            } else {
+                collectionData = (Collection<Object>) valueUnboxer.unbox(originalResult);
+            }
+
+            if (arraySize(collectionData) == 0) {
                 return originalResult;
             }
 
-            final Map<String, Object> nodeEnv;
-            if (dependencyNode != null) {
-                nodeEnv = new HashMap<>();
-                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
-                if (!nodeTask.getFuture().isCompletedExceptionally()) {
-                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+            final Map<String, Object> sourceEnv;
+            if (dependencySource != null) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv = Collections.singletonMap(dependencySource, null);
                 } else {
-                    nodeEnv.put(dependencyNode, null);
+                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
                 }
             } else {
-                nodeEnv = null;
+                sourceEnv = null;
             }
 
-            Collection<?> collection = (Collection<?>) originalResult;
+            List<Object> sortedList;
             if (reversed) {
-                return collection.stream().sorted(
+                sortedList = collectionData.stream().sorted(Comparator.comparing(ele -> {
+                    Map<String, Object> env = getCalMap(ele);
+                    if (sourceEnv != null) {
+                        env.putAll(sourceEnv);
+                    }
+                    return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
+                }).reversed()).collect(toList());
+            } else {
+                sortedList = collectionData.stream().sorted(
                         Comparator.comparing(ele -> {
                             Map<String, Object> env = getCalMap(ele);
-                            if (nodeEnv != null) {
-                                env.putAll(nodeEnv);
+                            if (sourceEnv != null) {
+                                env.putAll(sourceEnv);
                             }
-                            return (Comparable) aviatorEvaluator.execute(sortExp, env);
-                        }).reversed()
+                            return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
+                        })
                 ).collect(toList());
             }
 
-            return collection.stream().sorted(
-                    Comparator.comparing(ele -> {
-                        Map<String, Object> env = getCalMap(ele);
-                        if (nodeEnv != null) {
-                            env.putAll(nodeEnv);
-                        }
-                        return (Comparable) aviatorEvaluator.execute(sortExp, env);
-                    })
-            ).collect(toList());
-        }, innerExecutor);
+            if (originalResult instanceof DataFetcherResult) {
+                return DataFetcherResult.newResult()
+                        .errors(((DataFetcherResult<?>) originalResult).getErrors())
+                        .localContext(((DataFetcherResult<?>) originalResult).getLocalContext())
+                        .data(sortedList)
+                        .build();
+            }
+
+            return sortedList;
+
+        };
+
+        if (isAsyncFetcher || dependencySource != null) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+
+        return wrappedDataFetcher;
     }
 
-    // directive @map(mapper:String!, dependencyNode:String) on FIELD
-    private DataFetcher<?> getMapperDF(DataFetcher<?> defaultDF, String mapper, String dependencyNode, ExecutionEngineState engineState) {
+    // directive @map(mapper:String!, dependencySource:String) on FIELD
+    private DataFetcher<?> wrapMapDataFetcher(DataFetcher<?> defaultDF,
+                                              String expression,
+                                              String dependencySource,
+                                              ExecutionEngineState engineState) {
+
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
+        DataFetcher<?> wrappedDataFetcher = environment -> {
+            Object fieldValue = innerDataFetcher.get(environment);
 
-        return async(environment -> {
-            final Map<String, Object> nodeEnv;
-            if (dependencyNode != null) {
-                nodeEnv = new HashMap<>();
-                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
-                if (nodeTask.getFuture().isCompletedExceptionally()) {
-                    nodeEnv.put(dependencyNode, null);
+            Map<String, Object> sourceEnv = null;
+            if (dependencySource != null) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv = Collections.singletonMap(dependencySource, null);
                 } else {
-                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
                 }
-            } else {
-                nodeEnv = null;
             }
 
-
-            Object fieldValue = innerDataFetcher.get(environment);
             HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
             expEnv.put(environment.getField().getResultKey(), fieldValue);
-            if (nodeEnv != null) {
-                expEnv.putAll(nodeEnv);
+            if (sourceEnv != null) {
+                expEnv.putAll(sourceEnv);
             }
 
-            return calExp(aviatorEvaluator, mapper, expEnv);
-        }, innerExecutor);
+            return calExp(aviatorEvaluator, expression, expEnv);
+        };
+
+        if (isAsyncFetcher || dependencySource != null) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+
+        return wrappedDataFetcher;
     }
 
-    // TODO ele这个常量也需要有说明
-    // typeName: String -> Enum
-    private DataFetcher<?> transformParamDF(String argumentName,
-                                            String operateType,
-                                            String exp,
-                                            String dependencyNode,
-                                            DataFetcher<?> defaultDF,
-                                            ExecutionEngineState engineState) {
+    // TODO ele常量需要有说明
+    //  typeName: String -> Enum
+    private DataFetcher<?> wrapArgumentTransformDataFetcher(String argumentName,
+                                                            String operateType,
+                                                            String expression,
+                                                            String dependencySource,
+                                                            DataFetcher<?> defaultDF,
+                                                            ExecutionEngineState engineState) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedFetcher = environment -> {
 
-            final Map<String, Object> nodeEnv;
-            if (dependencyNode != null) {
-                nodeEnv = new HashMap<>();
-                NodeTask nodeTask = getNodeValueFromState(engineState, dependencyNode);
-                if (nodeTask.getFuture().isCompletedExceptionally()) {
-                    nodeEnv.put(dependencyNode, null);
+            final Map<String, Object> sourceEnv;
+            if (dependencySource != null) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv = Collections.singletonMap(dependencySource, null);
                 } else {
-                    nodeEnv.put(dependencyNode, nodeTask.getFuture().join());
+                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
                 }
             } else {
-                nodeEnv = null;
+                sourceEnv = null;
             }
 
-            // 如果是列表元素过滤
+            // filter list element of list argument
             if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
-                List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
-                if (argument == null) {
+                List<Object> argument = environment.getArgument(argumentName);
+                if (argument == null || argument.isEmpty()) {
                     return innerDataFetcher.get(environment);
                 }
 
                 argument = argument.stream().filter(ele -> {
-                    Boolean isValid = (Boolean) aviatorEvaluator.execute(exp, Collections.singletonMap("ele", ele));
-                    return isValid != null && isValid;
-                }).collect(toList());
+                            HashMap<String, Object> env = new HashMap<>();
+                            env.put("ele", ele);
+                            if (sourceEnv != null) {
+                                env.putAll(sourceEnv);
+                            }
+
+                            return (Boolean) aviatorEvaluator.execute(expression, env);
+                        }
+                ).collect(toList());
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
                 newArguments.put(argumentName, argument);
@@ -652,21 +596,20 @@ public class ExecutionEngine implements Instrumentation {
                 return innerDataFetcher.get(newEnvironment);
             }
 
-            // 如果是参数列表元素转换
+            // map each element of list argument
             if (Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())) {
-                List<Object> argument = environment.getArgumentOrDefault(argumentName, Collections.emptyList());
-                if (argument == null) {
+                List<Object> argument = environment.getArgument(argumentName);
+                if (argument == null || argument.isEmpty()) {
                     return innerDataFetcher.get(environment);
                 }
 
                 argument = argument.stream().map(ele -> {
                     Map<String, Object> transformEnv = new HashMap<>();
-                    if (nodeEnv != null) {
-                        transformEnv.putAll(nodeEnv);
+                    if (sourceEnv != null) {
+                        transformEnv.putAll(sourceEnv);
                     }
-                    // todo node节点名称也不能跟ele一样。TODO 取一个合适的名字
                     transformEnv.put("ele", ele);
-                    return aviatorEvaluator.execute(exp, transformEnv);
+                    return aviatorEvaluator.execute(expression, transformEnv);
                 }).collect(toList());
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
@@ -677,14 +620,14 @@ public class ExecutionEngine implements Instrumentation {
                 return innerDataFetcher.get(newEnvironment);
             }
 
-            // 如果是 元素类型参数 转换
+            // map argument by expression
             if (Objects.equals(operateType, Directives.ParamTransformType.MAP.name())) {
 
                 Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
-                if (nodeEnv != null) {
-                    transformEnv.putAll(nodeEnv);
+                if (sourceEnv != null) {
+                    transformEnv.putAll(sourceEnv);
                 }
-                Object newParam = aviatorEvaluator.execute(exp, transformEnv);
+                Object newParam = aviatorEvaluator.execute(expression, transformEnv);
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
                 newArguments.put(argumentName, newParam);
@@ -695,60 +638,68 @@ public class ExecutionEngine implements Instrumentation {
                 return innerDataFetcher.get(newEnvironment);
             }
 
-            return innerDataFetcher.get(environment);
+            throw new RuntimeException("can not invoke here.");
         };
 
-        // 如果当前节点依赖了其他节点，也将其异步化，
-        // 比如：
-        // query{
-        //      directiveField @dir(dependencyNode:"nodeX")
-        //      nodeField @node(name:"nodeX")
-        // }
-        //
-        // 如果串行执行则线程会阻塞在 directiveField 的解析中
-        if (defaultDF instanceof AsyncDataFetcher || dependencyNode != null) {
+        if (defaultDF instanceof AsyncDataFetcher || dependencySource != null) {
             return async(wrappedFetcher, innerExecutor);
-        } else {
-            return wrappedFetcher;
         }
+
+        return wrappedFetcher;
     }
 
-    // todo logDebug
-    private NodeTask getNodeValueFromState(ExecutionEngineState state, String nodeName) {
-        Map<String, List<String>> sequenceTaskByNode = state.getSequenceTaskByNode();
-        List<String> taskNameForNode = sequenceTaskByNode.get(nodeName);
+    private FetchSourceTask getFetchSourceFromState(ExecutionEngineState engineState, String sourceName) {
+        Map<String, FetchSourceTask> fetchSourceTaskByPath = engineState.getFetchSourceTaskByPath();
 
-        Map<String, NodeTask> taskByPath = state.getTaskByPath();
-        List<NodeTask> taskForNodeValue = taskNameForNode.stream().map(taskByPath::get).collect(toList());
+        Map<String, List<String>> queryTaskBySourceName = engineState.getQueryTaskBySourceName();
+        List<String> queryTaskNameList = queryTaskBySourceName.get(sourceName);
 
-        NodeTask futureTask = taskForNodeValue.get(taskForNodeValue.size() - 1);
+        List<CompletableFuture<Object>> queryTaskList = queryTaskNameList.stream()
+                .map(fieldPath -> fetchSourceTaskByPath.get(fieldPath).getTaskFuture())
+                .collect(toList());
 
-//        for (CompletableFuture<Object> future : Arrays.asList(new CompletableFuture<>())) {
-//            future.whenCompleteAsync((ignored,ex)->{
-//                if(ex!=null){
-//                    for (NodeTask nodeTask : taskForNodeValue) {
-//                        nodeTask.getFuture().completeExceptionally(ex);
-//                    }
-//                }
-//            },executor);
-//        }
-//
-        //
+        Map<String, List<String>> topTaskBySourceName = engineState.getTopTaskBySourceName();
+        List<String> topTaskNameList = topTaskBySourceName.get(sourceName);
+        List<FetchSourceTask> topTaskList = topTaskNameList.stream().map(fetchSourceTaskByPath::get).collect(toList());
+        FetchSourceTask valueTask = topTaskList.get(topTaskList.size() - 1);
 
-        // 从最上层
-        for (NodeTask task : taskForNodeValue) {
-            task.getFuture().whenComplete((ignore, ex) -> {
+        for (CompletableFuture<Object> queryTask : queryTaskList) {
+            queryTask.whenComplete((result, ex) -> {
                 if (ex != null) {
-                    futureTask.getFuture().completeExceptionally(ex);
+                    valueTask.getTaskFuture().completeExceptionally(ex);
+                    return;
+                }
+
+                if (result == null) {
+                    valueTask.getTaskFuture().complete(null);
+                    return;
                 }
             }).join();
 
-            // 如果有异常，则中断执行
-            if (futureTask.getFuture().isCompletedExceptionally()) {
-                return futureTask;
+            if (valueTask.getTaskFuture().isDone()) {
+                return valueTask;
             }
         }
-        return futureTask;
+
+        for (FetchSourceTask taskInValuePath : topTaskList) {
+            taskInValuePath.getTaskFuture().whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            valueTask.getTaskFuture().completeExceptionally(ex);
+                            return;
+                        }
+
+                        if (result == null) {
+                            valueTask.getTaskFuture().complete(null);
+                        }
+                    }
+            ).join();
+
+            if (valueTask.getTaskFuture().isDone()) {
+                return valueTask;
+            }
+        }
+
+        throw new RuntimeException("can not invoke here");
     }
 
     private Map<String, Object> getCalMap(Object res) {

@@ -27,6 +27,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 public class TestUtil {
 
@@ -89,6 +92,15 @@ public class TestUtil {
 
         // 对于重复的
         return new2List.size() == 0;
+    }
+
+    public static void sleepWithTry(int low, int up) {
+
+        try {
+            int mils = new Random().nextInt(up - low) + low;
+            TimeUnit.MILLISECONDS.sleep(mils);
+        } catch (InterruptedException e) {
+        }
     }
 
 }

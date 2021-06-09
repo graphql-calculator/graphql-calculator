@@ -25,10 +25,6 @@ import graphql.schema.GraphQLSchema;
 import graphql.validation.ValidationError;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class Validator {
 
@@ -64,10 +60,13 @@ public class Validator {
         }
 
 
-        NodeRule nodeRule = new NodeRule(
-                basicRule.getNodeWithAnnotatedField(),
-                basicRule.getNodeWithTopTask(),
-                basicRule.getNodeWithAncestorPath()
+        SourceRule nodeRule = new SourceRule(
+                basicRule.getSourceWithAnnotatedField(),
+                basicRule.getSourceWithTopTask(),
+                basicRule.getSourceWithAncestorPath(),
+                basicRule.getFieldWithTopTask(),
+                basicRule.getSourceUsedByField(),
+                basicRule.getFieldWithAncestorPath()
         );
         traverser.visitDepthFirst(nodeRule);
         // 不用在返回没有使用的节点，因为脏数据可能导致分析不够准确
@@ -76,8 +75,8 @@ public class Validator {
         }
 
         // 是否有未使用的node节点
-        if (!nodeRule.getUnusedNode().isEmpty()) {
-            String errorMsg = String.format(" unused node: %s.", nodeRule.getUnusedNode().toString());
+        if (!nodeRule.getUnusedSource().isEmpty()) {
+            String errorMsg = String.format(" unused node: %s.", nodeRule.getUnusedSource().toString());
             ValidationError error = ValidationError.newValidationError().description(errorMsg).build();
             return ParseAndValidateResult.newResult().validationErrors(Collections.singletonList(error)).build();
         }
