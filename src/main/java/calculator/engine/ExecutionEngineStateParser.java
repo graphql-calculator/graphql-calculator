@@ -17,6 +17,7 @@
 package calculator.engine;
 
 import calculator.engine.metadata.Directives;
+import calculator.engine.metadata.FetchSourceTask;
 import calculator.engine.metadata.NodeTask;
 import graphql.Internal;
 import graphql.analysis.QueryVisitor;
@@ -32,10 +33,14 @@ import java.util.concurrent.CompletableFuture;
 
 import static calculator.common.Tools.getArgumentFromDirective;
 import static calculator.common.Tools.visitPath;
-import static calculator.common.VisitorUtils.isInListPath;
+import static calculator.common.VisitorUtils.isInList;
 import static calculator.common.VisitorUtils.isListNode;
+import static calculator.common.VisitorUtils.parentPathList;
 
 
+/**
+ * TODO 有些操作可以作为func、用到的时候在执行
+ */
 @Internal
 public class ExecutionEngineStateParser implements QueryVisitor {
 
@@ -53,138 +58,97 @@ public class ExecutionEngineStateParser implements QueryVisitor {
         }
 
         // 该节点被node注解，保存该节点及其父亲节点
-        List<Directive> directives = environment.getField().getDirectives(Directives.NODE.getName());
+        List<Directive> directives = environment.getField().getDirectives(Directives.FETCH_SOURCE.getName());
         if (directives != null && !directives.isEmpty()) {
-
+            // non-repeatable directive
             Directive nodeDir = directives.get(0);
-            String nodeName = getArgumentFromDirective(nodeDir, "name");
+            String sourceName = getArgumentFromDirective(nodeDir, "name");
+            String mapper = getArgumentFromDirective(nodeDir, "mapper");
 
-            // 保存该节点及其父节点路径，例如a、a.b、a.b.c
-            // 同时保存每个路径：1.是否是list下的节点；2.父节点和子节点；
-            ArrayList<String> pathList = new ArrayList<>();
-            handle(false, environment, pathList, builder);
-            // kp traverserContext 是某一次visitor中所有节点共用的
+            ArrayList<String> topTaskPathList = new ArrayList<>();
+            ArrayList<String> queryTaskPathList = new ArrayList<>();
+            parseFetchSourceInfo(sourceName, true, mapper, environment, topTaskPathList, queryTaskPathList, builder);
+            // traverserContext is shared in a visitor-operation.
             environment.getTraverserContext().setAccumulate(null);
-            builder.sequenceTaskByNode(nodeName, pathList);
+            builder.topTaskList(sourceName, topTaskPathList);
+            builder.queryTaskList(sourceName,queryTaskPathList);
         }
     }
 
     /**
-     * 获取 environment对应节点 及其递归上层节点对应的路径、保存在pathList，
-     * 表示了解@node注解的节点必须知道哪些路径节点的完成情况，以及每个路径节点对应的
-     * 异步任务、保存在taskByPath中。
+     * 获取 @fetchSource 注释的节点相关数据保存在 ExecutionEngineState 中：
+     * 1. 代表该节点的 FetchSourceTask；
+     * 2. 该节点所代表的异步任务结束所依赖的父节点列表 topTaskPathList ；
+     * 3. topTask节点的父亲节点列表——这些节点失败则topTaskPathList中所有的异步任务都不会执行。
      *
-     * @param isRecursive 是否是递归调用
-     * @param visitorEnv 当前节点visit上下文
-     * @param pathList    kp 保存父节点、祖父节点... 的绝对路径。
-     * @param stateBuilder  kp 保存字段路径对应的异步任务
+     * @param isAnnotatedNode 是否是递归调用该方法，kp 是否是被 @fetchSource 注解的节点
+     * @param mapper 获取 fetchSource 后进行数据转换的表达式
+     * @param visitorEnv 请求变量
+     * @param topTaskPathList  @fetchSource 注解的节点完成所依赖的顶层节点。
+     * @param queryTaskPathList 顶层节点的父亲节点。这部分节点如果解析失败，则获取@fetchSource值的异步任务不会执行。
+     *                          todo 但是获取这些异步任务有不依赖这些顶层节点完成——开始就可以，注意怎么判断。
+     * @param engineStateBuilder
      */
-    private void handle(boolean isRecursive,
-                        QueryVisitorFieldEnvironment visitorEnv,
-                        ArrayList<String> pathList,
-                        ExecutionEngineState.Builder stateBuilder
-//                        Map<String, NodeTask> taskByPath
-    ) {
+    private void parseFetchSourceInfo(String sourceName,
+                                      boolean isAnnotatedNode,
+                                      String mapper,
+                                      QueryVisitorFieldEnvironment visitorEnv,
+                                      ArrayList<String> topTaskPathList,
+                                      ArrayList<String> queryTaskPathList,
+                                      ExecutionEngineState.Builder engineStateBuilder) {
 
-        // 1. 一个node依赖任务列表的 "根节点任务"应该是在 其与 root 路径中、
-        // 和 Query root 距离最远的 不在list中的节点，如下 uid 和 uName 依赖的上层任务从 levelOneList 开始算起，
-        // 因为 levelTwoList 也在list中，即 levelOneList 中：
-        // query {
-        //       levelOne
-        //          levelTwo{
-        //              levelOneList{
-        //                  fieldInLevelOne
-        //                  levelTwoList{
-        //                      # [ levelOne#levelTwo#levelOneList,
-        //                      #   levelOne#levelTwo#levelOneList#levelTwoList,
-        //                      #   levelOne#levelTwo#levelOneList#levelTwoList#id
-        //                      # ]
-        //                      id @node(name:"uId")
-        //
-        //                      # [ levelOne#levelTwo#levelOneList,
-        //                      #   levelOne#levelTwo#levelOneList#levelTwoList,
-        //                      #   levelOne#levelTwo#levelOneList#levelTwoList#name
-        //                      # ]
-        //                      name @node(name:"uName")
-        //                  }
-        //              }
-        //          }
-        //      }
-        // }
-        //
-        // 2. 对于如下情况，该方法算法可能出现parentEnv为null的情况。
-        // query {
-        //       userInfoList{
-        //              # [userInfoList, userInfoList#id]
-        //              id @node(name: "uId")
-        //              # [userInfoList, userInfoList#name]
-        //              name @node(name: "name")
-        //       }
-        // }
-        //
-        // 3. 对于如下情况，直接解析当前节点即可
-        // query {
-        //       userInfo{
-        //              # [ userInfo#id ]
-        //              id @node(name: "uId")
-        //              # [ userInfo#name ]
-        //              name @node(name: "name")
-        //       }
-        // }
-        //
-        // tips：如果一个节点可以作其某个子节点的父亲任务，则肯定也可以做起另外一个子节点的父亲任务。反之也成立。
-        //
+        String fieldFullPath = visitPath(visitorEnv);
 
         /**
-         * 1. 如果不是list元素，则解析后不递归返回;
-         * 2. 如果是list元素，先递归解析父亲元素，然后在解析当前任务。
+         * step_1边界条件，如果是topTaskNode，则直接包装、返回
          */
-        if (!isInListPath(visitorEnv)) {
-            String absolutePath = visitPath(visitorEnv);
-            // 当前节点依赖的任务
-            pathList.add(absolutePath);
+        if (!isInList(visitorEnv)) {
+            topTaskPathList.add(fieldFullPath);
 
             // 对于已经解析过、放到 taskByPath 的任务不可以在重复创建任务
             if (visitorEnv.getTraverserContext().getNewAccumulate() == null) {
-                NodeTask task = NodeTask.newBuilder()
-                        .isTopTaskNode(true)
-                        .path(absolutePath)
-                        .isList(isListNode(visitorEnv))
-                        .isAnnotated(!isRecursive)
-                        .future(new CompletableFuture<>())
+                FetchSourceTask task = FetchSourceTask.newFetchSourceTask()
+                        .sourceName(sourceName)
+                        .isAnnotatedNode(isAnnotatedNode)
+                        .isListType(isListNode(visitorEnv))
+                        .isInList(true)
+                        .taskFuture(new CompletableFuture<>())
+                        .mapper(mapper)
                         .build();
                 visitorEnv.getTraverserContext().setAccumulate(task);
-                stateBuilder.taskByPath(absolutePath, task);
+                engineStateBuilder.taskByPath(fieldFullPath, task);
             }
+            queryTaskPathList.addAll(parentPathList(visitorEnv));
             return;
         }
 
         // 先递归解析父节点的原因：在创建自节点对应的NodeTask时需要设置parentTask，
         // 并将当前节点代表的任务设置为parentTask的子任务。
-        handle(true, visitorEnv.getParentEnvironment(), pathList, stateBuilder);
+        parseFetchSourceInfo(
+                sourceName, false, null,
+                visitorEnv.getParentEnvironment(), topTaskPathList, queryTaskPathList, engineStateBuilder
+        );
+        // 递归执行该逻辑，因此 topTaskPathList 中的节点顺序也是从上到下的
+        topTaskPathList.add(fieldFullPath);
 
-        // 当前节点代表的 Node Task
-        String absolutePath = visitPath(visitorEnv);
-        pathList.add(absolutePath);
-        // 对于情况一中的任务 levelOne#levelTwo#levelOneList#levelTwoList
-        // uId 和 uName 都会分析此节点，第二次分析的时候已经不需要为此节点创建任务和设置父亲节点了，只设置子节点即可
-        NodeTask parentTask = visitorEnv.getParentEnvironment().getTraverserContext().getNewAccumulate();
-        NodeTask currentNodeTask;
+        FetchSourceTask parentTask = visitorEnv.getParentEnvironment().getTraverserContext().getNewAccumulate();
+        FetchSourceTask currentTask;
         if (visitorEnv.getTraverserContext().getNewAccumulate() == null) {
-            currentNodeTask = NodeTask.newBuilder()
-                    .isTopTaskNode(false)
-                    .path(absolutePath)
-                    .isList(isListNode(visitorEnv))
-                    .isAnnotated(!isRecursive)
-                    .parent(parentTask)
-                    .future(new CompletableFuture<>())
+            currentTask = FetchSourceTask.newFetchSourceTask()
+                    .sourceName(sourceName)
+                    .isAnnotatedNode(isAnnotatedNode)
+                    .isListType(isListNode(visitorEnv))
+                    .isInList(true)
+                    .taskFuture(new CompletableFuture<>())
+                    .mapper(mapper)
                     .build();
-            visitorEnv.getTraverserContext().setAccumulate(currentNodeTask);
-            stateBuilder.taskByPath(absolutePath, currentNodeTask);
+            visitorEnv.getTraverserContext().setAccumulate(currentTask);
+            engineStateBuilder.taskByPath(fieldFullPath, currentTask);
         } else {
-            currentNodeTask = visitorEnv.getTraverserContext().getNewAccumulate();
+            // 对于 [list-a,[b,[c,d]]] 这种情况，先解析c、然后解析d的时候递归会执行到这里
+            currentTask = visitorEnv.getTraverserContext().getNewAccumulate();
         }
-        parentTask.addSubTaskList(currentNodeTask);
+        parentTask.childrenTaskList(currentTask);
     }
 
 

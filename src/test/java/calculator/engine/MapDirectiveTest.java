@@ -128,11 +128,11 @@ public class MapDirectiveTest {
         assert Objects.equals(filterItemInfoById.get(5).get("couponPrice"), 70);
     }
 
-    @Test
+//    @Test
     public void mapperWithJoin() {
         String query = "" +
                 "query{\n" +
-                "    userInfoList(ids:[1,2,3,4])\n" +
+                "    userInfoList(ids:[1,2])\n" +
                 "    @node(name: \"itemIds\", mapper: \"favoriteItemId\")\n" +
                 "    {\n" +
                 "        userId\n" +
@@ -164,6 +164,32 @@ public class MapDirectiveTest {
     }
 
 
+
+
+    @Test
+    public void mapTestxx() {
+        String query = "\n" +
+                "query{\n" +
+                "    itemList(ids: [1,2])\n" +
+                "    @node(name: \"itemInfo\")\n" +
+                "    {\n" +
+                "        itemId\n" +
+                "        couponList{\n" +
+                "            couponId  \n" +
+                "            base @map(mapper:\"base - 100\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+//
+//        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+//        assert !validateResult.isFailure();
+
+        ExecutionResult mapResult = graphQL.execute(query);
+        assert mapResult != null;
+        assert mapResult.getErrors().isEmpty();
+        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.email"), "5dugk@foxmail.com");
+        assert Objects.equals(getFromNestedMap(mapResult.getData(), "userInfo.netName"), "netName:5dugk@foxmail.com");
+    }
 
 
 }

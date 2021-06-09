@@ -65,7 +65,7 @@ public class EngineStateParserTest {
                 .document(Parser.parse(query))
                 .variables(Collections.emptyMap()).build();
 
-        ExecutionEngineStateParser visitor = new ExecutionEngineStateParser();
+        ExecutionEngineStateParserOld visitor = new ExecutionEngineStateParserOld();
         traverser.visitDepthFirst(visitor);
         ExecutionEngineState executionEngineState = visitor.getExecutionEngineState();
 
@@ -84,7 +84,7 @@ public class EngineStateParserTest {
     @Test(expected = UnsupportedOperationException.class)
     public void unModifyExecutionStateTest() {
         ExecutionEngineState.Builder builder = ExecutionEngineState.newExecutionState();
-        builder.sequenceTaskByNode("itemId", Arrays.asList("itemInfo.itemId"));
+        builder.topTaskList("itemId", Arrays.asList("itemInfo.itemId"));
         ExecutionEngineState engineState = builder.build();
 
         Map<String, List<String>> sequenceTaskByNode = engineState.getSequenceTaskByNode();
@@ -99,6 +99,7 @@ public class EngineStateParserTest {
                 .future(CompletableFuture.completedFuture(1991))
                 .isTopTaskNode(false)
                 .isList(false)
+                .resultKey("itemId")
                 .path("itemInfo.itemId")
                 .isAnnotated(true)
                 .build();
@@ -108,6 +109,7 @@ public class EngineStateParserTest {
         NodeTask nodeTask = NodeTask.newBuilder()
                 .isTopTaskNode(false)
                 .isList(false)
+                .resultKey("path")
                 .path("path")
                 .isAnnotated(false)
                 .future(new CompletableFuture<>())

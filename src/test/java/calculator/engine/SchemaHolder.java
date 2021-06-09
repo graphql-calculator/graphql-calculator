@@ -16,6 +16,7 @@
  */
 package calculator.engine;
 
+import static calculator.engine.TestUtil.sleepWithTry;
 import static calculator.graphql.AsyncDataFetcher.async;
 
 import graphql.schema.DataFetcher;
@@ -24,6 +25,7 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +98,7 @@ public class SchemaHolder {
             itemInfo.put("name", id + "_item_name");
             itemInfo.put("salePrice", id.longValue() * 20);
             itemInfo.put("withCouponIdList", ids);
+
             itemInfoList.add(itemInfo);
         }
         return itemInfoList;
@@ -149,16 +152,40 @@ public class SchemaHolder {
         if (calSchema == null) {
             synchronized (SchemaHolder.class) {
                 if (calSchema == null) {
-                    Map<String, DataFetcher> queryFetcher = new HashMap<>();
-                    queryFetcher.put("userInfo", async(userDF));
-                    queryFetcher.put("userInfoList", async(userListDF));
-                    queryFetcher.put("coupon", async(couponDF));
-                    queryFetcher.put("couponList", async(couponListDF));
-                    queryFetcher.put("itemList", async(itemListDF));
-                    queryFetcher.put("itemStockList", async(itemStockListDF));
-
                     Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
-                    dataFetcherInfo.put("Query", queryFetcher);
+
+                    Map<String, DataFetcher> queryFieldFetchers = new HashMap<>();
+                    queryFieldFetchers.put("userInfo", async(userDF));
+                    queryFieldFetchers.put("userInfoList", async(userListDF));
+                    queryFieldFetchers.put("coupon", async(couponDF));
+                    queryFieldFetchers.put("couponList", async(couponListDF));
+                    queryFieldFetchers.put("itemList", async(itemListDF));
+                    queryFieldFetchers.put("itemStockList", async(itemStockListDF));
+                    dataFetcherInfo.put("Query", queryFieldFetchers);
+
+                    Map<String, DataFetcher> itemFieldFetcher = new HashMap<>();
+                    itemFieldFetcher.put("couponList", async(environment -> {
+                        if(1 == 1){
+                            return new RuntimeException("test");
+                        }
+                        List<Number> couponIds = environment.getArgumentOrDefault(
+                                "couponIds", Collections.emptyList()
+                        );
+
+                        List<Map> coupons = new ArrayList<>();
+                        for (Number couponId : couponIds) {
+                            Map<String, Object> couponInfo = new HashMap<>();
+                            couponInfo.put("couponId", couponId.longValue());
+                            couponInfo.put("base", couponId.longValue() * 10 + 1);
+                            couponInfo.put("price", couponId.longValue() * 10);
+                            couponInfo.put("couponText", "面额" + couponId.longValue() * 10 + "元");
+                            coupons.add(couponInfo);
+                        }
+                        // 模拟请求耗时
+                        sleepWithTry(5000,5200);
+                        return coupons;
+                    }));
+                    dataFetcherInfo.put("ItemBaseInfo", itemFieldFetcher);
 
                     RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
                     for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {

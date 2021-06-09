@@ -17,12 +17,14 @@
 
 package calculator.common;
 
-import calculator.engine.ExecutionEngineStateParser;
+import calculator.engine.ExecutionEngineStateParserOld;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -30,6 +32,12 @@ public class VisitorUtils {
 
     public static final String PATH_SEPARATOR = "#";
 
+    /**
+     * whether this field is GraphQLList type.
+     *
+     * @param visitorEnv the visitor Environment of this field
+     * @return true if this field is  GraphQLList.
+     */
     public static boolean isListNode(QueryVisitorFieldEnvironment visitorEnv){
         GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
                 visitorEnv.getFieldDefinition().getType()
@@ -53,6 +61,20 @@ public class VisitorUtils {
             parentEnv = parentEnv.getParentEnvironment();
         }
         return parentPathSet;
+    }
+
+
+    // 返回当前节点的父节点：从query的子节点开始。
+    public static ArrayList<String> parentPathList(QueryVisitorFieldEnvironment visitorEnv) {
+        ArrayList<String> parentPathList = new ArrayList<>();
+
+        QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
+        while (parentEnv != null) {
+            parentPathList.add(pathForTraverse(parentEnv));
+            parentEnv = parentEnv.getParentEnvironment();
+        }
+        Collections.reverse(parentPathList);
+        return(parentPathList);
     }
 
     /**
@@ -84,7 +106,7 @@ public class VisitorUtils {
      * @param visitorEnv 当前节点
      * @return 是列表字段中的元素则为true
      */
-    public static boolean isInListPath(QueryVisitorFieldEnvironment visitorEnv) {
+    public static boolean isInList(QueryVisitorFieldEnvironment visitorEnv) {
         QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
         while (parentEnv != null) {
             GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
@@ -102,7 +124,7 @@ public class VisitorUtils {
 
     /**
      * 获取当前任务节点的所依赖的顶层任务节点，
-     * 顶层任务节点查找逻辑见 {@link ExecutionEngineStateParser#handle}
+     * 顶层任务节点查找逻辑见 {@link ExecutionEngineStateParserOld#handle}
      *
      * @param visitorEnv 当前任务节点
      * @return 当前任务节点的所依赖的顶层任务节点

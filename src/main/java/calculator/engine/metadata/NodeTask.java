@@ -28,6 +28,8 @@ public class NodeTask {
     // 当前字段所表示的任务执行完毕、则其子实体(数组实体)所表示的任务则也一定完成
     private final boolean isTopTaskNode;
 
+    private final String resultKey;
+
     // for debug
     private final String path;
 
@@ -43,6 +45,11 @@ public class NodeTask {
 
     private final CompletableFuture<Object> future;
 
+    /**
+     * 处理 {@link Directives#NODE} mapper的逻辑
+     */
+    private final String mapper;
+
     private final NodeTask parent;
 
     private final List<NodeTask> subTaskList = new ArrayList<>();
@@ -55,18 +62,35 @@ public class NodeTask {
         return subTaskList;
     }
 
-    private NodeTask(boolean isTopTaskNode, String path, boolean isList, boolean isAnnotated, CompletableFuture<Object> future, NodeTask parent) {
+    private NodeTask(boolean isTopTaskNode,
+                     String resultKey,
+                     String path,
+                     boolean isList,
+                     boolean isAnnotated,
+                     CompletableFuture<Object> future,
+                     String mapper,
+                     NodeTask parent) {
+        Objects.requireNonNull(path);
+        Objects.requireNonNull(future);
+        Objects.requireNonNull(resultKey);
+
         this.isTopTaskNode = isTopTaskNode;
+        this.resultKey = resultKey;
         this.path = path;
         this.isList = isList;
         this.isAnnotated = isAnnotated;
         this.future = future;
+        this.mapper = mapper;
         this.parent = parent;
     }
 
 
     public boolean isTopTaskNode() {
         return isTopTaskNode;
+    }
+
+    public String getResultKey() {
+        return resultKey;
     }
 
     public String getPath() {
@@ -89,6 +113,10 @@ public class NodeTask {
         return future;
     }
 
+    public String getMapper() {
+        return mapper;
+    }
+
     public NodeTask getParent() {
         return parent;
     }
@@ -101,6 +129,8 @@ public class NodeTask {
 
         private Boolean isTopTaskNode;
 
+        private String resultKey;
+
         private String path;
 
         private Boolean isList;
@@ -109,11 +139,18 @@ public class NodeTask {
 
         private CompletableFuture<Object> future;
 
+        private String mapper;
+
         private NodeTask parent;
 
 
         public FutureTaskBuilder isTopTaskNode(boolean isTopTaskNode) {
             this.isTopTaskNode = isTopTaskNode;
+            return this;
+        }
+
+        public FutureTaskBuilder resultKey(String resultKey) {
+            this.resultKey = resultKey;
             return this;
         }
 
@@ -137,6 +174,15 @@ public class NodeTask {
             return this;
         }
 
+//        public FutureTaskBuilder mapper(BiFunction<Object, Throwable, Object> mapper) {
+//            this.mapper = mapper;
+//            return this;
+//        }
+        public FutureTaskBuilder mapper(String mapper) {
+            this.mapper = mapper;
+            return this;
+        }
+
         public FutureTaskBuilder parent(NodeTask parent) {
             this.parent = parent;
             return this;
@@ -149,7 +195,7 @@ public class NodeTask {
             Objects.requireNonNull(isAnnotated);
             Objects.requireNonNull(future);
 
-            return new NodeTask(isTopTaskNode, path, isList, isAnnotated, future, parent);
+            return new NodeTask(isTopTaskNode, resultKey, path, isList, isAnnotated, future, mapper, parent);
         }
     }
 }

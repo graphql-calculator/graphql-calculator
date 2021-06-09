@@ -76,6 +76,11 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
+                    .name("dependencySource")
+                    .description("the fetchedValue which the annotated field dependency.")
+                    .type(GraphQLString))
+            .argument(GraphQLArgument
+                    .newArgument()
                     .name("dependencyNode")
                     .description("the node which the annotated field dependency.")
                     .type(GraphQLString))
@@ -134,6 +139,24 @@ public class Directives {
                     .newArgument()
                     .name("dependencyNode")
                     .description("the node which the annotated field dependency.")
+                    .type(GraphQLString))
+            .build();
+
+
+    public final static GraphQLDirective FETCH_SOURCE = GraphQLDirective.newDirective()
+            .name("fetchSource")
+            .description("hold the fetchedValue which can be acquired by calculator directives.")
+            .validLocation(FIELD)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("name")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("mapper")
+                    .description("'mapper' is used to transform the value of annotated field, "
+                            + "and all the directives using this @fetchSource get the data after 'mapper' processed. "
+                            + "'mapper'  is only expected to read field value, and shouldn't modify the data.")
                     .type(GraphQLString))
             .build();
 
@@ -237,6 +260,7 @@ public class Directives {
         tmpMap.put(SORT.getName(), SORT);
         tmpMap.put(LINK.getName(), LINK);
         tmpMap.put(NODE.getName(), NODE);
+        tmpMap.put(FETCH_SOURCE.getName(), FETCH_SOURCE);
         tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         tmpMap.put(SORT_BY.getName(), SORT_BY);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);

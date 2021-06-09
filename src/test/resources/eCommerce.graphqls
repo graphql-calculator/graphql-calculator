@@ -23,8 +23,6 @@ type Query {
 }
 
 
-
-
 type User{
     userId: Int
     age: Int
@@ -44,7 +42,7 @@ type ItemBaseInfo{
     # 数据源默认没有该字段返回
     # 需要使用itemId从ItemStockInfoMap中获取
     stockAmount: Int
-    couponList: [Coupon]
+    couponList(couponIds:[Int]): [Coupon]
 }
 
 type ItemStockInfo{
