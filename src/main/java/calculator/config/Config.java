@@ -26,10 +26,25 @@ import java.util.concurrent.Executor;
 
 public interface Config {
 
+    /**
+     * Return the expression execution evaluator.
+     *
+     * @return expression execution evaluator
+     */
     AviatorEvaluatorInstance getAviatorEvaluator();
 
+    /**
+     * The customized functions used by {@code AviatorEvaluatorInstance}.
+     *
+     * @return customized functions
+     */
     List<AviatorFunction> functions();
 
+    /**
+     * The util used to transform object return by {@code DataFetcher} to {@code Map}.
+     *
+     * @return object mapper util
+     */
     ObjectMapper getObjectMapper();
 
     /**

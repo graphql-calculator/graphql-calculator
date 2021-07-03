@@ -41,7 +41,6 @@ import java.util.function.Function;
 
 public class Example {
 
-
     static class DocumentParseAndValidationCache implements PreparsedDocumentProvider {
 
         private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();

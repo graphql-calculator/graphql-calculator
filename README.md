@@ -31,13 +31,53 @@
 
 ##### 继承`calculator.graphql.AsyncDataFetcherInterface`
 
-如果项目中使用了`graphql.schema.AsyncDataFetcher` 或者自定义的异步化`DataFetcher`，则使其继承`calculator.graphql.AsyncDataFetcherInterface`，
-并实现该接口方法，返回异步化`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
+如果项目中使用了异步化`DataFetcher`，则使其则继承`AsyncDataFetcherInterface`，
+并在方法实现中返回异步化`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
 
+##### 通过配置包装schema类、创建`GraphQL`对象
 
-##### 通过配置转换schema和`GraphQL`对象
+#### 3. 校验执行
 
+对每个使用了计算指令的查询，都必须使用`Validator`进行校验语法是否合法，**建议通过 PreparedDocument 缓存校验结果**。
+
+完整示例如下：
 ```java
+public class Example {
+
+    static class DocumentParseAndValidationCache implements PreparsedDocumentProvider {
+
+        private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
+
+        private final GraphQLSchema wrappedSchema;
+
+        public DocumentParseAndValidationCache(GraphQLSchema wrappedSchema) {
+            this.wrappedSchema = wrappedSchema;
+        }
+
+        @Override
+        public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
+                                                  Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+            if (cache.get(executionInput.getQuery()) != null) {
+                return cache.get(executionInput.getQuery());
+            }
+
+            ParseAndValidateResult validateResult = Validator.validateQuery(executionInput.getQuery(), wrappedSchema);
+
+            PreparsedDocumentEntry preparsedDocumentEntry;
+            if (validateResult.isFailure()) {
+                preparsedDocumentEntry = new PreparsedDocumentEntry(validateResult.getErrors());
+            } else {
+                preparsedDocumentEntry = new PreparsedDocumentEntry(validateResult.getDocument());
+            }
+            cache.put(executionInput.getQuery(), preparsedDocumentEntry);
+            return preparsedDocumentEntry;
+        }
+    }
+
+    public static void main(String[] args) {
+
+        GraphQLSchema schema = SchemaHolder.getSchema();
+
         Config config = ConfigImpl.newConfig()
                 .evaluatorInstance(AviatorEvaluator.newInstance())
                 .function(new ListContain()).function(new ListMapper())
@@ -50,36 +90,65 @@
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache(wrappedSchema))
                 .build();
 
+        String query = ""
+                + "query mapListArgument($itemIds: [Int]){ \n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIds)\n" +
+                "        @argumentTransform(argumentName: \"itemIds\",operateType: LIST_MAP,expression: \"ele*10\")\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ExecutionInput input = ExecutionInput
+                .newExecutionInput(query)
+                .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
+                .build();
+
+        ExecutionResult result = graphQL.execute(input);
+        // consumer result
+    }
+}
 ```
-
-#### 3. 校验执行
-
-对每个使用了计算指令的查询，都必须使用`calculator.validate.Validator`进行校验语法是否合法。
-**建议通过 PreparedDocument 缓存校验结果**，实现参考`calculator.example.Example#DocumentParseAndValidationCache`。
-
-```java
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-        if(validateResult.isFailure()){
-            List<GraphQLError> errors = validateResult.getErrors();
-            // do some thing
-        }else{
-            Document document = validateResult.getDocument();
-            // do some thing or ignored
-        }
-```
-
-对于校验成功的查询进行正常查询。
 
 # 详情文档
 
 以[测试用例schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
 对`graphql-java-calculator`的数据编排、控制流、结果处理和计算转换等进行说明。
 
-#### 数据编排/参数转换
+#### 数据编排
 
 数据编排的主要形式为请求A类型数据时其输入参数为B类型的结果、或者需要B类型结果对A类型输入参数进行过滤、转换处理。示例如下。
 
-- 变量只有红包id、查询该红包绑定的商品详情，并过滤掉没有在售的商品。
+- 变量只有红包id、查询该红包绑定的商品详情。
+```graphql
+query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
+    commodity{
+        itemList(itemIds: 1)
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+        {
+            itemId
+            name
+            salePrice
+            onSale
+            # sellerId
+        }
+    }
+
+    marketing{
+        coupon(couponId: $couponId){
+            bindingItemIds
+            @fetchSource(name: "itemIdList")
+        }
+    }
+}
+```
+
+#### 结果过滤
+
+- 查询逻辑同`数据编排`，但过滤掉没有在售的商品。
 ```graphql
 query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
     commodity{
@@ -104,7 +173,10 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 }
 ```
 
-- 请求商品信息前，过滤掉没有指定绑定红包id的商品id。
+
+#### 参数过滤
+
+- 请求商品信息前，过滤掉没有指定绑定红包id的商品id，红包绑定的商品id来自其他字段数据。
 ```graphql
 query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$itemIds: [Int]) {
     commodity{
@@ -198,10 +270,3 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
     }
 }
 ```
-
-
-#### 结果过滤
-
-
-
-
