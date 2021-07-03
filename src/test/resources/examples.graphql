@@ -13,6 +13,46 @@ enum ParamTransformType{
     FILTER
 }
 
+
+# 父子路径上有 @fetchSource
+query sourceOnAncestorPath_case01{
+    consumer{
+        userInfo(userId: 2)
+        @fetchSource(name: "userInfo")
+        {
+            userId @fetchSource(name: "userId")
+        }
+    }
+
+    commodity{
+        item(itemId: 1){
+            itemId
+            userId: itemId @mapper(expression: "userId",dependencySource: "userId")
+            userIdInUserInfo: itemId @mapper(expression: "userInfo.userId",dependencySource: "userInfo")
+        }
+    }
+}
+
+# 父子路径上有 @fetchSource，结果均为null
+query sourceOnAncestorPath_case02{
+    consumer{
+        userInfo
+        @fetchSource(name: "userInfo")
+        {
+            userId @fetchSource(name: "userId")
+        }
+    }
+
+    commodity{
+        item(itemId: 1){
+            itemId
+            userId: itemId @mapper(expression: "userId",dependencySource: "userId")
+            userIdInUserInfo: itemId @mapper(expression: "userInfo.userId",dependencySource: "userInfo")
+        }
+    }
+}
+
+
 # 查找券信息和列表商品信息；使用 @mapper 拼接券的描述文案；如果商品绑定了券则返回券后价和是否绑定的标识
 query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 
