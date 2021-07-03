@@ -22,11 +22,11 @@ import calculator.engine.SchemaWrapper
 import calculator.validate.Validator
 import spock.lang.Specification
 
-import static calculator.engine.SchemaHolder.getCalSchema
+import static calculator.engine.SchemaHolder.getSchema
 
 class ValidationTest extends Specification {
 
-    def wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getCalSchema())
+    def wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getSchema())
 
 
     def "empty expression for @skipBy"() {

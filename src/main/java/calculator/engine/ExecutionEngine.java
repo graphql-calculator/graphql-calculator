@@ -19,7 +19,7 @@ package calculator.engine;
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
-import calculator.graphql.AsyncDataFetcher;
+import calculator.graphql.AsyncDataFetcherInterface;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
@@ -320,9 +320,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, ExecutionEngineState engineState, String expression, String dependencySource) {
-        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
+        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
 
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
@@ -356,9 +356,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                  String predicate,
                                                  String dependencySource) {
 
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
@@ -398,9 +398,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed) {
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
@@ -435,9 +435,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                  ExecutionEngineState engineState,
                                                  ValueUnboxer valueUnboxer) {
 
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
@@ -511,9 +511,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                               String dependencySource,
                                               ExecutionEngineState engineState) {
 
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object source = null;
@@ -549,9 +549,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                             String dependencySource,
                                                             DataFetcher<?> defaultDF,
                                                             ExecutionEngineState engineState) {
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedFetcher = environment -> {
 

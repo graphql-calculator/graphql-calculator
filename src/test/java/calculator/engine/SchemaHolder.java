@@ -19,7 +19,6 @@ package calculator.engine;
 import static calculator.engine.service.BusinessServiceClient.batchSellerInfoByIds;
 import static calculator.engine.service.BusinessServiceClient.getSellerInfoById;
 import static calculator.engine.service.ConsumerServiceClient.batchUserInfoByIds;
-import static calculator.engine.service.ConsumerServiceClient.getUserInfoById;
 import static calculator.graphql.AsyncDataFetcher.async;
 
 import calculator.engine.service.CommodityServiceClient;
@@ -85,7 +84,7 @@ public class SchemaHolder {
         return MarketingServiceClient.batchCouponInfoByIds(ids);
     };
 
-    public static GraphQLSchema getCalSchema() {
+    public static GraphQLSchema getSchema() {
         Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
 
         Map<String, DataFetcher> queryFieldFetchers = new HashMap<>();
