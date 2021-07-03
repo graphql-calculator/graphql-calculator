@@ -1,7 +1,6 @@
+准备正式版本中...
+
 # graphql-java-calculator
-
-
-`graphql`提供了便捷的数据查询能力，但实际的业务开发还包括数据的编排、过滤、计算转换和控制流等。
 
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
 
@@ -9,40 +8,67 @@
 
 # 特性
 
-1. 数据编排：将指定类型数据数据作为请求上下文，去请求其他类型数据、补全其他类型字段数据、作为其他类型数据控制流实现的参数数据；
-2. 结果处理：包括对结果进行补全、过滤、排序等，其他类型数据也可以作为这些操作的参数数据；
-3. 控制流：通过请求参数、其他类型数据判断是否解析当前类型数据；
-4. 计算转换：通过表达式、实体数据计算出新的实体数据。
+详情参考**详情文档**小结。
+
+- 数据编排：将指定字段的获取结果设为全局上下文，作为参数请求其他字段，补全其他字段数据；
+- 控制流：将指定字段的获取结果设为全局上下文，作为控制流判断条件的参数变量，判断是否请求解析当前类型数据；
+- 对结果进行补全、过滤、排序、计算转换等，其他字段数据可作为这些操作的参数变量。
 
 
 # 快速开始
 
 #### 1. 引入依赖
 
+```
+<dependency>
+    <groupId>com.graphql-java-calculator</groupId>
+    <artifactId>graphql-java-calculator</artifactId>
+    <version></version>
+</dependency>
+```
+
 #### 2. 包装执行引擎
 
-### 1. AsyncDataFetcher 替换
+- 继承`calculator.graphql.AsyncDataFetcherInterface`
 
-如果项目中使用了`AsyncDataFetcher`，则将其替换为`calculator.graphql.AsyncDataFetcher`，
-`calculator.graphql.AsyncDataFetcher`中包含线程池和被包装的`DataFetcher`的`getter`方法，方便`graphql-java-calculator`执行引擎的调度优化，
-[`graphql-java`最新版本](https://github.com/graphql-java/graphql-java/pull/2243)release该特性后将进行替换。
+如果项目中使用了`graphql.schema.AsyncDataFetcher` 或者自定义的异步化`DataFetcher`，则使其继承`calculator.graphql.AsyncDataFetcherInterface`，
+并实现该接口方法，返回异步化`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
 
-### 2. 通过配置创建schema和`GraphQL`对象
+
+- 通过配置转换schema和`GraphQL`对象
 
 ```
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(
-            ConfigImpl.newConfig().function(new ListContain()).build(), getCalSchema()
-    );
+        Config config = ConfigImpl.newConfig()
+                .evaluatorInstance(AviatorEvaluator.newInstance())
+                .function(new ListContain()).function(new ListMapper())
+                .build();
 
-    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-            .instrumentation(newInstance(ConfigImpl.newConfig().build()))
-            .build();
+        GraphQLSchema wrappedSchema = SchemaWrapper.wrap(config, schema);
+
+        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
+                .instrumentation(ExecutionEngine.newInstance(config))
+                .preparsedDocumentProvider(new DocumentParseAndValidationCache(wrappedSchema))
+                .build();
+
 ```
 
+#### 3. 校验执行
 
-### 2. 校验请求，建议通过 PreparedDocument 缓存校验结果
+对每个使用了计算指令的查询，都必须使用`calculator.validate.Validator`进行校验语法是否合法。
+**建议通过 PreparedDocument 缓存校验结果**，实现参考`calculator.example.Example#DocumentParseAndValidationCache`。
 
-### 3. 执行
+```
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        if(validateResult.isFailure()){
+            List<GraphQLError> errors = validateResult.getErrors();
+            // do some thing
+        }else{
+            Document document = validateResult.getDocument();
+            // do some thing or ignored
+        }
+```
+
+对于校验成功的查询进行正常查询。
 
 # 详情文档
 

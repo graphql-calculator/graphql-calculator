@@ -17,25 +17,6 @@
 
 package calculator.engine.directive;
 
-import calculator.config.ConfigImpl;
-import calculator.engine.SchemaWrapper;
-import calculator.function.ListContain;
-import calculator.validate.Validator;
-import graphql.ExecutionResult;
-import graphql.GraphQL;
-import graphql.ParseAndValidateResult;
-import graphql.schema.GraphQLSchema;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static calculator.engine.SchemaHolder.getCalSchema;
-import static calculator.engine.ExecutionEngine.newInstance;
-
 public class FilterTest {
 
 //    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(

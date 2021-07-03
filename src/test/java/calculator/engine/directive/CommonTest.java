@@ -41,7 +41,7 @@ import java.util.Objects;
 
 public class CommonTest {
 
-    private static final GraphQLSchema originalSchema = SchemaHolder.getCalSchema();
+    private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
     private static final Config wrapConfig = ConfigImpl.newConfig().evaluatorInstance(AviatorEvaluator.newInstance()).function(new ListContain()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapConfig)).build();

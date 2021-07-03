@@ -20,6 +20,7 @@ import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
+import graphql.language.Document;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLSchema;
 import graphql.validation.ValidationError;
@@ -48,9 +49,10 @@ public class Validator {
             return origPVResult;
         }
 
+        Document document = Parser.parse(query);
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
                 .schema(schema)
-                .document(Parser.parse(query))
+                .document(document)
                 .variables(Collections.emptyMap()).build();
 
         BasicRule basicRule = new BasicRule();
@@ -81,7 +83,7 @@ public class Validator {
             return ParseAndValidateResult.newResult().validationErrors(Collections.singletonList(error)).build();
         }
 
-        return ParseAndValidateResult.newResult().build();
+        return ParseAndValidateResult.newResult().document(document).build();
     }
 
 

@@ -29,7 +29,7 @@ import static graphql.Assert.assertNotNull;
 /**
  * 比 graphql-java 多两个 getter 方法，等17.0版本release后替换为 graphql-java 的 AsyncDataFetcher
  */
-public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>> {
+public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>>, AsyncDataFetcherInterface {
 
     public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {
         return new AsyncDataFetcher<>(wrappedDataFetcher);
@@ -42,10 +42,12 @@ public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>> {
     private final DataFetcher<T> wrappedDataFetcher;
     private final Executor executor;
 
+    @Override
     public DataFetcher<T> getWrappedDataFetcher() {
         return wrappedDataFetcher;
     }
 
+    @Override
     public Executor getExecutor() {
         return executor;
     }

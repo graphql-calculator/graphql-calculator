@@ -47,7 +47,7 @@ import static calculator.engine.TestUtil.listsWithSameElements;
 public class ArgumentTransformTest {
 
 
-    private static final GraphQLSchema originalSchema = SchemaHolder.getCalSchema();
+    private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
     private static final Config wrapConfig = ConfigImpl.newConfig().evaluatorInstance(AviatorEvaluator.newInstance()).function(new ListContain()).function(new ListMapper()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapConfig)).build();
@@ -185,7 +185,6 @@ public class ArgumentTransformTest {
         Map<String, Map<String, List<Map<String, Object>>>> data = executionResult.getData();
         List<Map<String, Object>> itemListInfo = data.get("commodity").get("itemList");
         assert itemListInfo.size() == 3;
-        System.out.println(itemListInfo.toString());
         assert Objects.equals(
                 itemListInfo.toString(),
                 "[{itemId=10, name=item_name_10}, {itemId=20, name=item_name_20}, {itemId=30, name=item_name_30}]"

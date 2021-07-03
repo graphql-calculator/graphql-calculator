@@ -17,19 +17,6 @@
 
 package calculator.engine.directive;
 
-import calculator.config.ConfigImpl;
-import calculator.engine.SchemaWrapper;
-import calculator.validate.Validator;
-import graphql.ExecutionResult;
-import graphql.GraphQL;
-import graphql.ParseAndValidateResult;
-import graphql.schema.GraphQLSchema;
-import org.junit.Test;
-
-import java.util.Objects;
-
-import static calculator.engine.ExecutionEngine.newInstance;
-import static calculator.engine.SchemaHolder.getCalSchema;
 import static com.googlecode.aviator.AviatorEvaluator.execute;
 
 public class SortByTest {
