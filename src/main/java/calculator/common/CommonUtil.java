@@ -16,9 +16,8 @@
  */
 package calculator.common;
 
-import calculator.engine.metadata.NodeTask;
+import calculator.engine.annotation.Internal;
 import graphql.Assert;
-import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.execution.ResultPath;
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
@@ -32,13 +31,22 @@ import graphql.language.Value;
 import java.lang.reflect.Array;
 import java.util.Collection;
 
-import static calculator.common.VisitorUtils.PATH_SEPARATOR;
-
-public class Tools {
+import static calculator.common.VisitorUtil.PATH_SEPARATOR;
 
 
-    public static <T> T getArgumentFromDirective(Directive directive, String argName) {
-        Argument argument = directive.getArgument(argName);
+@Internal
+public class CommonUtil {
+
+
+    /**
+     * Get argument value on directive by argument name.
+     *
+     * @param directive    dir
+     * @param argumentName argument name
+     * @return the argument value
+     */
+    public static <T> T getArgumentFromDirective(Directive directive, String argumentName) {
+        Argument argument = directive.getArgument(argumentName);
         if (argument == null) {
             return null;
         }
@@ -46,12 +54,7 @@ public class Tools {
         return (T) parseValue(argument.getValue());
     }
 
-    /**
-     * 该放放只用于当前组件，场景有限。
-     *
-     * @param value val
-     * @return val
-     */
+
     public static Object parseValue(Value value) {
         if (value instanceof StringValue) {
             return ((StringValue) value).getValue();
@@ -69,12 +72,11 @@ public class Tools {
             return ((FloatValue) value).getValue();
         }
 
-        // todo 绑定
         if (value instanceof EnumValue) {
             return ((EnumValue) value).getName();
         }
 
-        return null;
+        throw new RuntimeException("can not invoke here.");
     }
 
 
@@ -87,15 +89,8 @@ public class Tools {
         }
     }
 
-    /**
-     * 返回当前字段的查询路径名称，路径segment别名优先
-     *
-     * <p>
-     * todo 确定 list 是否有影响。有，需要确认下具体影响
-     *
-     * @param stepInfo val
-     * @return val
-     */
+
+    // 获取当前字段的查询路径，使用 '.' 分割
     public static String fieldPath(final ResultPath stepInfo) {
         StringBuilder sb = new StringBuilder();
         ResultPath tmpEnv = stepInfo;
@@ -122,43 +117,6 @@ public class Tools {
         return sb.toString();
     }
 
-    /**
-     * 获取 environment 表示的当前节点的结果路径
-     *
-     * @param environment 被访问的Field节点环境变量
-     * @return 当前节点的绝对路径，用 # 分割
-     */
-    public static String visitPath(QueryVisitorFieldEnvironment environment) {
-        if (environment == null) {
-            return "";
-        }
-
-        if (environment.getParentEnvironment() == null) {
-            return environment.getField().getResultKey();
-        }
-
-        return visitPath(environment.getParentEnvironment()) + PATH_SEPARATOR + environment.getField().getResultKey();
-    }
-
-
-    // 当前任务是否嵌套在list路径中
-    public static boolean isInListPath(NodeTask task) {
-        // Query root
-        if (task.getParent() == null) {
-            return false;
-        }
-
-        NodeTask parentNode = task.getParent();
-        while (parentNode != null) {
-            if (parentNode.isList()) {
-                return true;
-            }
-
-            parentNode = parentNode.getParent();
-        }
-
-        return false;
-    }
 
     public static int arraySize(Object object) {
         if (object instanceof Collection) {

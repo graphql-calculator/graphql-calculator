@@ -16,6 +16,7 @@
  */
 package calculator.engine.metadata;
 
+import calculator.engine.annotation.Internal;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
@@ -31,12 +32,12 @@ import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
 /**
- * the customized directives which to be provided to describe runtime operation,
- * <p>
- * including query execution, type validation.
- * <p>
- * details in https://spec.graphql.org/draft/#sec-Language.Directives.
+ * The customized directives which to be provided to describe runtime operation, including query execution, type validation.
+ * 
+ * Details in https://spec.graphql.org/draft/#sec-Language.Directives.
  */
+
+@Internal
 public class Directives {
 
     private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
@@ -45,19 +46,26 @@ public class Directives {
         return CAL_DIRECTIVE_BY_NAME;
     }
 
+    // directive @skipBy(expression: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
-            .description("filter the field by exp.")
+            .description("filter the field by expression using argument and dependency source.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("exp")
+                    .name("expression")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencySource")
+                    .description("the fetched value which the annotated field dependency.")
+                    .type(GraphQLString))
             .build();
 
+    // directive @mock(value: String!) on FIELD
     public final static GraphQLDirective MOCK = GraphQLDirective.newDirective()
             .name("mock")
-            .description("reset the annotated field by '@mock', just work for primitive type. it's easily replaced by '@map(exp)'.")
+            .description("reset the annotated field by '@mock', just work for primitive type. it's easily replaced by '@map(expression)'.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -65,7 +73,7 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    // 过滤list
+    // directive @filter(predicate: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective FILTER = GraphQLDirective.newDirective()
             .name("filter")
             .description("filter the list by predicate.")
@@ -76,12 +84,13 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencyNode")
-                    .description("the node which the annotated field dependency.")
+                    .name("dependencySource")
+                    .description("the fetched value which the annotated field dependency.")
                     .type(GraphQLString))
             .build();
 
 
+    // directive @sort(key: String!,reversed: Boolean = false) on FIELD
     public final static GraphQLDirective SORT = GraphQLDirective.newDirective()
             .name("sort")
             .description("sort the list by specified key.")
@@ -98,13 +107,14 @@ public class Directives {
             .build();
 
 
+    // directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD
     public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
             .name("sortBy")
-            .description("sort the list by exp result.")
+            .description("sort the list by expression result.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("exp")
+                    .name("expression")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
@@ -113,60 +123,56 @@ public class Directives {
                     .type(GraphQLBoolean))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencyNode")
-                    .description("the node which the annotated field dependency.")
+                    .name("dependencySource")
+                    .description("the fetched value which the annotated field dependency.")
                     .type(GraphQLString))
             .build();
 
-    // directive @map(mapper:String!, dependencyNode:String) on FIELD
+    // directive @map(mapper:String!, dependencySource:String) on FIELD
     public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
-            .name("map")
-            .description("transform the field value by exp.")
+            .name("mapper")
+            .description("transform the field value by expression.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("mapper")
+                    .name("expression")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             // 用依赖的节点对结果进行处理
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencyNode")
-                    .description("the node which the annotated field dependency.")
+                    .name("dependencySource")
+                    .description("the fetched value which the annotated field dependency.")
                     .type(GraphQLString))
             .build();
 
-    // 根据表达式进行排序
-    // directive @sortBy(sortExp: String!, reversed: Boolean = false, dependencyNode: String) on FIELD
 
-    public final static GraphQLDirective NODE = GraphQLDirective.newDirective()
-            .name("node")
+    // directive @fetchSource(name: String!, mapper:String) on FIELD
+    public final static GraphQLDirective FETCH_SOURCE = GraphQLDirective.newDirective()
+            .name("fetchSource")
+            .description("hold the fetched value which can be acquired by calculator directives.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
                     .name("name")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .build();
-
-    @Deprecated
-    public final static GraphQLDirective LINK = GraphQLDirective.newDirective()
-            .name("link")
-            .description("replace argument with node value.")
-            .validLocation(FIELD)
-            .repeatable(true)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("node")
-                    .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("argument")
+                    .name("sourceConvert")
+                    .description("'sourceConvert' is used to transform the value of annotated field, "
+                            + "and all the directives using this @fetchSource get the data after 'sourceConvert' processed. "
+                            + "'sourceConvert' is only used to read original field value, and shouldn't modify original field value.")
                     .type(GraphQLString))
             .build();
+
 
     public enum ParamTransformType {
         MAP("map"), LIST_MAP("listMap"), FILTER("filter");
 
-        String name;
+        private final String name;
+
+        public String getName() {
+            return name;
+        }
 
         ParamTransformType(String name) {
             this.name = name;
@@ -179,31 +185,31 @@ public class Directives {
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
                             .name("MAP")
                             .value(ParamTransformType.MAP)
-                            .description("transform the argument by exp.").build()
+                            .description("transform the argument by expression.").build()
 
             )
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
                             .name("LIST_MAP")
                             .value(ParamTransformType.LIST_MAP)
-                            .description("transform each element of list argument by exp.").build()
+                            .description("transform each element of list argument by expression.").build()
             )
             .value(
                     GraphQLEnumValueDefinition.newEnumValueDefinition()
                             .name("FILTER")
                             .value(ParamTransformType.FILTER)
-                            .description("filter the argument element by exp.").build()
+                            .description("filter the argument element by expression.").build()
             ).build();
 
-    // directive @argumentTransform(argument:String!, operaType:ParamTransformType, exp:String, dependencyNode:String) on FIELD
+    // directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) on FIELD
     public final static GraphQLDirective ARGUMENT_TRANSFORM = GraphQLDirective.newDirective()
             .name("argumentTransform")
-            .description("transform the argument by exp.")
+            .description("transform the argument by expression.")
             .validLocation(FIELD)
             .repeatable(true)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("argument")
+                    .name("argumentName")
                     .description("the argument name defined on the annotated field.")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
@@ -212,26 +218,25 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(ARGUMENT_TRANSFORM_TYPE)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("exp")
+                    .name("expression")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencyNode")
-                    .description("the node which the annotated field dependency.")
+                    .name("dependencySource")
+                    .description("the fetched value which the annotated field dependency.")
                     .type(GraphQLString))
             .build();
 
     static {
         Map<String, GraphQLDirective> tmpMap = new HashMap<>();
         tmpMap.put(SKIP_BY.getName(), SKIP_BY);
-        tmpMap.put(MAP.getName(), MAP);
-        tmpMap.put(FILTER.getName(), FILTER);
         tmpMap.put(MOCK.getName(), MOCK);
+        tmpMap.put(FILTER.getName(), FILTER);
         tmpMap.put(SORT.getName(), SORT);
-        tmpMap.put(LINK.getName(), LINK);
-        tmpMap.put(NODE.getName(), NODE);
-        tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         tmpMap.put(SORT_BY.getName(), SORT_BY);
+        tmpMap.put(MAP.getName(), MAP);
+        tmpMap.put(FETCH_SOURCE.getName(), FETCH_SOURCE);
+        tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }

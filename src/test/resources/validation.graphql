@@ -1,0 +1,239 @@
+
+
+# 依赖的source报错时，程序可以正常运行
+#query sourceIsNullCase_01 ( $couponId: Int) {
+#    commodity
+#    {
+#        itemList(itemIds: 1)
+#        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+#        {
+#            itemId
+#            name
+#            salePrice
+#            onSale
+#        }
+#    }
+#
+#    marketing
+#    @mapper(expression: "nil")
+#    {
+#        coupon(couponId: $couponId){
+#            bindingItemIds
+#            @fetchSource(name: "itemIdList")
+#        }
+#    }
+#}
+
+#query{
+#    consumer{
+#        userInfoList(userIds: [1,2,3])
+#        @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySource: "sellerIdList", expression: "sellerIdList")
+#        @fetchSource(name: "userIdList")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#
+#    business{
+#        sellerInfoList(sellerIds: [2,3,4]){
+#            sellerId
+#            @fetchSource(name: "sellerIdList")
+#            @mapper(expression: "userIdList",dependencySource: "userIdList")
+#        }
+#    }
+#}
+
+#query{
+#    consumer{
+#        userInfoList(userIds: [1,2,3])
+#        @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySource: "sellerIdList", expression: "sellerIdList")
+#        {
+#            userId @fetchSource(name: "userIds")
+#            name
+#        }
+#    }
+#    business{
+#        sellerInfoList(sellerIds: [2,3,4]){
+#            sellerId
+#            @fetchSource(name: "sellerIdList")
+#            @mapper(expression: "userIds", dependencySource: "userIds")
+#        }
+#    }
+#}
+
+
+#query {
+#    consumer{
+#        userInfoList(userIds: 1)
+#        @argumentTransform(argumentName: "userIds",operateType: MAP,dependencySource: "[1,2,3]", expression: "sellerIdList")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#
+#    business{
+#        sellerInfoList(sellerIds: [1,2,3]){
+#            sellerId @fetchSource(name: "sellerIdList")
+#        }
+#    }
+#}
+
+#query {
+#    consumer{
+#        userInfo{
+#            userId
+#            name @mapper(expression: "concat(name,' can use ',couponText)",dependencySource: "couponText")
+#        }
+#    }
+#
+#    marketing{
+#        coupon(couponId: 1){
+#            couponText @fetchSource(name: "couponText")
+#        }
+#    }
+#}
+
+
+#query {
+#    consumer{
+#        userInfo(userId: 1)
+#        @skipBy(expression: "userId!=0",dependencySource: "userId")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#
+#    business{
+#        sellerInfo(sellerId: 2){
+#            sellerId @fetchSource(name: "userId")
+#        }
+#    }
+#}
+
+
+#query {
+#    consumer{
+#        userInfo(userId: 1)
+#        @skipBy(expression: "userId!=0",dependencySource: "sellerId")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#
+#        business{
+#            sellerInfo(sellerId: 2){
+#                sellerId @fetchSource(name: "sellerId")
+#            }
+#        }
+#}
+
+
+#query {
+#    consumer{
+#        userInfo(userId: 1)
+#        @skipBy(expression: "userId<sellerId",dependencySource: "sellerId")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#
+##    business{
+##        sellerInfo(sellerId: 2){
+##            sellerId @fetchSource(name: "sellerId")
+##        }
+##    }
+#}
+
+# 对list参数进行转换
+#query{
+#    consumer{
+#        userInfo(userId: 1)
+#        @argumentTransform(argumentName: "userId",expression: "userId!=1",operateType: LIST_MAP)
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}
+#
+#query {
+#    consumer{
+#        userInfo{
+#            userId @fetchSource(name: "uSource")
+#            name @fetchSource(name: "uSource")
+#        }
+#    }
+#}
+
+#query {
+#    consumer{
+#        userInfo{
+#            userId @fetchSource(name: "12uSource")
+#        }
+#    }
+#}
+
+#query{
+#    consumer{
+#        userInfo(userId: 1)
+#        @argumentTransform(argumentName: "userId",expression: "userId!=1",operateType: FILTER)
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}
+
+
+# 无效名称
+#query{
+#    consumer{
+#        userInfo(userId: 1)
+#        @skipBy(expression: "")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}
+
+
+# 无效位置
+#query{
+#    consumer{
+#        userInfo(userId: 1)
+#        @filter(predicate: "userId == 1")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}
+
+
+#query{
+#    consumer{
+#        userInfoList(userIds: [1,2,3])
+#        @sort(key: "nonExistKey")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}
+
+#query{
+#    consumer{
+#        userInfo(userId: 1)
+#        @sort(key: "userId")
+#        {
+#            userId
+#            name
+#        }
+#    }
+#}

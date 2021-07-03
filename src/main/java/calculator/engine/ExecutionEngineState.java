@@ -16,7 +16,8 @@
  */
 package calculator.engine;
 
-import calculator.engine.metadata.NodeTask;
+
+import calculator.engine.metadata.FetchSourceTask;
 import graphql.execution.instrumentation.InstrumentationState;
 
 import java.util.Collections;
@@ -24,38 +25,39 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 
-/**
- * Keep task for schedule.
- */
 public class ExecutionEngineState implements InstrumentationState {
 
-    /**
-     * 一个节点依赖的字段绝对路径、从外到内<nodeName,List<absolutePath>>
-     * <p>
-     * Keys of tasks which the node depends on.
-     */
-    private final Map<String, List<String>> sequenceTaskByNode;
+    private final Map<String, FetchSourceTask> fetchSourceTaskByPath;
 
-    /**
-     * 字段路径对应的异步任务
-     * <p>
-     * task by field absolute path.
-     */
-    private final Map<String, NodeTask> taskByPath;
+    private final Map<String, List<String>> topTaskBySourceName;
 
-    public ExecutionEngineState(Map<String, List<String>> sequenceTaskByNode, Map<String, NodeTask> taskByPath) {
-        this.sequenceTaskByNode = Collections.unmodifiableMap(sequenceTaskByNode);
-        this.taskByPath = Collections.unmodifiableMap(taskByPath);
+    // <sourceName,List<fullFieldPath>>
+    private final Map<String, List<String>> queryTaskBySourceName;
+
+    private ExecutionEngineState(
+            Map<String, FetchSourceTask> fetchSourceTaskByPath,
+            Map<String, List<String>> topTaskByNode,
+            Map<String, List<String>> queryTaskByNode
+    ) {
+        this.fetchSourceTaskByPath = Collections.unmodifiableMap(fetchSourceTaskByPath);
+        this.topTaskBySourceName = Collections.unmodifiableMap(topTaskByNode);
+        this.queryTaskBySourceName = Collections.unmodifiableMap(queryTaskByNode);
     }
 
-    public Map<String, List<String>> getSequenceTaskByNode() {
-        return sequenceTaskByNode;
+
+    public Map<String, FetchSourceTask> getFetchSourceTaskByPath() {
+        return fetchSourceTaskByPath;
     }
 
-    public Map<String, NodeTask> getTaskByPath() {
-        return taskByPath;
+    public Map<String, List<String>> getTopTaskBySourceName() {
+        return topTaskBySourceName;
+    }
+
+    public Map<String, List<String>> getQueryTaskBySourceName() {
+        return queryTaskBySourceName;
     }
 
     public static Builder newExecutionState() {
@@ -63,22 +65,47 @@ public class ExecutionEngineState implements InstrumentationState {
     }
 
     public static class Builder {
-        private Map<String, List<String>> sequenceTaskByNode = new LinkedHashMap<>();
 
-        private Map<String, NodeTask> taskByPath = new ConcurrentHashMap<>();
+        private Map<String, FetchSourceTask> fetchSourceTaskByPath = new ConcurrentHashMap<>();
 
-        public Builder sequenceTaskByNode(String nodeName, List<String> taskList) {
-            sequenceTaskByNode.put(nodeName, taskList);
+        private Map<String, List<String>> topTaskBySourceName = new LinkedHashMap<>();
+
+        private Map<String, List<String>> queryTaskBySourceName = new LinkedHashMap<>();
+
+        public Builder fetchSourceTask(String fieldFullPath, FetchSourceTask fetchSourceTask) {
+            fetchSourceTaskByPath.put(fieldFullPath, fetchSourceTask);
             return this;
         }
 
-        public Builder taskByPath(String nodeName, NodeTask task) {
-            taskByPath.put(nodeName, task);
+        public Builder taskByPathIfAbsent(String fieldFullPath, Supplier<FetchSourceTask> fetchSourceTaskSupplier) {
+            if (!fetchSourceTaskByPath.containsKey(fieldFullPath)) {
+                fetchSourceTaskByPath.put(fieldFullPath, fetchSourceTaskSupplier.get());
+            }
+
+            return this;
+        }
+
+        public Builder taskByPathIfAbsent(String fieldFullPath, FetchSourceTask fetchSourceTask) {
+            if (!fetchSourceTaskByPath.containsKey(fieldFullPath)) {
+                fetchSourceTaskByPath.put(fieldFullPath, fetchSourceTask);
+            }
+
+            return this;
+        }
+
+
+        public Builder topTaskList(String sourceName, List<String> topTaskList) {
+            topTaskBySourceName.put(sourceName, topTaskList);
+            return this;
+        }
+
+        public Builder queryTaskList(String sourceName, List<String> queryTaskList) {
+            queryTaskBySourceName.put(sourceName, queryTaskList);
             return this;
         }
 
         public ExecutionEngineState build() {
-            return new ExecutionEngineState(sequenceTaskByNode, taskByPath);
+            return new ExecutionEngineState(fetchSourceTaskByPath, topTaskBySourceName, queryTaskBySourceName);
         }
     }
 }

@@ -1,0 +1,132 @@
+# 指令定义
+directive @skipBy(expression: String!, dependencySource: String) on FIELD
+directive @mock(value: String!) on FIELD
+directive @filter(predicate: String!, dependencySource: String) on FIELD
+directive @sort(key: String!,reversed: Boolean = false) on FIELD
+directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD
+directive @mapper(expression:String!, dependencySource:String) on FIELD
+directive @fetchSource(name: String!, sourceConvert:String) on FIELD
+directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD
+enum ParamTransformType{
+    MAP
+    LIST_MAP
+    FILTER
+}
+
+# 查找券信息和列表商品信息；使用 @mapper 拼接券的描述文案；如果商品绑定了券则返回券后价和是否绑定的标识
+query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
+
+    marketing{
+        coupon(couponId: $couponId)
+        @fetchSource(name: "itemCouponInfo",sourceConvert: "list2MapWithAssignedValue('bindingItemIds','price')")
+        {
+            base
+            price
+            bindingItemIds
+            desc: couponText @mapper(expression: "'满' + base + '减' + price")
+        }
+    }
+
+    commodity{
+        itemList(itemIds: $itemIds){
+            itemId
+            name
+            salePrice
+            isUsedCoupon: onSale @mapper(dependencySource: "itemCouponInfo",expression: "seq.get(itemCouponInfo,itemId)!=nil")
+            # 券后价
+            couponPrice: salePrice @mapper(dependencySource: "itemCouponInfo",expression: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
+        }
+    }
+}
+
+
+
+
+
+
+## 查询某个红包可用的商品集合信息，并过滤掉下架的商品
+query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
+    commodity{
+        itemList(itemIds: 1)
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+        @filter(predicate: "onSale")
+        {
+            itemId
+            name
+            salePrice
+            onSale
+        }
+    }
+
+    marketing{
+        coupon(couponId: $couponId){
+            bindingItemIds
+            @fetchSource(name: "itemIdList")
+        }
+    }
+}
+
+
+# 过滤掉该券不可用的参数，然后在请求下游数据源
+query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$itemIds: [Int]) {
+    commodity{
+        itemList(itemIds: $itemIds)
+        @argumentTransform(argumentName: "itemIds", operateType: FILTER,dependencySource: "itemIdList",expression: "listContain(itemIdList,ele)")
+        {
+            itemId
+            name
+            salePrice
+            onSale
+        }
+    }
+
+    marketing{
+        coupon(couponId: $couponId){
+            bindingItemIds
+            @fetchSource(name: "itemIdList")
+        }
+    }
+}
+
+# 对参数进行处理
+query mapListArgument($itemIds: [Int]){
+    commodity{
+        itemList(itemIds: $itemIds)
+        @argumentTransform(argumentName: "itemIds",operateType: LIST_MAP,expression: "ele*10")
+        {
+            itemId
+            name
+        }
+    }
+}
+
+
+# 如果用户不在 ab实验实验组区间[0,3]内，则对其查看的页面不展示优惠券、即不请求券数据
+query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
+
+    marketing
+    @skipBy(expression: "abValue <= 3",dependencySource: "abValue")
+    {
+        coupon(couponId: $couponId){
+            couponId
+            couponText
+            price
+        }
+    }
+
+    toolInfo{
+        abInfo(userId: $userId,abKey:$abKey) @fetchSource(name: "abValue")
+    }
+}
+
+
+# moc
+query mockEmail{
+    consumer{
+        userInfo(userId: 1){
+            userId
+            email @mock(value: "mockedValue@foxmail.com")
+        }
+    }
+}
+

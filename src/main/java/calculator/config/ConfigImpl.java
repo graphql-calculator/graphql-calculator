@@ -30,7 +30,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 
 /**
- * 默认配置实现
+ * The default implementation of {@link Config}.
  */
 public class ConfigImpl implements Config {
 
@@ -108,15 +108,11 @@ public class ConfigImpl implements Config {
             return this;
         }
 
-
-        // 不是直接替换当前 functionList 是因为function在builder中期望只能增加、不能减少function，
-        // 并且不希望改变function列表的类型和顺序等。
         public Builder functionList(List<AviatorFunction> functionList) {
             Objects.requireNonNull(functionList, "functionList can not be null.");
             this.functionList.addAll(functionList);
             return this;
         }
-
 
         public Builder evaluatorInstance(AviatorEvaluatorInstance aviatorEvaluator) {
             Objects.requireNonNull(aviatorEvaluator, "aviatorEvaluator can not be null.");

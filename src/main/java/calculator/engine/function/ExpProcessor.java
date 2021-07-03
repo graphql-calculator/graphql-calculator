@@ -16,31 +16,37 @@
  */
 package calculator.engine.function;
 
+import calculator.engine.annotation.Internal;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.Expression;
 
 import java.util.List;
 import java.util.Map;
 
-public class ExpEvaluator {
+
+@Internal
+public class ExpProcessor {
 
     public static Object calExp(AviatorEvaluatorInstance aviatorEvaluator,
-                                String exp, Map<String, Object> arguments) {
-        return aviatorEvaluator.execute(exp, arguments, true);
+                                String expression,
+                                Map<String, Object> arguments) {
+        return aviatorEvaluator.execute(expression, arguments, true);
     }
 
-    public static boolean isValidExp(String scriptText) {
+    public static boolean isValidExp(String expression) {
+        if (expression == null || expression.isEmpty()) {
+            return false;
+        }
+
         try {
-            AviatorEvaluator.compile(scriptText, true);
+            AviatorEvaluator.compile(expression, true);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    public static List<String> getExpArgument(String scriptText) {
-        Expression expression = AviatorEvaluator.compile(scriptText);
-        return expression.getVariableNames();
+    public static List<String> getExpArgument(String expression) {
+        return AviatorEvaluator.compile(expression).getVariableNames();
     }
 }

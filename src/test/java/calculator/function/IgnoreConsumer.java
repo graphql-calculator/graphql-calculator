@@ -17,20 +17,19 @@
 
 package calculator.function;
 
-import calculator.engine.annotation.Beta;
+
 import com.googlecode.aviator.runtime.function.AbstractFunction;
+import com.googlecode.aviator.runtime.type.AviatorJavaType;
 import com.googlecode.aviator.runtime.type.AviatorObject;
 import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
-import com.googlecode.aviator.runtime.type.AviatorString;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-@Beta
-public class FindOne extends AbstractFunction {
-    private static final String FUNCTION_NAME = "findOne";
+import static java.lang.String.format;
+
+public class IgnoreConsumer extends AbstractFunction {
+
+    private static final String FUNCTION_NAME = "ignore";
 
     @Override
     public String getName() {
@@ -38,16 +37,13 @@ public class FindOne extends AbstractFunction {
     }
 
     @Override
-    public AviatorObject call(Map<String, Object> env, AviatorObject listElement, AviatorObject elementFieldName, AviatorObject envKey) {
+    public AviatorObject call(Map<String, Object> env, AviatorObject element) {
 
-        String elementKey = ((AviatorString) elementFieldName).getLexeme(Collections.emptyMap());
+        String msg = format("ignored function, env = %s , name = %s",
+                env != null ? env.toString() : null, ((AviatorJavaType) element).getName()
+        );
+        System.out.println(msg);
 
-        String envLexeme = ((AviatorString) envKey).getLexeme(Collections.emptyMap());
-        Object targetValue = env.get(envLexeme);
-
-        List<Map> listValue = (List)listElement.getValue(Collections.emptyMap());
-        Map result = listValue.stream().filter(map -> Objects.equals(map.get(elementKey), targetValue)).findFirst().orElse(null);
-
-        return AviatorRuntimeJavaType.valueOf(result);
+        return AviatorRuntimeJavaType.valueOf(null);
     }
 }

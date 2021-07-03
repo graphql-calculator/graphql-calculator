@@ -16,159 +16,107 @@
  */
 package calculator.engine;
 
+import static calculator.engine.service.BusinessServiceClient.batchSellerInfoByIds;
+import static calculator.engine.service.BusinessServiceClient.getSellerInfoById;
+import static calculator.engine.service.ConsumerServiceClient.batchUserInfoByIds;
+import static calculator.engine.service.ConsumerServiceClient.getUserInfoById;
 import static calculator.graphql.AsyncDataFetcher.async;
 
+import calculator.engine.service.CommodityServiceClient;
+import calculator.engine.service.MarketingServiceClient;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.TypeRuntimeWiring;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
-
-/**
- * 缓存：
- * 1. 某个字段级别的缓存；
- * 2. 总体层级的缓存；
- * 3. 出错时的异常处理策略。
- * <p>
- * 用户可以输入一个Map<String,CacheInterface> 指定缓存key及其具体的实现；
- * <p>
- * directive @cache(strategy:Enum,Time)
- * <p>
- * interface CacheInterface<T,R>{
- * // todo 参考 ThreadPoolExecutor 中的AbortPolicy
- * <p>
- * // todo afterExecute、terminated 等都是在ThreadPoolExecutor中的，借鉴借鉴
- * R get(T, AbortPolicy<List<Error>,R> )
- * }
- */
 public class SchemaHolder {
 
-    private static GraphQLSchema calSchema;
+    private static DataFetcher<Map> emptyDataFetcher = environment -> Collections.emptyMap();
 
-    private static DataFetcher userDF = environment -> {
-        int id = (int) environment.getArguments().get("id");
-        Map<String, Object> person = new HashMap<>();
-        person.put("userId", id);
-        person.put("age", id * 10);
-        person.put("name", id + "_name");
-        person.put("email", id + "dugk@foxmail.com");
-        person.put("favoriteItemId", id * 2);
-        person.put("preferredItemIdList", IntStream.range(id, id + 3).toArray());
-        person.put("acquiredCouponIdList", IntStream.range(id * 10, id * 10 + 3).toArray());
-        return person;
-    };
+    private static DataFetcher userDataFetcher = environment ->
+            getUserInfoById(((Number) environment.getArguments().get("userId")).longValue());
 
-    private static DataFetcher userListDF = environment -> {
+    private static DataFetcher userListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        List<Integer> ids = (List<Integer>) arguments.get("ids");
-
-        List<Map<String, Object>> userInfoList = new ArrayList<>();
-        for (Integer id : ids) {
-            Map<String, Object> person = new HashMap<>();
-            person.put("userId", id);
-            person.put("age", id * 10);
-            person.put("name", id + "_name");
-            person.put("email", id + "dugk@foxmail.com");
-            person.put("favoriteItemId", id * 2);
-            person.put("preferredItemIdList", IntStream.range(id, id + 3).toArray());
-            person.put("acquiredCouponIdList", IntStream.range(id * 10, id * 10 + 3).toArray());
-            userInfoList.add(person);
-        }
-
-        return userInfoList;
+        List<Long> ids = (List<Long>) arguments.get("userIds");
+        return batchUserInfoByIds(ids);
     };
 
+    private static DataFetcher sellerDataFetcher = environment ->
+            getSellerInfoById(((Number) environment.getArguments().get("sellerId")).longValue());
 
-    private static DataFetcher itemListDF = environment -> {
+    private static DataFetcher sellerListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        List<Number> ids = (List<Number>) arguments.get("ids");
-
-        List<Map<String, Object>> itemInfoList = new ArrayList<>();
-        for (Number id : ids) {
-            Map<String, Object> itemInfo = new HashMap<>();
-            itemInfo.put("itemId", id);
-            itemInfo.put("name", id + "_item_name");
-            itemInfo.put("salePrice", id.longValue() * 20);
-            itemInfo.put("withCouponIdList", ids);
-            itemInfoList.add(itemInfo);
-        }
-        return itemInfoList;
+        List<Long> ids = (List<Long>) arguments.get("sellerIds");
+        return batchSellerInfoByIds(ids);
     };
 
-    private static DataFetcher itemStockListDF = environment -> {
+    private static DataFetcher commodityDataFetcher = environment ->
+            CommodityServiceClient.getItemBaseInfoById((Integer) environment.getArguments().get("itemId"));
+
+    private static DataFetcher commodityListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        List<Integer> ids = (List<Integer>) arguments.get("ids");
-
-        List<Map<String, Object>> stockInfoList = new ArrayList<>();
-        for (Integer id : ids) {
-            Map<String, Object> itemInfo = new HashMap<>();
-            itemInfo.put("itemId", id);
-            itemInfo.put("stockAmount", id * 20);
-            stockInfoList.add(itemInfo);
-        }
-        return stockInfoList;
+        List<Number> ids = (List<Number>) arguments.get("itemIds");
+        return CommodityServiceClient.batchItemBaseInfoByIds(ids);
     };
 
-    private static DataFetcher couponDF = environment -> {
+    private static DataFetcher couponDataFetcher = environment ->
+            MarketingServiceClient.getCouponInfoById((Integer) environment.getArguments().get("couponId"));
+
+    private static DataFetcher abInfoDataFetcher = environment -> environment.getArgumentOrDefault("userId", -1) % 7;
+
+
+    private static DataFetcher couponListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        Integer id = (Integer) arguments.get("id");
-
-        Map<String, Object> couponInfo = new HashMap<>();
-        couponInfo.put("couponId", id);
-        couponInfo.put("base", id * 10 + 1);
-        couponInfo.put("price", id * 10);
-        couponInfo.put("couponText", "面额" + id * 10 + "元");
-        return couponInfo;
+        List<Integer> ids = (List<Integer>) arguments.get("couponIds");
+        return MarketingServiceClient.batchCouponInfoByIds(ids);
     };
-
-    private static DataFetcher couponListDF = environment -> {
-        Map<String, Object> arguments = environment.getArguments();
-        List<Integer> ids = (List<Integer>) arguments.get("ids");
-
-        List<Map> couponListInfo = new ArrayList<>();
-        for (Integer id : ids) {
-            Map<String, Object> couponInfo = new HashMap<>();
-            couponInfo.put("couponId", id);
-            couponInfo.put("price", id * 10);
-            couponInfo.put("couponText", "面额" + id * 10 + "元");
-
-            couponListInfo.add(couponInfo);
-        }
-
-        return couponListInfo;
-    };
-
 
     public static GraphQLSchema getCalSchema() {
-        if (calSchema == null) {
-            synchronized (SchemaHolder.class) {
-                if (calSchema == null) {
-                    Map<String, DataFetcher> queryFetcher = new HashMap<>();
-                    queryFetcher.put("userInfo", async(userDF));
-                    queryFetcher.put("userInfoList", async(userListDF));
-                    queryFetcher.put("coupon", async(couponDF));
-                    queryFetcher.put("couponList", async(couponListDF));
-                    queryFetcher.put("itemList", async(itemListDF));
-                    queryFetcher.put("itemStockList", async(itemStockListDF));
+        Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
 
-                    Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
-                    dataFetcherInfo.put("Query", queryFetcher);
+        Map<String, DataFetcher> queryFieldFetchers = new HashMap<>();
+        queryFieldFetchers.put("consumer", async(emptyDataFetcher));
+        queryFieldFetchers.put("business", async(emptyDataFetcher));
+        queryFieldFetchers.put("commodity", async(emptyDataFetcher));
+        queryFieldFetchers.put("marketing", async(emptyDataFetcher));
+        queryFieldFetchers.put("toolInfo", async(emptyDataFetcher));
+        dataFetcherInfo.put("Query", queryFieldFetchers);
 
-                    RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
-                    for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {
-                        TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
-                        runtimeWiring.type(typeWiring);
-                    }
-                    calSchema = TestUtil.schemaByInputFile("eCommerce.graphqls", runtimeWiring.build());
-                }
-            }
+        Map<String, DataFetcher> consumerFieldFetchers = new HashMap<>();
+        consumerFieldFetchers.put("userInfo", async(userDataFetcher));
+        consumerFieldFetchers.put("userInfoList", async(userListDataFetcher));
+        dataFetcherInfo.put("Consumer", consumerFieldFetchers);
+
+        Map<String, DataFetcher> businessFieldFetchers = new HashMap<>();
+        businessFieldFetchers.put("sellerInfo", async(userDataFetcher));
+        businessFieldFetchers.put("sellerInfoList", async(userListDataFetcher));
+        dataFetcherInfo.put("Business", businessFieldFetchers);
+
+        Map<String, DataFetcher> commodityFieldFetchers = new HashMap<>();
+        commodityFieldFetchers.put("item", async(commodityDataFetcher));
+        commodityFieldFetchers.put("itemList", async(commodityListDataFetcher));
+        dataFetcherInfo.put("Commodity", commodityFieldFetchers);
+
+        Map<String, DataFetcher> couponFieldFetchers = new HashMap<>();
+        couponFieldFetchers.put("coupon", async(couponDataFetcher));
+        commodityFieldFetchers.put("couponList", async(couponListDataFetcher));
+        dataFetcherInfo.put("Marketing", couponFieldFetchers);
+
+        Map<String, DataFetcher> toolInfoFieldFetchers = new HashMap<>();
+        toolInfoFieldFetchers.put("abInfo", async(abInfoDataFetcher));
+        dataFetcherInfo.put("ToolInfo", toolInfoFieldFetchers);
+
+        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {
+            TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
+            runtimeWiring.type(typeWiring);
         }
-        return calSchema;
+        return TestUtil.schemaByInputFile("schema.graphql", runtimeWiring.build());
     }
 }

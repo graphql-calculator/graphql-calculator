@@ -17,19 +17,29 @@
 
 package calculator.common;
 
-import calculator.engine.ExecutionEngineStateParser;
+import calculator.engine.annotation.Internal;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public class VisitorUtils {
 
-    public static final String PATH_SEPARATOR = "#";
+@Internal
+public class VisitorUtil {
 
+    public static final String PATH_SEPARATOR = ".";
+
+    /**
+     * Whether this field is GraphQLList type.
+     *
+     * @param visitorEnv the visitor Environment of this field
+     * @return true if this field is  GraphQLList
+     */
     public static boolean isListNode(QueryVisitorFieldEnvironment visitorEnv){
         GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
                 visitorEnv.getFieldDefinition().getType()
@@ -39,10 +49,10 @@ public class VisitorUtils {
     }
 
     /**
-     * 获取祖先节点路径集合，不包括当前节点
+     * Get the set of ancestor path from top to bottom, excluding current field.
      *
-     * @param visitorEnv 当前节点。
-     * @return 祖先节点路径集合
+     * @param visitorEnv the visitor environment representing current field
+     * @return the set of ancestor path
      */
     public static Set<String> parentPathSet(QueryVisitorFieldEnvironment visitorEnv) {
         Set<String> parentPathSet = new LinkedHashSet<>();
@@ -55,21 +65,40 @@ public class VisitorUtils {
         return parentPathSet;
     }
 
+
     /**
-     * 当前节点路径，使用 # 分割
+     * Get the arrayList of ancestor path from top to bottom, excluding current field.
      *
-     * @param environment 当前节点
-     * @return 当前节点路径
+     * @param visitorEnv the visitor environment representing current field
+     * @return the set of ancestor path
+     */
+    public static ArrayList<String> parentPathList(QueryVisitorFieldEnvironment visitorEnv) {
+        ArrayList<String> parentPathList = new ArrayList<>();
+
+        QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
+        while (parentEnv != null) {
+            parentPathList.add(pathForTraverse(parentEnv));
+            parentEnv = parentEnv.getParentEnvironment();
+        }
+        Collections.reverse(parentPathList);
+        return(parentPathList);
+    }
+
+
+    /**
+     * The full result path of current field, separating by '.'.
+     *
+     * @param environment the visitor environment representing current field
+     * @return the full result path of current field
      */
     public static String pathForTraverse(QueryVisitorFieldEnvironment environment) {
         StringBuilder sb = new StringBuilder();
         QueryVisitorFieldEnvironment tmpEnv = environment;
         while (tmpEnv != null) {
-            String pathSeg = tmpEnv.getField().getResultKey();
             if (sb.length() == 0) {
-                sb.append(pathSeg);
+                sb.append(tmpEnv.getField().getResultKey());
             } else {
-                sb.insert(0, pathSeg + PATH_SEPARATOR);
+                sb.insert(0, tmpEnv.getField().getResultKey() + PATH_SEPARATOR);
             }
 
             tmpEnv = tmpEnv.getParentEnvironment();
@@ -78,13 +107,14 @@ public class VisitorUtils {
         return sb.toString();
     }
 
+
     /**
-     * 当前节点是否是列表字段中的元素
+     * Whether the current field is in list path.
      *
-     * @param visitorEnv 当前节点
-     * @return 是列表字段中的元素则为true
+     * @param visitorEnv the visitor environment representing current field
+     * @return true if the current field is in list path
      */
-    public static boolean isInListPath(QueryVisitorFieldEnvironment visitorEnv) {
+    public static boolean isInList(QueryVisitorFieldEnvironment visitorEnv) {
         QueryVisitorFieldEnvironment parentEnv = visitorEnv.getParentEnvironment();
         while (parentEnv != null) {
             GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
@@ -100,12 +130,12 @@ public class VisitorUtils {
         return false;
     }
 
+
     /**
-     * 获取当前任务节点的所依赖的顶层任务节点，
-     * 顶层任务节点查找逻辑见 {@link ExecutionEngineStateParser#handle}
+     * Get the top task field of current field.
      *
-     * @param visitorEnv 当前任务节点
-     * @return 当前任务节点的所依赖的顶层任务节点
+     * @param visitorEnv the visitor environment representing current field
+     * @return top task field
      */
     public static QueryVisitorFieldEnvironment getTopTaskEnv(QueryVisitorFieldEnvironment visitorEnv) {
         QueryVisitorFieldEnvironment result = visitorEnv;

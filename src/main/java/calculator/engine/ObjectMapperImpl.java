@@ -17,13 +17,13 @@
 
 package calculator.engine;
 
-import calculator.engine.annotation.Beta;
+import calculator.engine.annotation.Internal;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-@Beta
+@Internal
 public class ObjectMapperImpl implements ObjectMapper{
 
     @Override
@@ -51,8 +51,4 @@ public class ObjectMapperImpl implements ObjectMapper{
         return result;
     }
 
-    @Override
-    public Map<String, Object> toNestedMap(Object object) {
-        throw new UnsupportedOperationException();
-    }
 }
