@@ -17,7 +17,17 @@
 
 # 快速开始
 
-### 1. 通过配置创建schema和`GraphQL`对象
+#### 1. 引入依赖
+
+#### 2. 包装执行引擎
+
+### 1. AsyncDataFetcher 替换
+
+如果项目中使用了`AsyncDataFetcher`，则将其替换为`calculator.graphql.AsyncDataFetcher`，
+`calculator.graphql.AsyncDataFetcher`中包含线程池和被包装的`DataFetcher`的`getter`方法，方便`graphql-java-calculator`执行引擎的调度优化，
+[`graphql-java`最新版本](https://github.com/graphql-java/graphql-java/pull/2243)release该特性后将进行替换。
+
+### 2. 通过配置创建schema和`GraphQL`对象
 
 ```
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(
@@ -162,5 +172,10 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
     }
 }
 ```
+
+
+TODO 参数过滤、结果过滤
+
+
 
 

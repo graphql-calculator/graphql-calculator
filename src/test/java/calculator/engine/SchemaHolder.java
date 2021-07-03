@@ -23,6 +23,7 @@ import static calculator.engine.service.ConsumerServiceClient.getUserInfoById;
 import static calculator.graphql.AsyncDataFetcher.async;
 
 import calculator.engine.service.CommodityServiceClient;
+import calculator.engine.service.ConsumerServiceClient;
 import calculator.engine.service.MarketingServiceClient;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
@@ -38,8 +39,15 @@ public class SchemaHolder {
 
     private static DataFetcher<Map> emptyDataFetcher = environment -> Collections.emptyMap();
 
-    private static DataFetcher userDataFetcher = environment ->
-            getUserInfoById(((Number) environment.getArguments().get("userId")).longValue());
+    private static DataFetcher userDataFetcher = environment -> {
+        Number userIdNumber = (Number) environment.getArguments().get("userId");
+        if (userIdNumber == null) {
+            return null;
+        }
+
+        return ConsumerServiceClient.getUserInfoById(userIdNumber.longValue());
+    };
+
 
     private static DataFetcher userListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();

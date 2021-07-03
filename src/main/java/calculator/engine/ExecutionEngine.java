@@ -253,7 +253,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (Objects.equals(SKIP_BY.getName(), directive.getName())) {
                 String expression = getArgumentFromDirective(directive, "expression");
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
-                dataFetcher = wrapSkipDataFetcher(dataFetcher, expression, engineState,dependencySource);
+                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, expression, dependencySource);
                 continue;
             }
 
@@ -266,7 +266,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 String predicate = getArgumentFromDirective(directive, "predicate");
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
                 dataFetcher = wrapFilterDataFetcher(
-                        dataFetcher, predicate, dependencySource, engineState
+                        dataFetcher, engineState, predicate, dependencySource
                 );
                 continue;
             }
@@ -319,7 +319,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, String expression, ExecutionEngineState engineState, String dependencySource) {
+    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, ExecutionEngineState engineState, String expression, String dependencySource) {
         boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
@@ -344,7 +344,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return innerDataFetcher.get(environment);
         };
 
-        if (isAsyncFetcher) {
+        if (isAsyncFetcher || dependencySource != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
         return innerDataFetcher;
@@ -352,9 +352,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF,
+                                                 ExecutionEngineState engineState,
                                                  String predicate,
-                                                 String dependencySource,
-                                                 ExecutionEngineState engineState) {
+                                                 String dependencySource) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcher;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getExecutor() : executor;
@@ -367,13 +367,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 return null;
             }
 
-            Map<String, Object> sourceEnv = null;
+            Object source = null;
             if (dependencySource != null) {
                 FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
                 if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    sourceEnv = Collections.singletonMap(dependencySource, null);
+                    source = null;
                 } else {
-                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
+                    source = sourceTask.getTaskFuture().join();
                 }
             }
 
@@ -381,9 +381,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             for (Object ele : (Collection<?>) originalResult) {
                 Map<String, Object> fieldMap = getCalMap(ele);
                 // 如果为null则表示没有依赖的节点
-                // 此时不应该在进行putAll操作
-                if (sourceEnv != null) {
-                    fieldMap.putAll(sourceEnv);
+                if (dependencySource != null) {
+                    fieldMap.put(dependencySource, source);
                 }
                 if ((Boolean) calExp(aviatorEvaluator, predicate, fieldMap)) {
                     filteredList.add(ele);
@@ -454,24 +453,24 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 return originalResult;
             }
 
-            final Map<String, Object> sourceEnv;
+            final Object source;
             if (dependencySource != null) {
                 FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
                 if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    sourceEnv = Collections.singletonMap(dependencySource, null);
+                    source = null;
                 } else {
-                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
+                    source = sourceTask.getTaskFuture().join();
                 }
             } else {
-                sourceEnv = null;
+                source = null;
             }
 
             List<Object> sortedList;
             if (reversed) {
                 sortedList = collectionData.stream().sorted(Comparator.comparing(ele -> {
                     Map<String, Object> env = getCalMap(ele);
-                    if (sourceEnv != null) {
-                        env.putAll(sourceEnv);
+                    if (dependencySource != null) {
+                        env.put(dependencySource, source);
                     }
                     return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
                 }).reversed()).collect(toList());
@@ -479,8 +478,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 sortedList = collectionData.stream().sorted(
                         Comparator.comparing(ele -> {
                             Map<String, Object> env = getCalMap(ele);
-                            if (sourceEnv != null) {
-                                env.putAll(sourceEnv);
+                            if (dependencySource != null) {
+                                env.put(dependencySource, source);
                             }
                             return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
                         })
@@ -517,22 +516,19 @@ public class ExecutionEngine extends SimpleInstrumentation {
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcher<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Object fieldValue = innerDataFetcher.get(environment);
-
-            Map<String, Object> sourceEnv = null;
+            Object source = null;
             if (dependencySource != null) {
                 FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
                 if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    sourceEnv = Collections.singletonMap(dependencySource, null);
+                    source = null;
                 } else {
-                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
+                    source = sourceTask.getTaskFuture().join();
                 }
             }
 
             HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
-            expEnv.put(environment.getField().getResultKey(), fieldValue);
-            if (sourceEnv != null) {
-                expEnv.putAll(sourceEnv);
+            if (dependencySource != null) {
+                expEnv.put(dependencySource, source);
             }
 
             return calExp(aviatorEvaluator, expression, expEnv);
@@ -559,16 +555,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         DataFetcher<?> wrappedFetcher = environment -> {
 
-            final Map<String, Object> sourceEnv;
+            final Object source;
             if (dependencySource != null) {
                 FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
                 if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    sourceEnv = Collections.singletonMap(dependencySource, null);
+                    source = null;
                 } else {
-                    sourceEnv = Collections.singletonMap(dependencySource, sourceTask.getTaskFuture().join());
+                    source = sourceTask.getTaskFuture().join();
                 }
             } else {
-                sourceEnv = null;
+                source = null;
             }
 
             // filter list element of list argument
@@ -581,8 +577,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 argument = argument.stream().filter(ele -> {
                             HashMap<String, Object> env = new HashMap<>();
                             env.put("ele", ele);
-                            if (sourceEnv != null) {
-                                env.putAll(sourceEnv);
+                            if (dependencySource != null) {
+                                env.put(dependencySource, source);
                             }
 
                             return (Boolean) aviatorEvaluator.execute(expression, env);
@@ -605,8 +601,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
                 argument = argument.stream().map(ele -> {
                     Map<String, Object> transformEnv = new HashMap<>();
-                    if (sourceEnv != null) {
-                        transformEnv.putAll(sourceEnv);
+                    if (dependencySource != null) {
+                        transformEnv.put(dependencySource, source);
                     }
                     transformEnv.put("ele", ele);
                     return aviatorEvaluator.execute(expression, transformEnv);
@@ -624,8 +620,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (Objects.equals(operateType, Directives.ParamTransformType.MAP.name())) {
 
                 Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
-                if (sourceEnv != null) {
-                    transformEnv.putAll(sourceEnv);
+                if (dependencySource != null) {
+                    transformEnv.put(dependencySource, source);
                 }
                 Object newParam = aviatorEvaluator.execute(expression, transformEnv);
 
@@ -641,7 +637,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             throw new RuntimeException("can not invoke here.");
         };
 
-        if (defaultDF instanceof AsyncDataFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySource != null) {
             return async(wrappedFetcher, innerExecutor);
         }
 
