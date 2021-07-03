@@ -19,7 +19,6 @@ package calculator.engine.function;
 import calculator.engine.annotation.Internal;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.Expression;
 
 import java.util.List;
 import java.util.Map;
