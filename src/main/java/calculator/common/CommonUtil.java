@@ -43,6 +43,7 @@ public class CommonUtil {
      *
      * @param directive    dir
      * @param argumentName argument name
+     * @param <T> the type of argument value
      * @return the argument value
      */
     public static <T> T getArgumentFromDirective(Directive directive, String argumentName) {

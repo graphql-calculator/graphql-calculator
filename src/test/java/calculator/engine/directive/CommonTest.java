@@ -23,7 +23,7 @@ import calculator.engine.ExecutionEngine;
 import calculator.engine.SchemaHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.function.ListContain;
-import calculator.validate.Validator;
+import calculator.validation.Validator;
 import com.googlecode.aviator.AviatorEvaluator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;

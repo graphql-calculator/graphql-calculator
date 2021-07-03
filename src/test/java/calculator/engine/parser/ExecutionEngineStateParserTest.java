@@ -25,7 +25,7 @@ import calculator.engine.ExecutionEngineStateParser;
 import calculator.engine.SchemaHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.metadata.FetchSourceTask;
-import calculator.validate.Validator;
+import calculator.validation.Validator;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
 import graphql.com.google.common.base.Objects;
