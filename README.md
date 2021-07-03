@@ -29,15 +29,15 @@
 
 #### 2. 包装执行引擎
 
-- 继承`calculator.graphql.AsyncDataFetcherInterface`
+##### 继承`calculator.graphql.AsyncDataFetcherInterface`
 
 如果项目中使用了`graphql.schema.AsyncDataFetcher` 或者自定义的异步化`DataFetcher`，则使其继承`calculator.graphql.AsyncDataFetcherInterface`，
 并实现该接口方法，返回异步化`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
 
 
-- 通过配置转换schema和`GraphQL`对象
+##### 通过配置转换schema和`GraphQL`对象
 
-```
+```java
         Config config = ConfigImpl.newConfig()
                 .evaluatorInstance(AviatorEvaluator.newInstance())
                 .function(new ListContain()).function(new ListMapper())
@@ -57,7 +57,7 @@
 对每个使用了计算指令的查询，都必须使用`calculator.validate.Validator`进行校验语法是否合法。
 **建议通过 PreparedDocument 缓存校验结果**，实现参考`calculator.example.Example#DocumentParseAndValidationCache`。
 
-```
+```java
         ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
         if(validateResult.isFailure()){
             List<GraphQLError> errors = validateResult.getErrors();
@@ -73,9 +73,9 @@
 # 详情文档
 
 以[测试用例schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
-对`graphql-java-calculator`进行数据编排、控制流、结果处理和计算转换等进行说明。
+对`graphql-java-calculator`的数据编排、控制流、结果处理和计算转换等进行说明。
 
-### 1. 数据编排/参数转换
+#### 数据编排/参数转换
 
 数据编排的主要形式为请求A类型数据时其输入参数为B类型的结果、或者需要B类型结果对A类型输入参数进行过滤、转换处理。示例如下。
 
@@ -129,7 +129,7 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
 
 
 
-### 2. 控制流
+#### 控制流
 
 控制流主要为根据条件，判断是否请求某个类型数据、或者请求哪个类型数据。
 
@@ -167,7 +167,7 @@ query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 }
 ```
 
-### 3. 数据转换、过滤、补全
+####  数据转换、过滤、补全
 
 - 查找券信息和列表商品信息；
 - 使用 @mapper 拼接券的描述文案；
@@ -200,7 +200,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 ```
 
 
-TODO 参数过滤、结果过滤
+#### 结果过滤
 
 
 
