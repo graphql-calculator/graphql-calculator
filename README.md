@@ -1,9 +1,9 @@
 # graphql-java-calculator
 
 
-`graphql`提供了便捷的数据查询能力，但实际的业务开发还包括数据的编排、计算转换、过滤、控制流等。
+`graphql`提供了便捷的数据查询能力，但实际的业务开发还包括数据的编排、过滤、计算转换和控制流等。
 
-基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、控制流和动态计算的能力。
+基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
 
 
 
