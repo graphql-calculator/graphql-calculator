@@ -48,11 +48,15 @@ public class Example {
 
         private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
 
+        private final Config wrapperConfig;
         private final GraphQLSchema wrappedSchema;
 
-        public DocumentParseAndValidationCache(GraphQLSchema wrappedSchema) {
+
+        public DocumentParseAndValidationCache(Config wrapperConfig, GraphQLSchema wrappedSchema) {
+            this.wrapperConfig = wrapperConfig;
             this.wrappedSchema = wrappedSchema;
         }
+
 
         @Override
         public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
@@ -61,7 +65,9 @@ public class Example {
                 return cache.get(executionInput.getQuery());
             }
 
-            ParseAndValidateResult validateResult = Validator.validateQuery(executionInput.getQuery(), wrappedSchema);
+            ParseAndValidateResult validateResult = Validator.validateQuery(
+                    executionInput.getQuery(), wrappedSchema, wrapperConfig
+            );
 
             PreparsedDocumentEntry preparsedDocumentEntry;
             if (validateResult.isFailure()) {
@@ -76,20 +82,42 @@ public class Example {
 
     public static void main(String[] args) {
 
+        /**
+         * step 1
+         *
+         * make async dataFetcher implements xxx
+         */
         GraphQLSchema schema = SchemaHolder.getSchema();
 
+
+        /**
+         * step 2
+         *
+         * create Config, and get wrapped schema with the ability of
+         * orchestrate and dynamic calculator and control flow, powered by directives,
+         * and create GraphQL with wrapped schema and ExecutionEngine.
+         *
+         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
+         */
         Config config = ConfigImpl.newConfig()
-                .evaluatorInstance(AviatorEvaluator.newInstance())
-                .function(new ListContain()).function(new ListMapper())
+                .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .build();
 
         GraphQLSchema wrappedSchema = SchemaWrapper.wrap(config, schema);
 
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(ExecutionEngine.newInstance(config))
-                .preparsedDocumentProvider(new DocumentParseAndValidationCache(wrappedSchema))
+                .preparsedDocumentProvider(new DocumentParseAndValidationCache(config, wrappedSchema))
                 .build();
 
+        /**
+         * step 3:
+         *
+         * validate the query: ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).
+         *
+         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
+         * Reference {@link DocumentParseAndValidationCache}
+         */
         String query = ""
                 + "query mapListArgument($itemIds: [Int]){ \n" +
                 "    commodity{\n" +
@@ -110,6 +138,7 @@ public class Example {
         ExecutionResult result = graphQL.execute(input);
         // consumer result
     }
+
 }
 ```
 

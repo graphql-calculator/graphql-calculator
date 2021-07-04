@@ -17,6 +17,7 @@
 package calculator.validation;
 
 import calculator.common.CommonUtil;
+import calculator.engine.script.ScriptEvaluator;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -36,7 +37,6 @@ import java.util.Set;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.VisitorUtil.pathForTraverse;
-import static calculator.engine.function.ExpProcessor.getExpArgument;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.MAP;
@@ -51,6 +51,8 @@ import static java.util.stream.Collectors.toSet;
  *
  */
 public class SourceRule extends AbstractRule {
+
+    private final ScriptEvaluator scriptEvaluator;
 
     // <sourceName, annotatedFieldFullPath>
     private final Map<String, String> sourceWithAnnotatedField;
@@ -73,12 +75,14 @@ public class SourceRule extends AbstractRule {
     private final HashSet<String> unusedSource = new HashSet<>();
 
 
-    public SourceRule(Map<String, String> sourceWithAnnotatedField,
+    public SourceRule(ScriptEvaluator scriptEvaluator,
+                      Map<String, String> sourceWithAnnotatedField,
                       Map<String, String> sourceWithTopTask,
                       Map<String, Set<String>> sourceWithAncestorPath,
                       Map<String, String> fieldWithTopTask,
                       Map<String, List<String>> sourceUsedByField,
                       Map<String, Set<String>> fieldWithAncestorPath) {
+        this.scriptEvaluator = Objects.requireNonNull(scriptEvaluator);
         this.sourceWithAnnotatedField = sourceWithAnnotatedField;
         this.sourceWithTopTask = sourceWithTopTask;
         this.sourceWithAncestorPath = sourceWithAncestorPath;
@@ -296,7 +300,7 @@ public class SourceRule extends AbstractRule {
      * @return 校验结果
      */
     private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, String dependencySourceName, String expression) {
-        List<String> arguments = getExpArgument(expression);
+        List<String> arguments = scriptEvaluator.getScriptArgument(expression);
         if (!arguments.contains(dependencySourceName)) {
             String errorMsg = format(
                     "the fetchSource '%s' do not used by @%s on {%s}.", dependencySourceName, directive.getName(), fieldFullPath

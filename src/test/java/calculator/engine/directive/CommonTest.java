@@ -22,9 +22,8 @@ import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
 import calculator.engine.SchemaHolder;
 import calculator.engine.SchemaWrapper;
-import calculator.function.ListContain;
+import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
-import com.googlecode.aviator.AviatorEvaluator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -42,10 +41,12 @@ import java.util.Objects;
 public class CommonTest {
 
     private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
-    private static final Config wrapConfig = ConfigImpl.newConfig().evaluatorInstance(AviatorEvaluator.newInstance()).function(new ListContain()).build();
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapConfig, originalSchema);
-    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapConfig)).build();
-
+    private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
+    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
+    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
+    static{
+//        AviatorScriptEvaluator.getDefaultInstance().addFunction(new ListContain()).function(new ListMapper())
+    }
 
     @Test
     public void mockTest() {
@@ -58,7 +59,7 @@ public class CommonTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQL.execute(query);
@@ -88,7 +89,7 @@ public class CommonTest {
                 "    }\n" +
                 "\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
         assert !validateResult.isFailure();
 
         HashMap<String, Object> invalidVariable = new LinkedHashMap<>();
@@ -149,7 +150,7 @@ public class CommonTest {
                 "}";
 
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
         assert !validateResult.isFailure();
 
         ExecutionInput skipInput = ExecutionInput

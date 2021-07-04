@@ -16,10 +16,10 @@
  */
 
 package calculator.engine;
+
 import calculator.config.Config;
 import calculator.engine.annotation.PublicApi;
 import calculator.exception.WrapperSchemaException;
-import com.googlecode.aviator.runtime.type.AviatorFunction;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
 
@@ -45,10 +45,6 @@ public class SchemaWrapper {
         }
         wrappedSchemaBuilder.additionalType(ARGUMENT_TRANSFORM_TYPE);
 
-        for (AviatorFunction function : config.functions()) {
-            config.getAviatorEvaluator().addFunction(function);
-        }
-
         return wrappedSchemaBuilder.build();
     }
 
@@ -59,17 +55,6 @@ public class SchemaWrapper {
 
         if (!duplicateDir.isEmpty()) {
             String errorMsg = String.format("directive named '%s' is already exist in schema.", duplicateDir);
-            throw new WrapperSchemaException(errorMsg);
-        }
-
-        List<String> duplicateFuncNames = config.functions().stream()
-                .filter(function ->
-                        config.getAviatorEvaluator().containsFunction(function.getName())
-                )
-                .map(AviatorFunction::getName).collect(toList());
-
-        if (!duplicateFuncNames.isEmpty()) {
-            String errorMsg = String.format("function named '%s' is already exist in Aviator Engine.", duplicateFuncNames);
             throw new WrapperSchemaException(errorMsg);
         }
     }

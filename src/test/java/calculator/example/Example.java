@@ -21,10 +21,8 @@ import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
 import calculator.engine.SchemaHolder;
 import calculator.engine.SchemaWrapper;
-import calculator.function.ListContain;
-import calculator.function.ListMapper;
+import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
-import com.googlecode.aviator.AviatorEvaluator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -45,9 +43,12 @@ public class Example {
 
         private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
 
+        private final Config wrapperConfig;
         private final GraphQLSchema wrappedSchema;
 
-        public DocumentParseAndValidationCache(GraphQLSchema wrappedSchema) {
+
+        public DocumentParseAndValidationCache(Config wrapperConfig, GraphQLSchema wrappedSchema) {
+            this.wrapperConfig = wrapperConfig;
             this.wrappedSchema = wrappedSchema;
         }
 
@@ -59,7 +60,9 @@ public class Example {
                 return cache.get(executionInput.getQuery());
             }
 
-            ParseAndValidateResult validateResult = Validator.validateQuery(executionInput.getQuery(), wrappedSchema);
+            ParseAndValidateResult validateResult = Validator.validateQuery(
+                    executionInput.getQuery(), wrappedSchema, wrapperConfig
+            );
 
             PreparsedDocumentEntry preparsedDocumentEntry;
             if (validateResult.isFailure()) {
@@ -92,15 +95,14 @@ public class Example {
          * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
          */
         Config config = ConfigImpl.newConfig()
-                .evaluatorInstance(AviatorEvaluator.newInstance())
-                .function(new ListContain()).function(new ListMapper())
+                .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .build();
 
         GraphQLSchema wrappedSchema = SchemaWrapper.wrap(config, schema);
 
         GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
                 .instrumentation(ExecutionEngine.newInstance(config))
-                .preparsedDocumentProvider(new DocumentParseAndValidationCache(wrappedSchema))
+                .preparsedDocumentProvider(new DocumentParseAndValidationCache(config, wrappedSchema))
                 .build();
 
         /**

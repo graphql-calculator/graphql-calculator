@@ -18,6 +18,7 @@ package calculator.validation;
 
 import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
+import calculator.engine.script.ScriptEvaluator;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -50,7 +51,6 @@ import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
-import static calculator.engine.function.ExpProcessor.isValidExp;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
@@ -58,6 +58,8 @@ import static java.util.stream.Collectors.toSet;
 
 @Internal
 public class BasicRule extends AbstractRule {
+
+    private final ScriptEvaluator scriptEvaluator;
 
     // <sourceName, annotatedField>
     private final Map<String, String> sourceWithAnnotatedField = new LinkedHashMap<>();
@@ -76,6 +78,10 @@ public class BasicRule extends AbstractRule {
 
     // <fieldFullPath, List<ancestorNode>>
     private final Map<String, Set<String>> fieldWithAncestorPath = new LinkedHashMap<>();
+
+    public BasicRule(ScriptEvaluator scriptEvaluator) {
+        this.scriptEvaluator = Objects.requireNonNull(scriptEvaluator);
+    }
 
 
     public Map<String, String> getSourceWithAnnotatedField() {
@@ -128,7 +134,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!isValidExp(expression)) {
+                if (!scriptEvaluator.isValidScript(expression)) {
                     String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
@@ -161,7 +167,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!isValidExp(predicate)) {
+                if (!scriptEvaluator.isValidScript(predicate)) {
                     String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}.", predicate, fieldFullPath);
                     addValidError(location, errorMsg);
                 }
@@ -207,7 +213,7 @@ public class BasicRule extends AbstractRule {
                         directive.getArgument("expression").getValue()
                 );
 
-                if (!isValidExp(expression)) {
+                if (!scriptEvaluator.isValidScript(expression)) {
                     String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
@@ -231,7 +237,7 @@ public class BasicRule extends AbstractRule {
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
                 String mapper = getArgumentFromDirective(directive, "expression");
-                if (!isValidExp(mapper)) {
+                if (!scriptEvaluator.isValidScript(mapper)) {
                     String errorMsg = String.format("invalid expression '%s' for @map on {%s}.", mapper, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
@@ -254,7 +260,7 @@ public class BasicRule extends AbstractRule {
                 }
 
                 String expression = getArgumentFromDirective(directive, "expression");
-                if (!isValidExp(expression)) {
+                if (!scriptEvaluator.isValidScript(expression)) {
                     String errorMsg = String.format("invalid expression '%s' for @argumentTransform on {%s}.", expression, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
@@ -298,7 +304,7 @@ public class BasicRule extends AbstractRule {
                 }
 
                 String sourceConvert = getArgumentFromDirective(directive, "sourceConvert");
-                if (sourceConvert != null && !isValidExp(sourceConvert)) {
+                if (sourceConvert != null && !scriptEvaluator.isValidScript(sourceConvert)) {
                     String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}.", sourceConvert, fieldFullPath);
                     addValidError(location, errorMsg);
                 }

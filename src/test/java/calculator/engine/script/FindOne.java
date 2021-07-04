@@ -15,19 +15,22 @@
  * limitations under the License.
  */
 
-package calculator.function;
+package calculator.engine.script;
 
+import calculator.engine.annotation.Beta;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
-import com.googlecode.aviator.runtime.type.AviatorBoolean;
-import com.googlecode.aviator.runtime.type.AviatorJavaType;
 import com.googlecode.aviator.runtime.type.AviatorObject;
+import com.googlecode.aviator.runtime.type.AviatorRuntimeJavaType;
+import com.googlecode.aviator.runtime.type.AviatorString;
 
-import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-public class ListContain extends AbstractFunction {
-
-    private static final String FUNCTION_NAME = "listContain";
+@Beta
+public class FindOne extends AbstractFunction {
+    private static final String FUNCTION_NAME = "findOne";
 
     @Override
     public String getName() {
@@ -35,16 +38,16 @@ public class ListContain extends AbstractFunction {
     }
 
     @Override
-    public AviatorObject call(Map<String, Object> env, AviatorObject listName, AviatorObject fieldName) {
-        String fieldNameValue = ((AviatorJavaType) fieldName).getName();
-        String listNameValue = ((AviatorJavaType) listName).getName();
+    public AviatorObject call(Map<String, Object> env, AviatorObject listElement, AviatorObject elementFieldName, AviatorObject envKey) {
 
-        if (!env.containsKey(listNameValue) || !env.containsKey(fieldNameValue)) {
-            return AviatorBoolean.FALSE;
-        }
+        String elementKey = ((AviatorString) elementFieldName).getLexeme(Collections.emptyMap());
 
-        Collection collection = (Collection)env.get(listNameValue);
+        String envLexeme = ((AviatorString) envKey).getLexeme(Collections.emptyMap());
+        Object targetValue = env.get(envLexeme);
 
-        return AviatorBoolean.valueOf(collection.contains(env.get(fieldNameValue)));
+        List<Map> listValue = (List)listElement.getValue(Collections.emptyMap());
+        Map result = listValue.stream().filter(map -> Objects.equals(map.get(elementKey), targetValue)).findFirst().orElse(null);
+
+        return AviatorRuntimeJavaType.valueOf(result);
     }
 }

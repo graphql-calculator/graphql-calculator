@@ -14,32 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.config;
 
+package calculator.engine.script;
 
-import calculator.engine.ObjectMapper;
-import calculator.engine.script.ScriptEvaluator;
+import java.util.List;
+import java.util.Map;
 
-import java.util.concurrent.Executor;
+public interface ScriptEvaluator {
 
-public interface Config {
+    Object evaluate(String script, Map<String, Object> arguments);
 
-    /**
-     * Return the expression execution evaluator.
-     *
-     * @return script evaluator
-     */
-    ScriptEvaluator getScriptEvaluator();
+    boolean isValidScript(String script);
 
-    /**
-     * The util used to transform object return by {@code DataFetcher} to {@code Map}.
-     *
-     * @return object mapper util
-     */
-    ObjectMapper getObjectMapper();
+    List<String> getScriptArgument(String script);
 
-    /**
-     * @return Get the thread pool which used in {@link calculator.engine.ExecutionEngine}.
-     */
-    Executor getExecutor();
 }
