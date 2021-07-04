@@ -14,26 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine.function;
+package calculator.engine.script;
 
-import calculator.engine.annotation.Internal;
 import com.googlecode.aviator.AviatorEvaluator;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
+import com.googlecode.aviator.runtime.function.AbstractFunction;
 
 import java.util.List;
 import java.util.Map;
 
+public class AviatorScriptEvaluator implements ScriptEvaluator {
 
-@Internal
-public class ExpProcessor {
+    private static final AviatorScriptEvaluator DEFAULT_INSTANCE = new AviatorScriptEvaluator();
 
-    public static Object calExp(AviatorEvaluatorInstance aviatorEvaluator,
-                                String expression,
-                                Map<String, Object> arguments) {
-        return aviatorEvaluator.execute(expression, arguments, true);
+    public static AviatorScriptEvaluator getDefaultInstance() {
+        return DEFAULT_INSTANCE;
     }
 
-    public static boolean isValidExp(String expression) {
+    @Override
+    public Object evaluate(String script, Map<String, Object> arguments) {
+        return AviatorEvaluator.execute(script, arguments);
+    }
+
+    @Override
+    public boolean isValidScript(String expression) {
         if (expression == null || expression.isEmpty()) {
             return false;
         }
@@ -46,7 +49,12 @@ public class ExpProcessor {
         }
     }
 
-    public static List<String> getExpArgument(String expression) {
+    @Override
+    public List<String> getScriptArgument(String expression) {
         return AviatorEvaluator.compile(expression).getVariableNames();
+    }
+
+    public void addFunction(AbstractFunction function) {
+        AviatorEvaluator.addFunction(function);
     }
 }

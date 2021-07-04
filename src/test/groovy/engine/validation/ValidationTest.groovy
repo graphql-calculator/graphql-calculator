@@ -19,14 +19,16 @@ package engine.validation
 
 import calculator.config.ConfigImpl
 import calculator.engine.SchemaWrapper
-import calculator.validate.Validator
+import calculator.engine.script.AviatorScriptEvaluator
+import calculator.validation.Validator
 import spock.lang.Specification
 
 import static calculator.engine.SchemaHolder.getSchema
 
 class ValidationTest extends Specification {
 
-    def wrappedSchema = SchemaWrapper.wrap(ConfigImpl.newConfig().build(), getSchema())
+    def wrapperConfig = ConfigImpl.newConfig().build()
+    def wrappedSchema = SchemaWrapper.wrap(wrapperConfig, getSchema())
 
 
     def "empty expression for @skipBy"() {
@@ -45,7 +47,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -69,7 +71,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -93,7 +95,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -117,7 +119,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -141,7 +143,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -165,7 +167,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -189,7 +191,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -213,7 +215,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -236,7 +238,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -260,7 +262,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -283,7 +285,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -307,7 +309,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -331,7 +333,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -352,7 +354,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -373,7 +375,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -403,7 +405,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -433,7 +435,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -463,7 +465,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -493,7 +495,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -520,7 +522,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -550,7 +552,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -579,7 +581,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -611,7 +613,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -640,7 +642,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -670,7 +672,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -699,26 +701,12 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
         validateResult.errors[0].description == "the fetchSource 'sellerIdList' do not used by @argumentTransform on {consumer.userInfoList}."
     }
-
-    /**
-     * todo
-     *  topTask
-     *  1. 同一个字段；
-     *  2. 两个字段在list中；
-     *  3. 一个在list中、一个是list字段；
-     *  4. 循环的3；
-     *  ancestor depend on descendant
-     *  1. 普通路径上的；
-     *  2. 普通路径中的循环；
-     *  3. 包括list中的；
-     *  4. 包括路径中的循环；
-     */
 
 
     def "ancestor relationship exit in dependency path"() {
@@ -744,7 +732,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 1
@@ -777,7 +765,7 @@ class ValidationTest extends Specification {
         """
 
         when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema)
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
         validateResult.errors.size() == 2

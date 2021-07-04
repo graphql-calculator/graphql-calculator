@@ -19,8 +19,8 @@ package calculator.engine;
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
+import calculator.engine.script.ScriptEvaluator;
 import calculator.graphql.AsyncDataFetcherInterface;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
 import graphql.execution.DataFetcherResult;
@@ -55,7 +55,6 @@ import java.util.function.Supplier;
 import static calculator.common.CommonUtil.arraySize;
 import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
-import static calculator.engine.function.ExpProcessor.calExp;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.MAP;
@@ -72,16 +71,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private final ObjectMapper objectMapper;
 
-    private final AviatorEvaluatorInstance aviatorEvaluator;
+    private final ScriptEvaluator scriptEvaluator;
 
-    private ExecutionEngine(Executor executor, ObjectMapper objectMapper, AviatorEvaluatorInstance aviatorEvaluator) {
+    private ExecutionEngine(Executor executor, ObjectMapper objectMapper, ScriptEvaluator scriptEvaluator) {
         this.executor = Objects.requireNonNull(executor);
         this.objectMapper = Objects.requireNonNull(objectMapper);
-        this.aviatorEvaluator = Objects.requireNonNull(aviatorEvaluator);
+        this.scriptEvaluator = Objects.requireNonNull(scriptEvaluator);
     }
 
     public static ExecutionEngine newInstance(Config config) {
-        return new ExecutionEngine(config.getExecutor(), config.getObjectMapper(), config.getAviatorEvaluator());
+        return new ExecutionEngine(config.getExecutor(), config.getObjectMapper(), config.getScriptEvaluator());
     }
 
     // ============================================== create InstrumentationState for engine  ==============================================
@@ -159,8 +158,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
                             sourceTask.getTaskFuture().complete(result);
                         } else {
                             try {
-                                Object mappedValue = aviatorEvaluator.execute(
-                                        sourceTask.getMapper(), getCalMap(result), true
+                                Object mappedValue = scriptEvaluator.evaluate(
+                                        sourceTask.getMapper(), getCalMap(result)
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -211,7 +210,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                     child.getTaskFuture().complete(listResult);
                 } else {
                     try {
-                        Object mappedValue = aviatorEvaluator.execute(
+                        Object mappedValue = scriptEvaluator.evaluate(
                                 child.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), listResult)
                         );
                         child.getTaskFuture().complete(mappedValue);
@@ -336,7 +335,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
             }
 
-            Boolean isSkip = (Boolean) calExp(aviatorEvaluator, expression, env);
+            Boolean isSkip = (Boolean) scriptEvaluator.evaluate(expression, env);
             if (isSkip) {
                 return null;
             }
@@ -384,7 +383,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 if (dependencySource != null) {
                     fieldMap.put(dependencySource, source);
                 }
-                if ((Boolean) calExp(aviatorEvaluator, predicate, fieldMap)) {
+                if ((Boolean) scriptEvaluator.evaluate(predicate, fieldMap)) {
                     filteredList.add(ele);
                 }
             }
@@ -472,7 +471,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                     if (dependencySource != null) {
                         env.put(dependencySource, source);
                     }
-                    return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
+                    return (Comparable<Object>) scriptEvaluator.evaluate(sortExp, env);
                 }).reversed()).collect(toList());
             } else {
                 sortedList = collectionData.stream().sorted(
@@ -481,7 +480,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                             if (dependencySource != null) {
                                 env.put(dependencySource, source);
                             }
-                            return (Comparable<Object>) aviatorEvaluator.execute(sortExp, env);
+                            return (Comparable<Object>) scriptEvaluator.evaluate(sortExp, env);
                         })
                 ).collect(toList());
             }
@@ -531,7 +530,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 expEnv.put(dependencySource, source);
             }
 
-            return calExp(aviatorEvaluator, expression, expEnv);
+            return scriptEvaluator.evaluate(expression, expEnv);
         };
 
         if (isAsyncFetcher || dependencySource != null) {
@@ -581,7 +580,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                 env.put(dependencySource, source);
                             }
 
-                            return (Boolean) aviatorEvaluator.execute(expression, env);
+                            return (Boolean) scriptEvaluator.evaluate(expression, env);
                         }
                 ).collect(toList());
 
@@ -605,7 +604,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         transformEnv.put(dependencySource, source);
                     }
                     transformEnv.put("ele", ele);
-                    return aviatorEvaluator.execute(expression, transformEnv);
+                    return scriptEvaluator.evaluate(expression, transformEnv);
                 }).collect(toList());
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
@@ -623,7 +622,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 if (dependencySource != null) {
                     transformEnv.put(dependencySource, source);
                 }
-                Object newParam = aviatorEvaluator.execute(expression, transformEnv);
+                Object newParam = scriptEvaluator.evaluate(expression, transformEnv);
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
                 newArguments.put(argumentName, newParam);

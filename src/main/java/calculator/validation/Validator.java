@@ -16,6 +16,8 @@
  */
 package calculator.validation;
 
+import calculator.config.Config;
+import calculator.engine.annotation.PublicApi;
 import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
@@ -27,35 +29,24 @@ import graphql.validation.ValidationError;
 
 import java.util.Collections;
 
+@PublicApi
 public class Validator {
 
-    /**
-     * kp 使用场景，在第一次执行的时候检测一次即可。
-     *      校验规则：
-     *          1. @node是否重名;
-     *          2. @link中是否有重名；
-     *          3. @link使用的node不存在、node指向的参数不存在；
-     *
-     * @param query  查询语句
-     * @param schema 上下文，在上下文中查看是否有所用的指令
-     * @return 校验结果
-     */
-    public static ParseAndValidateResult validateQuery(String query, GraphQLSchema schema) {
+    public static ParseAndValidateResult validateQuery(String query, GraphQLSchema wrappedSchema, Config wrapperConfig) {
 
-        // 原始校验
         ExecutionInput executionInput = ExecutionInput.newExecutionInput().query(query).build();
-        ParseAndValidateResult origPVResult = ParseAndValidate.parseAndValidate(schema, executionInput);
+        ParseAndValidateResult origPVResult = ParseAndValidate.parseAndValidate(wrappedSchema, executionInput);
         if (origPVResult.isFailure()) {
             return origPVResult;
         }
 
         Document document = Parser.parse(query);
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
-                .schema(schema)
+                .schema(wrappedSchema)
                 .document(document)
                 .variables(Collections.emptyMap()).build();
 
-        BasicRule basicRule = new BasicRule();
+        BasicRule basicRule = new BasicRule(wrapperConfig.getScriptEvaluator());
         traverser.visitDepthFirst(basicRule);
         if (!basicRule.getErrors().isEmpty()) {
             return ParseAndValidateResult.newResult().validationErrors(basicRule.getErrors()).build();
@@ -63,6 +54,7 @@ public class Validator {
 
 
         SourceRule nodeRule = new SourceRule(
+                wrapperConfig.getScriptEvaluator(),
                 basicRule.getSourceWithAnnotatedField(),
                 basicRule.getSourceWithTopTask(),
                 basicRule.getSourceWithAncestorPath(),

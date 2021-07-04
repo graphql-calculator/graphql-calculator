@@ -25,6 +25,7 @@ import calculator.engine.ExecutionEngineStateParser;
 import calculator.engine.SchemaHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.metadata.FetchSourceTask;
+import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
@@ -38,8 +39,8 @@ import java.util.Collections;
 public class ExecutionEngineStateParserTest {
 
     private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
-    private static final Config wrapConfig = ConfigImpl.newConfig().build();
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapConfig, originalSchema);
+    private static final Config wrapperConfig = ConfigImpl.newConfig().build();
+    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
 
     @Test
     public void getItemListBindingCouponIdAndFilterUnSaleItems() {
@@ -65,7 +66,7 @@ public class ExecutionEngineStateParserTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
         assert !validateResult.isFailure();
 
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()

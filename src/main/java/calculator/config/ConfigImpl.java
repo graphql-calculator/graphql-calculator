@@ -18,13 +18,9 @@ package calculator.config;
 
 import calculator.engine.ObjectMapper;
 import calculator.engine.ObjectMapperImpl;
-import com.googlecode.aviator.AviatorEvaluator;
-import com.googlecode.aviator.AviatorEvaluatorInstance;
-import com.googlecode.aviator.runtime.type.AviatorFunction;
+import calculator.engine.script.AviatorScriptEvaluator;
+import calculator.engine.script.ScriptEvaluator;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
@@ -34,38 +30,29 @@ import java.util.concurrent.ForkJoinPool;
  */
 public class ConfigImpl implements Config {
 
-    private final List<AviatorFunction> functionList;
-
-    private final AviatorEvaluatorInstance aviatorEvaluator;
+    private final Executor threadPool;
 
     private final ObjectMapper objectMapper;
 
-    private final Executor threadPool;
+    private final ScriptEvaluator scriptEvaluator;
 
     private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapperImpl();
 
     private static final Executor DEFAULT_EXECUTOR = ForkJoinPool.commonPool();
 
-    private static final AviatorEvaluatorInstance DEFAULT_EVALUATOR = AviatorEvaluator.getInstance();
+    private static final AviatorScriptEvaluator DEFAULT_EVALUATOR = new AviatorScriptEvaluator();
 
-    private ConfigImpl(AviatorEvaluatorInstance aviatorEvaluator,
-                       List<AviatorFunction> functionList,
+    private ConfigImpl(Executor threadPool,
                        ObjectMapper objectMapper,
-                       Executor threadPool) {
-        this.functionList = functionList;
-        this.aviatorEvaluator = aviatorEvaluator != null ? aviatorEvaluator : DEFAULT_EVALUATOR;
-        this.objectMapper = objectMapper != null ? objectMapper : DEFAULT_MAPPER;
+                       ScriptEvaluator scriptEvaluator) {
         this.threadPool = threadPool != null ? threadPool : DEFAULT_EXECUTOR;
+        this.objectMapper = objectMapper != null ? objectMapper : DEFAULT_MAPPER;
+        this.scriptEvaluator = scriptEvaluator != null ? scriptEvaluator : DEFAULT_EVALUATOR;
     }
 
     @Override
-    public AviatorEvaluatorInstance getAviatorEvaluator() {
-        return aviatorEvaluator;
-    }
-
-    @Override
-    public List<AviatorFunction> functions() {
-        return Collections.unmodifiableList(functionList);
+    public ScriptEvaluator getScriptEvaluator() {
+        return scriptEvaluator;
     }
 
     @Override
@@ -88,40 +75,28 @@ public class ConfigImpl implements Config {
 
         private ObjectMapper objectMapper;
 
-        private AviatorEvaluatorInstance aviatorEvaluator;
-
-        private final List<AviatorFunction> functionList = new ArrayList<>();
+        private ScriptEvaluator scriptEvaluator;
 
         public Builder threadPool(Executor objectMapper) {
+            Objects.requireNonNull(scriptEvaluator, "scriptEvaluator can not be null.");
             this.threadPool = threadPool;
             return this;
         }
 
         public Builder objectMapper(ObjectMapper objectMapper) {
+            Objects.requireNonNull(scriptEvaluator, "scriptEvaluator can not be null.");
             this.objectMapper = objectMapper;
             return this;
         }
 
-        public Builder function(AviatorFunction function) {
-            Objects.requireNonNull(function, "function can not be null.");
-            this.functionList.add(function);
-            return this;
-        }
-
-        public Builder functionList(List<AviatorFunction> functionList) {
-            Objects.requireNonNull(functionList, "functionList can not be null.");
-            this.functionList.addAll(functionList);
-            return this;
-        }
-
-        public Builder evaluatorInstance(AviatorEvaluatorInstance aviatorEvaluator) {
-            Objects.requireNonNull(aviatorEvaluator, "aviatorEvaluator can not be null.");
-            this.aviatorEvaluator = aviatorEvaluator;
+        public Builder scriptEvaluator(ScriptEvaluator scriptEvaluator) {
+            Objects.requireNonNull(scriptEvaluator, "scriptEvaluator can not be null.");
+            this.scriptEvaluator = scriptEvaluator;
             return this;
         }
 
         public ConfigImpl build() {
-            return new ConfigImpl(aviatorEvaluator, functionList, objectMapper, threadPool);
+            return new ConfigImpl(threadPool, objectMapper, scriptEvaluator);
         }
     }
 }
