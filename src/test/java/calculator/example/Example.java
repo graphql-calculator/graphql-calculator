@@ -46,7 +46,6 @@ public class Example {
         private final Config wrapperConfig;
         private final GraphQLSchema wrappedSchema;
 
-
         public DocumentParseAndValidationCache(Config wrapperConfig, GraphQLSchema wrappedSchema) {
             this.wrapperConfig = wrapperConfig;
             this.wrappedSchema = wrappedSchema;
