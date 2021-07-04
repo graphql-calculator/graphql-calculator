@@ -18,6 +18,7 @@
 package calculator.engine;
 
 import calculator.config.Config;
+import calculator.engine.annotation.Internal;
 import calculator.engine.annotation.PublicApi;
 import calculator.exception.WrapperSchemaException;
 import graphql.schema.GraphQLDirective;
@@ -31,7 +32,7 @@ import static calculator.engine.metadata.Directives.getCalDirectiveByName;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
-@PublicApi
+@Internal
 public class SchemaWrapper {
 
     public static GraphQLSchema wrap(Config config, GraphQLSchema existingSchema) {
