@@ -23,7 +23,7 @@ import calculator.graphql.AsyncDataFetcherInterface;
 import calculator.graphql.CalculatorDocumentCachedProvider;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
-import calculator.engine.SchemaHolder;
+import calculator.util.GraphQLSourceHolder;
 import calculator.engine.script.AviatorScriptEvaluator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -73,7 +73,7 @@ public class Example {
          * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
          */
 
-        GraphQLSchema schema = SchemaHolder.getSchema();
+        GraphQLSchema schema = GraphQLSourceHolder.getSchema();
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .objectMapper(new DefaultObjectMapper())

@@ -19,11 +19,10 @@ package engine.validation
 
 import calculator.config.ConfigImpl
 import calculator.engine.SchemaWrapper
-import calculator.engine.script.AviatorScriptEvaluator
 import calculator.validation.Validator
 import spock.lang.Specification
 
-import static calculator.engine.SchemaHolder.getSchema
+import static calculator.util.GraphQLSourceHolder.getSchema
 
 class ValidationTest extends Specification {
 

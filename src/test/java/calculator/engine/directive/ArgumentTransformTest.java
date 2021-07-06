@@ -20,7 +20,7 @@ package calculator.engine.directive;
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
-import calculator.engine.SchemaHolder;
+import calculator.util.GraphQLSourceHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ListContain;
@@ -41,12 +41,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static calculator.engine.TestUtil.listsWithSameElements;
+import static calculator.util.TestUtil.listsWithSameElements;
 
 public class ArgumentTransformTest {
 
 
-    private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();

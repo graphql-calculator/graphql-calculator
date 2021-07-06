@@ -22,10 +22,9 @@ import calculator.config.Config;
 import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngineState;
 import calculator.engine.ExecutionEngineStateParser;
-import calculator.engine.SchemaHolder;
+import calculator.util.GraphQLSourceHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.metadata.FetchSourceTask;
-import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
@@ -38,7 +37,7 @@ import java.util.Collections;
 
 public class ExecutionEngineStateParserTest {
 
-    private static final GraphQLSchema originalSchema = SchemaHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
 
