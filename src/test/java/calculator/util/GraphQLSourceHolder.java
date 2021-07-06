@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calculator.engine;
+package calculator.util;
 
 import static calculator.engine.service.BusinessServiceClient.batchSellerInfoByIds;
 import static calculator.engine.service.BusinessServiceClient.getSellerInfoById;
 import static calculator.engine.service.ConsumerServiceClient.batchUserInfoByIds;
 import static calculator.graphql.AsyncDataFetcher.async;
 
+import calculator.config.ConfigImpl;
 import calculator.engine.service.CommodityServiceClient;
 import calculator.engine.service.ConsumerServiceClient;
 import calculator.engine.service.MarketingServiceClient;
+import calculator.graphql.CalculatorDocumentCachedProvider;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
+import calculator.graphql.GraphQLSource;
+import graphql.ExecutionInput;
+import graphql.execution.preparsed.PreparsedDocumentEntry;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
@@ -33,8 +39,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
-public class SchemaHolder {
+public class GraphQLSourceHolder {
 
     private static DataFetcher<Map> emptyDataFetcher = environment -> Collections.emptyMap();
 
@@ -85,6 +92,44 @@ public class SchemaHolder {
     };
 
     public static GraphQLSchema getSchema() {
+        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        for (Map.Entry<String, Map<String, DataFetcher>> entry : defaultDataFetcherInfo().entrySet()) {
+            TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
+            runtimeWiring.type(typeWiring);
+        }
+        return TestUtil.schemaByInputFile("schema.graphql", runtimeWiring.build());
+    }
+
+    public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
+        GraphQLSchema schema = getSchemaByDataFetcherMap(dataFetcherInfoMap);
+        ConfigImpl config = ConfigImpl.newConfig().build();
+        DefaultGraphQLSourceBuilder sourceBuilder = new DefaultGraphQLSourceBuilder();
+        sourceBuilder.wrapperConfig(config).originalSchema(schema)
+                .preparsedDocumentProvider(new CalculatorDocumentCachedProvider() {
+                    @Override
+                    public PreparsedDocumentEntry getDocumentFromCache(ExecutionInput executionInput,
+                                                                       Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+                        return null;
+                    }
+
+                    @Override
+                    public void setDocumentCache(ExecutionInput executionInput, PreparsedDocumentEntry cachedValue) {
+                        // ignored
+                    }
+                });
+        return sourceBuilder.build();
+    }
+
+    public static GraphQLSchema getSchemaByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
+        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfoMap.entrySet()) {
+            TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
+            runtimeWiring.type(typeWiring);
+        }
+        return TestUtil.schemaByInputFile("schema.graphql", runtimeWiring.build());
+    }
+
+    public static Map<String, Map<String, DataFetcher>> defaultDataFetcherInfo(){
         Map<String, Map<String, DataFetcher>> dataFetcherInfo = new HashMap<>();
 
         Map<String, DataFetcher> queryFieldFetchers = new HashMap<>();
@@ -119,11 +164,6 @@ public class SchemaHolder {
         toolInfoFieldFetchers.put("abInfo", async(abInfoDataFetcher));
         dataFetcherInfo.put("ToolInfo", toolInfoFieldFetchers);
 
-        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
-        for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfo.entrySet()) {
-            TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
-            runtimeWiring.type(typeWiring);
-        }
-        return TestUtil.schemaByInputFile("schema.graphql", runtimeWiring.build());
+        return dataFetcherInfo;
     }
 }
