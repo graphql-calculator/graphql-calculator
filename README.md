@@ -82,8 +82,6 @@ public class Example {
          */
 
         GraphQLSchema schema = SchemaHolder.getSchema();
-
-
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .objectMapper(new DefaultObjectMapper())
@@ -96,7 +94,7 @@ public class Example {
                 .wrapperConfig(wrapperConfig)
                 .originalSchema(schema)
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
-
+        
         String query = ""
                 + "query mapListArgument($itemIds: [Int]){ \n" +
                 "    commodity{\n" +
@@ -108,14 +106,12 @@ public class Example {
                 "        }\n" +
                 "    }\n" +
                 "}";
-
         ExecutionInput input = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
                 .build();
 
         ExecutionResult result = graphqlSource.graphQL().execute(input);
-        // consumer result
     }
 }
 ```
