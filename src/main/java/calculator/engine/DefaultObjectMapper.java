@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Internal
-public class ObjectMapperImpl implements ObjectMapper{
+public class DefaultObjectMapper implements ObjectMapper{
 
     @Override
     public Map<String, Object> toMap(Object object) {

@@ -32,7 +32,8 @@ public abstract class CalculatorDocumentCachedProvider implements PreparsedDocum
     private Config wrapperConfig;
     private GraphQLSchema wrappedSchema;
 
-    public CalculatorDocumentCachedProvider() { }
+    public CalculatorDocumentCachedProvider() {
+    }
 
     void setWrapperConfig(Config wrapperConfig) {
         this.wrapperConfig = wrapperConfig;
@@ -43,8 +44,8 @@ public abstract class CalculatorDocumentCachedProvider implements PreparsedDocum
     }
 
     @Override
-    public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
-                                              Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+    public final PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
+                                                    Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
         PreparsedDocumentEntry cacheValue = getDocumentFromCache(executionInput, parseAndValidateFunction);
         if (cacheValue != null) {
             return cacheValue;
@@ -68,6 +69,6 @@ public abstract class CalculatorDocumentCachedProvider implements PreparsedDocum
                                                                 Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction);
 
     public abstract void setDocumentCache(ExecutionInput executionInput,
-                                                            PreparsedDocumentEntry cachedValue);
+                                          PreparsedDocumentEntry cachedValue);
 
 }

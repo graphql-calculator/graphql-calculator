@@ -1,5 +1,3 @@
-准备正式版本中...
-
 # graphql-java-calculator
 
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
@@ -29,16 +27,19 @@
 
 #### 2. 包装执行引擎
 
-##### 继承`calculator.graphql.AsyncDataFetcherInterface`
+##### 2.1 继承`calculator.graphql.AsyncDataFetcherInterface`
 
 如果项目中使用了异步化`DataFetcher`，则使其则继承`AsyncDataFetcherInterface`，
-并在方法实现中返回异步化`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
+并在方法实现中返回该`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
 
-##### 通过配置包装schema类、创建`GraphQL`对象
+##### 2.2 创建 `GraphQLSource`
 
-#### 3. 校验执行
+通过指定的配置创建`GraphQLSource`对象，该对象`GraphQLSchema`和`GraphQL`，
+配置类`Config`包含脚本执行引擎、对象转换工具和调度引擎使用的线程池。
 
-对每个使用了计算指令的查询，都必须使用`Validator`进行校验语法是否合法，**建议通过 PreparedDocument 缓存校验结果**。
+#### 2.3 执行前校验
+
+对使用了计算指令的查询使用`Validator`进行语法校验是否合法，建议实现`CalculatorDocumentCachedProvider`缓存校验结果，该类包含语法校验逻辑。
 
 完整示例如下：
 ```java
@@ -65,45 +66,33 @@ public class Example {
 
         /**
          * step 1
+         * Make async dataFetcher implements {@link AsyncDataFetcherInterface}
          *
-         * make async dataFetcher implements xxx
-         */
-        GraphQLSchema schema = SchemaHolder.getSchema();
-
-
-        /**
          * step 2
-         *
+         * Create {@link GraphQLSource} by {@link Config}: including wrapped graphql schema and GraphQL object.
          * create Config, and get wrapped schema with the ability of
          * orchestrate and dynamic calculator and control flow, powered by directives,
          * and create GraphQL with wrapped schema and ExecutionEngine.
          *
-         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
+         * step 3:
+         * validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
+         * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
          */
+
+        GraphQLSchema schema = SchemaHolder.getSchema();
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
+                .objectMapper(new DefaultObjectMapper())
+                .threadPool(Executors.newCachedThreadPool())
                 .build();
 
 
-        /**
-         * step 3: create graphqlSource: including wrapped graphql schema and GraphQL object.
-         */
         DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
         GraphQLSource graphqlSource = graphqlSourceBuilder
                 .wrapperConfig(wrapperConfig)
                 .originalSchema(schema)
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
-
-
-
-        /**
-         * step 3:
-         *
-         * validate the query: ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).
-         *
-         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
-         * Reference {@link DocumentParseAndValidationCache}
-         */
+        
         String query = ""
                 + "query mapListArgument($itemIds: [Int]){ \n" +
                 "    commodity{\n" +
@@ -115,33 +104,23 @@ public class Example {
                 "        }\n" +
                 "    }\n" +
                 "}";
-
-//        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-//        if(validateResult.isFailure()){
-//            List<GraphQLError> errors = validateResult.getErrors();
-//            // do some thing
-//        }else{
-//            Document document = validateResult.getDocument();
-//            // do some thing or ignored
-//        }
-
         ExecutionInput input = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
                 .build();
 
         ExecutionResult result = graphqlSource.graphQL().execute(input);
-        // consumer result
-        System.out.println(result);
     }
-
 }
 ```
 
 # 详情文档
 
-以[测试用例schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
+以[测试schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
 对`graphql-java-calculator`的数据编排、控制流、结果处理和计算转换等进行说明。
+
+表达式语法使用了[`aviatorscript`](https://github.com/killme2008/aviatorscript)，`aviator`当前是`graphql-java-calculator`的默认表达行引擎，
+可通过`ScriptEvaluator`和`Config`自定义表达式引擎。
 
 #### 数据编排
 
@@ -224,8 +203,6 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
 }
 ```
 
-
-
 #### 控制流
 
 控制流主要为根据条件，判断是否请求某个类型数据、或者请求哪个类型数据。
@@ -264,11 +241,11 @@ query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 }
 ```
 
-####  数据转换、过滤、补全
+####  数据补全、动态计算
 
-- 查找券信息和列表商品信息；
-- 使用 @mapper 拼接券的描述文案；
+- 分别查找券信息和列表商品信息；
 - 如果商品绑定了券则返回券后价和是否绑定的标识
+- 对券数据拼接描述文案；
 ```graphql
 query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 

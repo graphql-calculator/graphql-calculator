@@ -17,7 +17,7 @@
 package calculator.config;
 
 import calculator.engine.ObjectMapper;
-import calculator.engine.ObjectMapperImpl;
+import calculator.engine.DefaultObjectMapper;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ScriptEvaluator;
 
@@ -36,7 +36,7 @@ public class ConfigImpl implements Config {
 
     private final ScriptEvaluator scriptEvaluator;
 
-    private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapperImpl();
+    private static final ObjectMapper DEFAULT_MAPPER = new DefaultObjectMapper();
 
     private static final Executor DEFAULT_EXECUTOR = ForkJoinPool.commonPool();
 
