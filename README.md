@@ -1,5 +1,3 @@
-准备正式版本中...
-
 # graphql-java-calculator
 
 基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
