@@ -18,6 +18,8 @@ package calculator.example;
 
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
+import calculator.engine.DefaultObjectMapper;
+import calculator.graphql.AsyncDataFetcherInterface;
 import calculator.graphql.CalculatorDocumentCachedProvider;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
@@ -32,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class Example {
@@ -57,45 +60,35 @@ public class Example {
 
         /**
          * step 1
+         * Make async dataFetcher implements {@link AsyncDataFetcherInterface}
          *
-         * make async dataFetcher implements xxx
-         */
-        GraphQLSchema schema = SchemaHolder.getSchema();
-
-
-        /**
          * step 2
-         *
+         * Create {@link GraphQLSource} by {@link Config}: including wrapped graphql schema and GraphQL object.
          * create Config, and get wrapped schema with the ability of
          * orchestrate and dynamic calculator and control flow, powered by directives,
          * and create GraphQL with wrapped schema and ExecutionEngine.
          *
-         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
+         * step 3:
+         * validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
+         * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
          */
+
+        GraphQLSchema schema = SchemaHolder.getSchema();
+
+
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
+                .objectMapper(new DefaultObjectMapper())
+                .threadPool(Executors.newCachedThreadPool())
                 .build();
 
 
-        /**
-         * step 3: create graphqlSource: including wrapped graphql schema and GraphQL object.
-         */
         DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
         GraphQLSource graphqlSource = graphqlSourceBuilder
                 .wrapperConfig(wrapperConfig)
                 .originalSchema(schema)
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
 
-
-
-        /**
-         * step 3:
-         *
-         * validate the query: ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).
-         *
-         * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
-         * Reference {@link DocumentParseAndValidationCache}
-         */
         String query = ""
                 + "query mapListArgument($itemIds: [Int]){ \n" +
                 "    commodity{\n" +
@@ -108,15 +101,6 @@ public class Example {
                 "    }\n" +
                 "}";
 
-//        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema);
-//        if(validateResult.isFailure()){
-//            List<GraphQLError> errors = validateResult.getErrors();
-//            // do some thing
-//        }else{
-//            Document document = validateResult.getDocument();
-//            // do some thing or ignored
-//        }
-
         ExecutionInput input = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
@@ -124,7 +108,5 @@ public class Example {
 
         ExecutionResult result = graphqlSource.graphQL().execute(input);
         // consumer result
-        System.out.println(result);
     }
-
 }
