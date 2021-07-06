@@ -18,17 +18,14 @@ package calculator.example;
 
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
-import calculator.engine.ExecutionEngine;
+import calculator.graphql.CalculatorDocumentCachedProvider;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
+import calculator.graphql.GraphQLSource;
 import calculator.engine.SchemaHolder;
-import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
-import calculator.validation.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
-import graphql.ParseAndValidateResult;
 import graphql.execution.preparsed.PreparsedDocumentEntry;
-import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.schema.GraphQLSchema;
 
 import java.util.Arrays;
@@ -39,38 +36,20 @@ import java.util.function.Function;
 
 public class Example {
 
-    static class DocumentParseAndValidationCache implements PreparsedDocumentProvider {
+    static class DocumentParseAndValidationCache extends CalculatorDocumentCachedProvider {
 
         private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
 
-        private final Config wrapperConfig;
-        private final GraphQLSchema wrappedSchema;
-
-        public DocumentParseAndValidationCache(Config wrapperConfig, GraphQLSchema wrappedSchema) {
-            this.wrapperConfig = wrapperConfig;
-            this.wrappedSchema = wrappedSchema;
+        @Override
+        public PreparsedDocumentEntry getDocumentFromCache(ExecutionInput executionInput,
+                                                           Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
+            return cache.get(executionInput.getQuery());
         }
 
-
         @Override
-        public PreparsedDocumentEntry getDocument(ExecutionInput executionInput,
-                                                  Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
-            if (cache.get(executionInput.getQuery()) != null) {
-                return cache.get(executionInput.getQuery());
-            }
-
-            ParseAndValidateResult validateResult = Validator.validateQuery(
-                    executionInput.getQuery(), wrappedSchema, wrapperConfig
-            );
-
-            PreparsedDocumentEntry preparsedDocumentEntry;
-            if (validateResult.isFailure()) {
-                preparsedDocumentEntry = new PreparsedDocumentEntry(validateResult.getErrors());
-            } else {
-                preparsedDocumentEntry = new PreparsedDocumentEntry(validateResult.getDocument());
-            }
-            cache.put(executionInput.getQuery(), preparsedDocumentEntry);
-            return preparsedDocumentEntry;
+        public void setDocumentCache(ExecutionInput executionInput,
+                                     PreparsedDocumentEntry cachedValue) {
+            cache.put(executionInput.getQuery(), cachedValue);
         }
     }
 
@@ -93,16 +72,21 @@ public class Example {
          *
          * It is recommend to create `PreparsedDocumentProvider` to cache the result of parse and validate.
          */
-        Config config = ConfigImpl.newConfig()
+        Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .build();
 
-        GraphQLSchema wrappedSchema = SchemaWrapper.wrap(config, schema);
 
-        GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema)
-                .instrumentation(ExecutionEngine.newInstance(config))
-                .preparsedDocumentProvider(new DocumentParseAndValidationCache(config, wrappedSchema))
-                .build();
+        /**
+         * step 3: create graphqlSource: including wrapped graphql schema and GraphQL object.
+         */
+        DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
+        GraphQLSource graphqlSource = graphqlSourceBuilder
+                .wrapperConfig(wrapperConfig)
+                .originalSchema(schema)
+                .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
+
+
 
         /**
          * step 3:
@@ -138,8 +122,9 @@ public class Example {
                 .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
                 .build();
 
-        ExecutionResult result = graphQL.execute(input);
+        ExecutionResult result = graphqlSource.graphQL().execute(input);
         // consumer result
+        System.out.println(result);
     }
 
 }
