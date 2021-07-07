@@ -10,7 +10,7 @@
 - 对查询结果进行排序、过滤、计算转换或者使用其他类型字段进行补全等，其他字段数据可作为这些操作的参数变量；
 - 控制流：将指定字段的获取结果设为全局上下文，继而作为控制流判断条件的参数变量、判断是否请求解析当前类型数据。
 
-计算指令的具体使用方式参考**详情文档**小结。
+计算指令的具体使用方式参考**详情文档**和**使用示例**。
 
 # 快速开始
 
@@ -20,7 +20,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version></version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -45,12 +45,17 @@
 
 # 详情文档
 
-#### `directive @fetchSource(name: String!, sourceConvert:String) on FIELD`
+#### ` @fetchSource`
 
-`@fetchSource`指令是进行数据依赖编排的基础，该指令注解的的字段的`DataFetcher`的获取结果可在其他字段上的计算指令中通过`dependencySource`获取到，
-可通过脚本`sourceConvert`对结果进行转换处理。
+`directive @fetchSource(name: String!, sourceConvert:String) on FIELD`
 
-如果`@fetchSource`所注解的字段在列表指令中，则将该字段的集合作为source提供给其他计算指令。如下使用方式，source结果为包含每个用户的`List<String>`。
+参数解释：
+- `name`：source的名称，一个查询语句中source名称必须是唯一的；
+- `sourceConvert`：对字段绑定`DataFetcher`的获取结果进行转换，所有依赖该source的指令获取的都是转换后的数据。
+
+`@fetchSource`指令是进行数据编排的基础，该指令注解的的字段的`DataFetcher`的获取结果可在其他字段上的计算指令中通过`dependencySource`获取。
+
+如果`@fetchSource`所注解的字段在列表路径中，则将该字段的集合作为source的值。如下使用方式，source结果为包含每个用户的`List<String>`。
 
 ```graphql
 query fetchSourceDemo($userIds: [Int]){
@@ -64,24 +69,74 @@ query fetchSourceDemo($userIds: [Int]){
 }
 ```
 
-#### `directive @skipBy(expression: String!, dependencySource: String) on FIELD`
+#### `@skipBy`
 
-`@skip` 指令的加强版本，可通过脚本判断是否请求该字段、脚本默认输入变量为该字段上的入参。
+`directive @skipBy(expression: String!, dependencySource: String) on FIELD`
 
-也可在输入变量中加上其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
+参数解释：
+- `expression`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
+- `dependencySource`：表达式依赖的source，sourceName不可和变量名称同名。
+
+`@skipBy`是graphql内置指令`@skip`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
+
+可在输入变量中依赖其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
 
 该指令可实现类似于`if(){}` 和 `switch(c): case 1: opx; case 2: opy;`的控制流。
 
-#### `directive @filter(predicate: String!, dependencySource: String) on FIELD`
 
-对列表类型字段的结果进行过滤。该指令会依次对每个列表元素进行计算、表达式结果为`false`的元素会被过滤掉。
+#### `@filter`
 
-**当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型是表达式变量为key为`ele`、value为元素值的键值对**。
+`directive @filter(predicate: String!, dependencySource: String) on FIELD`
 
-该指令可将source作为参数。
+参数解释：
+- `predicate`：过滤判断表达式，结果为true的元素会保留；
+- `dependencySource`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
+
+对列表类型字段的结果进行过滤，可依赖其他source进行判断。
+
+**当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值**。
+
+#### `@sortBy`
+
+`directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD`
+
+参数解释：
+- `expression`：按照该表达式计算结果、对列表元素进行排序；
+- `reversed`：是否进行逆序排序，默认为false；
+- `dependencySource`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
 
 
+对列表类型字段的结果进行排序，可依赖其他source进行判断。
 
+**当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值**。
+
+
+#### `@mapper`
+
+`directive @mapper(expression:String!, dependencySource:String) on FIELD`
+
+参数解释：
+- `expression`：计算字段值的表达式；
+- `dependencySource`：表达式依赖的source，sourceName如果和父节点绑定`DataFetcher`的获取结果key相同，则会覆父节点中的数据。
+
+以父节点绑定的`DataFetcher`获取结果和`dependencySource`为参数变量，计算注解的字段的值。**被注解的字段的`DataFetcher`不会在执行。**。
+
+
+#### `@argumentTransform`
+
+`directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD`
+
+**参数解释**：
+- `argumentName`：该指令进行转换的参数名称；
+- `operateType`：操作类型，包括参数整体映射、列表参数过滤、列表参数映射三种；
+- `expression`：计算新值、或者对参数进行过滤的表达式；
+- `dependencySource`：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
+
+
+对字段参数进行转换、过滤，具体操作有如下三种：
+1. 参数映射(`operateType = Map `)：将表达式结果赋给指定的字段参数，**该操作该字段上的所有变量作为表达式变量**；
+2. 列表参数过滤(`operateType = FILTER`)：过滤列表类型参数中的元素；
+3. 列表参数映射(`operateType = LIST_MAP`)：使用表达式对列表参数中的每个元素进行转换。
 
 # 使用示例
 

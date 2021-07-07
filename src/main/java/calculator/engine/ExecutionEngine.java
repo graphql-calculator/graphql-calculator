@@ -594,10 +594,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
                 argument = argument.stream().map(ele -> {
                     Map<String, Object> transformEnv = new HashMap<>();
+                    transformEnv.put("ele", ele);
                     if (dependencySource != null) {
                         transformEnv.put(dependencySource, source);
                     }
-                    transformEnv.put("ele", ele);
                     return scriptEvaluator.evaluate(expression, transformEnv);
                 }).collect(toList());
 
