@@ -1,11 +1,12 @@
 # 指令定义
+
+directive @fetchSource(name: String!, sourceConvert:String) on FIELD
 directive @skipBy(expression: String!, dependencySource: String) on FIELD
 directive @mock(value: String!) on FIELD
 directive @filter(predicate: String!, dependencySource: String) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
 directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD
 directive @mapper(expression:String!, dependencySource:String) on FIELD
-directive @fetchSource(name: String!, sourceConvert:String) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD
 enum ParamTransformType{
     MAP
