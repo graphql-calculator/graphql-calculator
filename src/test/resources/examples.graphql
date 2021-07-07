@@ -10,8 +10,8 @@ directive @mapper(expression:String!, dependencySource:String) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD
 enum ParamTransformType{
     MAP
-    LIST_MAP
     FILTER
+    LIST_MAP
 }
 
 
