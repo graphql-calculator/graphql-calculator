@@ -122,7 +122,7 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 
 #### 参数拼接
 
-
+入参为`userId`，按照指定的格式拼接为 redis 的key。
 ```graphql
 query userNewInfo($userId: Int){
     consumer{
