@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
@@ -265,7 +266,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 String predicate = getArgumentFromDirective(directive, "predicate");
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
                 dataFetcher = wrapFilterDataFetcher(
-                        dataFetcher, engineState, predicate, dependencySource
+                        dataFetcher, engineState, predicate, dependencySource,valueUnboxer
                 );
                 continue;
             }
@@ -275,7 +276,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
-                dataFetcher = wrapSortDataFetcher(dataFetcher, sortKey, reversed);
+                dataFetcher = wrapSortDataFetcher(dataFetcher, sortKey, reversed, valueUnboxer);
                 continue;
             }
 
@@ -353,7 +354,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF,
                                                  ExecutionEngineState engineState,
                                                  String predicate,
-                                                 String dependencySource) {
+                                                 String dependencySource,
+                                                 ValueUnboxer valueUnboxer) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
@@ -361,9 +363,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         DataFetcher<?> wrappedFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
+            Object unWrapResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
 
-            if (originalResult == null) {
-                return null;
+            if (unWrapResult == null) {
+                return originalResult;
             }
 
             Object source = null;
@@ -377,7 +380,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             List<Object> filteredList = new ArrayList<>();
-            for (Object ele : (Collection<?>) originalResult) {
+            for (Object ele : (Collection<?>) unWrapResult) {
                 Map<String, Object> fieldMap = getCalMap(ele);
                 // 如果为null则表示没有依赖的节点
                 if (dependencySource != null) {
@@ -387,7 +390,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                     filteredList.add(ele);
                 }
             }
-            return filteredList;
+            return wrapResult(originalResult, filteredList);
         };
 
         if (isAsyncFetcher || dependencySource != null) {
@@ -396,28 +399,33 @@ public class ExecutionEngine extends SimpleInstrumentation {
         return wrappedFetcher;
     }
 
-    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed) {
+    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, ValueUnboxer valueUnboxer) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
+            Object unWrapDataFetcherResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
 
-            if (originalResult == null) {
-                return null;
+            if (unWrapDataFetcherResult == null) {
+                return originalResult;
             }
 
-            Collection<?> collection = (Collection<?>) originalResult;
+            Collection<Object> collection = (Collection<Object>) originalResult;
+
+            List<Object> sortedCollection;
             if (reversed) {
-                return collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable) getCalMap(ele).get(sortKey)).reversed()
+                sortedCollection = collection.stream().sorted(
+                        Comparator.comparing(ele -> (Comparable<Object>) getCalMap(ele).get(sortKey)).reversed()
+                ).collect(toList());
+            } else {
+                sortedCollection = collection.stream().sorted(
+                        Comparator.comparing(ele -> (Comparable<Object>) getCalMap(ele).get(sortKey))
                 ).collect(toList());
             }
 
-            return collection.stream().sorted(
-                    Comparator.comparing(ele -> (Comparable) getCalMap(ele).get(sortKey))
-            ).collect(toList());
+            return wrapResult(sortedCollection, originalResult);
         };
 
         if (isAsyncFetcher) {
@@ -440,13 +448,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
-
-            Collection<Object> collectionData;
-            if (originalResult instanceof DataFetcherResult) {
-                collectionData = (Collection<Object>) valueUnboxer.unbox(((DataFetcherResult) originalResult).getData());
-            } else {
-                collectionData = (Collection<Object>) valueUnboxer.unbox(originalResult);
-            }
+            Collection<Object> collectionData = (Collection<Object>) unWrapDataFetcherResult(originalResult, valueUnboxer);
 
             if (arraySize(collectionData) == 0) {
                 return originalResult;
@@ -485,16 +487,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 ).collect(toList());
             }
 
-            if (originalResult instanceof DataFetcherResult) {
-                return DataFetcherResult.newResult()
-                        .errors(((DataFetcherResult<?>) originalResult).getErrors())
-                        .localContext(((DataFetcherResult<?>) originalResult).getLocalContext())
-                        .data(sortedList)
-                        .build();
-            }
-
-            return sortedList;
-
+            return wrapResult(originalResult,sortedList);
         };
 
         if (isAsyncFetcher || dependencySource != null) {
@@ -503,6 +496,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         return wrappedDataFetcher;
     }
+
 
     // directive @map(mapper:String!, dependencySource:String) on FIELD
     private DataFetcher<?> wrapMapDataFetcher(DataFetcher<?> defaultDF,
@@ -711,6 +705,38 @@ public class ExecutionEngine extends SimpleInstrumentation {
             result.putAll(objectMap);
         }
         return result;
+    }
+
+
+    private Object unWrapDataFetcherResult(Object originalResult, ValueUnboxer valueUnboxer) {
+
+        Object nonFutureResult;
+        if (originalResult instanceof CompletionStage) {
+            nonFutureResult = ((CompletionStage) originalResult).toCompletableFuture().join();
+        } else {
+            nonFutureResult = originalResult;
+        }
+
+        Object fetchData;
+        if (nonFutureResult instanceof DataFetcherResult) {
+            fetchData = ((DataFetcherResult<?>) nonFutureResult).getData();
+        } else {
+            fetchData = nonFutureResult;
+        }
+
+        return valueUnboxer.unbox(fetchData);
+    }
+
+    private Object wrapResult(Object originalResult, Object data) {
+        if (originalResult instanceof DataFetcherResult) {
+            return DataFetcherResult.newResult()
+                    .errors(((DataFetcherResult<?>) originalResult).getErrors())
+                    .localContext(((DataFetcherResult<?>) originalResult).getLocalContext())
+                    .data(data)
+                    .build();
+        }
+
+        return data;
     }
 
 
