@@ -14,6 +14,20 @@ enum ParamTransformType{
 }
 
 
+query userNewInfo($userId: Int){
+    consumer{
+        isNewUser(redisKey: "fashion:shoes:",userId: $userId)
+        # 将参数拼接为 redis 的key，fashion:shoes:{userId}
+        @argumentTransform(argumentName: "redisKey",operateType: MAP ,expression: "concat(redisKey,userId)")
+        {
+            userId
+            isNewUser
+            sceneKey
+        }
+    }
+}
+
+
 # 父子路径上有 @fetchSource
 query sourceOnAncestorPath_case01{
     consumer{
@@ -78,10 +92,6 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
         }
     }
 }
-
-
-
-
 
 
 ## 查询某个红包可用的商品集合信息，并过滤掉下架的商品

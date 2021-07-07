@@ -24,7 +24,8 @@ type Query {
 type Consumer{
     userInfo(userId: Int):User
     userInfoList(userIds: [Int]): [User]
-    # todo 新老客
+    #  用户对于各种业务的新老客，参数格式为： redisKey_{userId}
+    isNewUser(redisKey: String, userId: Int): NewUserInfo
 }
 
 type User{
@@ -32,6 +33,13 @@ type User{
     age: Int
     name: String
     email: String
+}
+
+type NewUserInfo{
+    # 用户id
+    userId: Int
+    sceneKey: String
+    isNewUser: Boolean
 }
 
 # ---------------------------------------------------- b端商家 ------------------------------------------------------------------

@@ -103,6 +103,6 @@ public class Example {
                 .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
                 .build();
 
-        ExecutionResult result = graphqlSource.graphQL().execute(input);
+        ExecutionResult result = graphqlSource.getGraphQL().execute(input);
     }
 }
