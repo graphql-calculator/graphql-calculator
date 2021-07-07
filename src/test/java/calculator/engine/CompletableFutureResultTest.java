@@ -24,7 +24,6 @@ import calculator.util.GraphQLSourceHolder;
 import calculator.validation.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphqlErrorException;
 import graphql.ParseAndValidateResult;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
@@ -35,23 +34,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import static calculator.util.TestUtil.listsWithSameElements;
-import static calculator.graphql.AsyncDataFetcher.async;
 
-public class SupportDataFetcherResultTest {
+public class CompletableFutureResultTest {
 
     @Test
-    public void DataFetcherResultTest(){
+    public void CompletableFutureResultTest() {
         DataFetcher<Object> commodityListDataFetcher = environment -> {
             Map<String, Object> arguments = environment.getArguments();
             List<Number> ids = (List<Number>) arguments.get("itemIds");
-            return DataFetcherResult.newResult().data(CommodityServiceClient.batchItemBaseInfoByIds(ids)).build();
+            DataFetcherResult<Object> dfDataResult = DataFetcherResult.newResult().data(CommodityServiceClient.batchItemBaseInfoByIds(ids)).build();
+            return CompletableFuture.completedFuture(dfDataResult);
         };
 
         Map<String, Map<String, DataFetcher>> dfInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
-        dfInfoMap.get("Commodity").put("itemList",async(commodityListDataFetcher));
-
+        dfInfoMap.get("Commodity").put("itemList", commodityListDataFetcher);
         GraphQLSource graphqlSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(dfInfoMap);
 
         String query = ""
@@ -102,74 +101,5 @@ public class SupportDataFetcherResultTest {
                         "{itemId=10, name=item_name_10, salePrice=101, onSale=true}]"
         );
 
-    }
-
-    @Test
-    public void WithErrorDataFetcherResultTest(){
-
-        {
-            DataFetcher<Object> commodityListDataFetcher = environment -> {
-                Map<String, Object> arguments = environment.getArguments();
-                List<Number> ids = (List<Number>) arguments.get("itemIds");
-                return DataFetcherResult.newResult()
-                        .data(CommodityServiceClient.batchItemBaseInfoByIds(ids))
-                        .error(GraphqlErrorException.newErrorException().message("mock exception").build())
-                        .build();
-            };
-
-            Map<String, Map<String, DataFetcher>> dfInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
-            dfInfoMap.get("Commodity").put("itemList",async(commodityListDataFetcher));
-
-            GraphQLSource graphqlSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(dfInfoMap);
-
-            String query = ""
-                    + "query( $couponId: Int){\n" +
-                    "    commodity{\n" +
-                    "        itemList(itemIds: 1)\n" +
-                    "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySource: \"itemIdList\",expression: \"itemIdList\")\n" +
-                    "        @filter(predicate: \"onSale\")\n" +
-                    "        {\n" +
-                    "           itemId\n" +
-                    "            name\n" +
-                    "            salePrice\n" +
-                    "            onSale\n" +
-                    "        }\n" +
-                    "    }\n" +
-                    "\n" +
-                    "    marketing{\n" +
-                    "        coupon(couponId: $couponId){\n" +
-                    "            bindingItemIds\n" +
-                    "            @fetchSource(name: \"itemIdList\")\n" +
-                    "        }\n" +
-                    "    }\n" +
-                    "}";
-
-            ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), ConfigImpl.newConfig().build());
-            assert !validateResult.isFailure();
-
-            ExecutionInput skipInput = ExecutionInput
-                    .newExecutionInput(query)
-                    .variables(Collections.singletonMap("couponId", 1L))
-                    .build();
-            ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
-
-            assert executionResult != null;
-            assert executionResult.getErrors().size() == 1;
-            assert Objects.equals(executionResult.getErrors().get(0).getMessage(),"mock exception");
-            Map<String, Map<String, Object>> data = executionResult.getData();
-            assert listsWithSameElements(((Map<String, List>) data.get("marketing").get("coupon")).get("bindingItemIds"), Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
-            List<Map<String, Object>> itemListInfo = (List<Map<String, Object>>) data.get("commodity").get("itemList");
-            assert itemListInfo.size() == 7;
-            assert Objects.equals(
-                    itemListInfo.toString(),
-                    "[{itemId=1, name=item_name_1, salePrice=11, onSale=true}, " +
-                            "{itemId=2, name=item_name_2, salePrice=21, onSale=true}, " +
-                            "{itemId=4, name=item_name_4, salePrice=41, onSale=true}, " +
-                            "{itemId=5, name=item_name_5, salePrice=51, onSale=true}, " +
-                            "{itemId=7, name=item_name_7, salePrice=71, onSale=true}, " +
-                            "{itemId=8, name=item_name_8, salePrice=81, onSale=true}, " +
-                            "{itemId=10, name=item_name_10, salePrice=101, onSale=true}]"
-            );
-        }
     }
 }

@@ -20,6 +20,8 @@ package calculator.engine.directive;
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
+import calculator.engine.service.ConsumerServiceClient;
+import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
@@ -30,6 +32,7 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
+import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
@@ -148,7 +151,6 @@ public class ArgumentTransformTest {
         assert listsWithSameElements(((Map<String, List>) data.get("marketing").get("coupon")).get("bindingItemIds"), Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
         List<Map<String, Object>> itemListInfo = (List<Map<String, Object>>) data.get("commodity").get("itemList");
         assert itemListInfo.size() == 2;
-        System.out.println(itemListInfo.toString());
         assert Objects.equals(
                 itemListInfo.toString(),
                 "[{itemId=9, name=item_name_9, salePrice=91, onSale=false}, {itemId=10, name=item_name_10, salePrice=101, onSale=true}]"
@@ -226,7 +228,6 @@ public class ArgumentTransformTest {
         ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
         assert !validateResult.isFailure();
 
-        System.out.println(query);
 
         HashMap<String, Object> variables = new LinkedHashMap<>();
         // 绑定的商品为 [1,10]
@@ -246,7 +247,6 @@ public class ArgumentTransformTest {
 
         List<Map<String, Object>> itemListInfo = (List<Map<String, Object>> )data.get("commodity").get("itemList");
         assert itemListInfo.size() == 4;
-        System.out.println(itemListInfo);
         assert Objects.equals(itemListInfo.toString(),
                 ""
                         // item with coupon
@@ -256,6 +256,51 @@ public class ArgumentTransformTest {
                         + "{itemId=11, name=item_name_11, salePrice=111, isUsedCoupon=false, couponPrice=111}, "
                         + "{itemId=12, name=item_name_12, salePrice=121, isUsedCoupon=false, couponPrice=121}]"
                 );
+    }
+
+
+    @Test
+    public void transformArgumentValue() {
+        DataFetcher<Object> userNewInfoDataFetcher = environment -> {
+            String redisKey = (String) environment.getArguments().get("redisKey");
+
+            return ConsumerServiceClient.getNewUserInfoById(redisKey);
+        };
+
+        Map<String, Map<String, DataFetcher>> dfInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        dfInfoMap.get("Consumer").put("isNewUser", userNewInfoDataFetcher);
+        GraphQLSource graphqlSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(dfInfoMap);
+
+
+        String query = "" +
+                "query userNewInfo($userId: Int){\n" +
+                "    consumer{\n" +
+                "        isNewUser(redisKey: \"fashion:shoes:\",userId: $userId)\n" +
+                "        # 将参数拼接为 redis 的key，fashion:shoes:{userId}\n" +
+                "        @argumentTransform(argumentName: \"redisKey\",operateType: MAP ,expression: \"redisKey + str(userId)\")\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            isNewUser\n" +
+                "            sceneKey\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("userId", 2);
+        ExecutionInput skipInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Map<String, Object>>> data = executionResult.getData();
+        assert Objects.equals(data.get("consumer").get("isNewUser").toString(), "{userId=2, isNewUser=true, sceneKey=fashion_shoes}");
     }
 
 }

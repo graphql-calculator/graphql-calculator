@@ -31,7 +31,7 @@ public class ConsumerServiceClient {
 
         public UserInfo(long userId, int age, String name, String email) {
             this.userId = userId;
-            this.age =age;
+            this.age = age;
             this.name = name;
             this.email = email;
         }
@@ -77,4 +77,53 @@ public class ConsumerServiceClient {
         return userIdList.stream().map(ConsumerServiceClient::getUserInfoById).collect(Collectors.toList());
     }
 
+
+    static class NewUserInfo {
+        private long userId;
+        private String sceneKey;
+        private boolean isNewUser;
+
+        public NewUserInfo(long userId, String sceneKey, boolean isNewUser) {
+            this.userId = userId;
+            this.sceneKey = sceneKey;
+            this.isNewUser = isNewUser;
+        }
+
+        public long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(long userId) {
+            this.userId = userId;
+        }
+
+        public String getSceneKey() {
+            return sceneKey;
+        }
+
+        public void setSceneKey(String sceneKey) {
+            this.sceneKey = sceneKey;
+        }
+
+        public boolean isNewUser() {
+            return isNewUser;
+        }
+
+        public void setNewUser(boolean newUser) {
+            isNewUser = newUser;
+        }
+    }
+
+    public static NewUserInfo getNewUserInfoById(String redisKey) {
+        if (redisKey == null) {
+            return null;
+        }
+
+        String[] split = redisKey.split(":");
+        if (split.length != 3) {
+            return null;
+        }
+
+        return new NewUserInfo(Long.parseLong(split[2]), split[0] + "_" + split[1], Long.parseLong(split[2]) % 2 == 0);
+    }
 }

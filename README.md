@@ -36,82 +36,12 @@
 通过配置类`Config`创建`GraphQLSource`对象，该对象包含`GraphQLSchema`和`GraphQL`，
 配置类可指定脚本执行引擎、对象转换工具和调度引擎使用的线程池。
 
-#### 2.3 执行前校验
+##### 2.3 执行前校验
 
 对使用了计算指令的查询使用`Validator`进行语法校验，建议实现`CalculatorDocumentCachedProvider`缓存校验结果，该类包含语法校验逻辑。
 
-完整示例如下：
-```java
-public class Example {
+完整示例参考[`Example`](/src/test/java/calculator/example/Example.java)
 
-    static class DocumentParseAndValidationCache extends CalculatorDocumentCachedProvider {
-
-        private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
-
-        @Override
-        public PreparsedDocumentEntry getDocumentFromCache(ExecutionInput executionInput,
-                                                           Function<ExecutionInput, PreparsedDocumentEntry> parseAndValidateFunction) {
-            return cache.get(executionInput.getQuery());
-        }
-
-        @Override
-        public void setDocumentCache(ExecutionInput executionInput,
-                                     PreparsedDocumentEntry cachedValue) {
-            cache.put(executionInput.getQuery(), cachedValue);
-        }
-    }
-
-    public static void main(String[] args) {
-
-        /**
-         * step 1
-         * Make async dataFetcher implements {@link AsyncDataFetcherInterface}
-         *
-         * step 2
-         * Create {@link GraphQLSource} by {@link Config}: including wrapped graphql schema and GraphQL object.
-         * create Config, and get wrapped schema with the ability of
-         * orchestrate and dynamic calculator and control flow, powered by directives,
-         * and create GraphQL with wrapped schema and ExecutionEngine.
-         *
-         * step 3:
-         * validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
-         * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
-         */
-
-        GraphQLSchema schema = SchemaHolder.getSchema();
-        Config wrapperConfig = ConfigImpl.newConfig()
-                .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
-                .objectMapper(new DefaultObjectMapper())
-                .threadPool(Executors.newCachedThreadPool())
-                .build();
-
-
-        DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
-        GraphQLSource graphqlSource = graphqlSourceBuilder
-                .wrapperConfig(wrapperConfig)
-                .originalSchema(schema)
-                .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
-        
-        String query = ""
-                + "query mapListArgument($itemIds: [Int]){ \n" +
-                "    commodity{\n" +
-                "        itemList(itemIds: $itemIds)\n" +
-                "        @argumentTransform(argumentName: \"itemIds\",operateType: LIST_MAP,expression: \"ele*10\")\n" +
-                "        {\n" +
-                "            itemId\n" +
-                "            name\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
-        ExecutionInput input = ExecutionInput
-                .newExecutionInput(query)
-                .variables(Collections.singletonMap("itemIds", Arrays.asList(1, 2, 3)))
-                .build();
-
-        ExecutionResult result = graphqlSource.graphQL().execute(input);
-    }
-}
-```
 
 # 详情文档
 
@@ -190,33 +120,6 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 }
 ```
 
-#### 结果过滤
-
-- 查询逻辑同`数据编排`，但过滤掉没有在售的商品。
-```graphql
-query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
-    commodity{
-        itemList(itemIds: 1)
-        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
-        @filter(predicate: "onSale")
-        {
-            itemId
-            name
-            salePrice
-            onSale
-            # sellerId
-        }
-    }
-
-    marketing{
-        coupon(couponId: $couponId){
-            bindingItemIds
-            @fetchSource(name: "itemIdList")
-        }
-    }
-}
-```
-
 #### 参数拼接
 
 
@@ -248,6 +151,33 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
             name
             salePrice
             onSale
+        }
+    }
+
+    marketing{
+        coupon(couponId: $couponId){
+            bindingItemIds
+            @fetchSource(name: "itemIdList")
+        }
+    }
+}
+```
+
+#### 结果过滤
+
+- 查询逻辑同`数据编排`，但过滤掉没有在售的商品。
+```graphql
+query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
+    commodity{
+        itemList(itemIds: 1)
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+        @filter(predicate: "onSale")
+        {
+            itemId
+            name
+            salePrice
+            onSale
+            # sellerId
         }
     }
 
@@ -298,7 +228,7 @@ query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 }
 ```
 
-####  数据补全、动态计算
+####  数据补全/动态计算
 
 - 分别查找券信息和列表商品信息；
 - 如果商品绑定了券则返回券后价和是否绑定的标识
