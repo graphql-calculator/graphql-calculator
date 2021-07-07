@@ -29,9 +29,9 @@ import java.util.List;
 @PublicApi
 public interface GraphQLSource {
 
-    GraphQLSchema wrappedSchema();
+    GraphQLSchema getWrappedSchema();
 
-    GraphQL graphQL();
+    GraphQL getGraphQL();
 
     static Builder newGraphQLSource(){
         return new DefaultGraphQLSourceBuilder();

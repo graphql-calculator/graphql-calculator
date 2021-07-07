@@ -116,12 +116,12 @@ public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
         }
 
         @Override
-        public GraphQLSchema wrappedSchema() {
+        public GraphQLSchema getWrappedSchema() {
             return wrappedSchema;
         }
 
         @Override
-        public GraphQL graphQL() {
+        public GraphQL getGraphQL() {
             return graphQL;
         }
     }
