@@ -64,7 +64,7 @@ public class ArgumentTransformTest {
                 + "query( $couponId: Int){\n" +
                 "    commodity{\n" +
                 "        itemList(itemIds: 1)\n" +
-                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySource: \"itemIdList\",expression: \"itemIdList\")\n" +
+                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySources: \"itemIdList\",expression: \"itemIdList\")\n" +
                 "        @filter(predicate: \"onSale\")\n" +
                 "        {\n" +
                 "           itemId\n" +
@@ -115,7 +115,7 @@ public class ArgumentTransformTest {
                 + "query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$itemIds: [Int]) {\n" +
                 "    commodity{\n" +
                 "        itemList(itemIds: $itemIds)\n" +
-                "        @argumentTransform(argumentName: \"itemIds\", operateType: FILTER,dependencySource: \"itemIdList\",expression: \"listContain(itemIdList,ele)\")\n" +
+                "        @argumentTransform(argumentName: \"itemIds\", operateType: FILTER,dependencySources: \"itemIdList\",expression: \"listContain(itemIdList,ele)\")\n" +
                 "        {\n" +
                 "            itemId\n" +
                 "            name\n" +
@@ -218,9 +218,9 @@ public class ArgumentTransformTest {
                 "            itemId\n" +
                 "            name\n" +
                 "            salePrice\n" +
-                "            isUsedCoupon: onSale @map(dependencySource: \"itemCouponInfo\",mapper: \"seq.get(itemCouponInfo,itemId)!=nil\")\n" +
+                "            isUsedCoupon: onSale @map(dependencySources: \"itemCouponInfo\",mapper: \"seq.get(itemCouponInfo,itemId)!=nil\")\n" +
                 "            # 券后价\n" +
-                "            couponPrice: salePrice @map(dependencySource: \"itemCouponInfo\",mapper: \"salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) \")\n" +
+                "            couponPrice: salePrice @map(dependencySources: \"itemCouponInfo\",mapper: \"salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) \")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";

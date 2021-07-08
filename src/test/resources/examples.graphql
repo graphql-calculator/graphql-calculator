@@ -1,13 +1,13 @@
 # 指令定义
 
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
-directive @skipBy(predicate: String!, dependencySource: String) on FIELD
+directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD
 directive @mock(value: String!) on FIELD
-directive @filter(predicate: String!, dependencySource: String) on FIELD
+directive @filter(predicate: String!, dependencySources: [String!]) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
-directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySource: String) on FIELD
-directive @map(mapper:String!, dependencySource:String) on FIELD
-directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD
+directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySources: [String!]) on FIELD
+directive @map(mapper:String!, dependencySources:[String!]) on FIELD
+directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:[String!]) on FIELD
 enum ParamTransformType{
     MAP
     FILTER
@@ -15,6 +15,65 @@ enum ParamTransformType{
 }
 
 
+
+query sortResult_case01{
+    commodity{
+        itemList(itemIds: [1,2,3,4])
+        {
+            itemId
+            sortKey: itemId @map(mapper: "itemId/2")
+            salePrice
+            saleAmount(itemId: 1)
+        }
+    }
+}
+
+# 有数据依赖的排序
+query sortByWithSource_case01{
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        @sortBy(comparator: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+        {
+            itemId
+            name
+            salePrice
+        }
+    }
+
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+}
+
+
+# 表达式排序
+query sortByCase_01{
+    consumer{
+        userInfoList(userIds: [1,2,3,4])
+        @sortBy(comparator: "userId%2",reversed: true)
+        {
+            userId
+            name
+        }
+    }
+}
+
+# 简单排序
+query sortCase_01{
+    consumer{
+        userInfoList(userIds: [3,4,1,2])
+        @sort(key: "userId",reversed: true)
+        {
+            userId
+            name
+        }
+    }
+}
+
+
+# 参数拼接
 query userNewInfo($userId: Int){
     consumer{
         isNewUser(redisKey: "fashion:shoes:",userId: $userId)
@@ -42,8 +101,8 @@ query sourceOnAncestorPath_case01{
     commodity{
         item(itemId: 1){
             itemId
-            userId: itemId @map(mapper: "userId",dependencySource: "userId")
-            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySource: "userInfo")
+            userId: itemId @map(mapper: "userId",dependencySources: "userId")
+            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySources: "userInfo")
         }
     }
 }
@@ -61,8 +120,8 @@ query sourceOnAncestorPath_case02{
     commodity{
         item(itemId: 1){
             itemId
-            userId: itemId @map(mapper: "userId",dependencySource: "userId")
-            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySource: "userInfo")
+            userId: itemId @map(mapper: "userId",dependencySources: "userId")
+            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySources: "userInfo")
         }
     }
 }
@@ -87,9 +146,9 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             itemId
             name
             salePrice
-            isUsedCoupon: onSale @map(dependencySource: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
+            isUsedCoupon: onSale @map(dependencySources: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
             # 券后价
-            couponPrice: salePrice @map(dependencySource: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
+            couponPrice: salePrice @map(dependencySources: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
         }
     }
 }
@@ -99,7 +158,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
     commodity{
         itemList(itemIds: 1)
-        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySources: "itemIdList",expression: "itemIdList")
         @filter(predicate: "onSale")
         {
             itemId
@@ -122,7 +181,7 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$itemIds: [Int]) {
     commodity{
         itemList(itemIds: $itemIds)
-        @argumentTransform(argumentName: "itemIds", operateType: FILTER,dependencySource: "itemIdList",expression: "listContain(itemIdList,ele)")
+        @argumentTransform(argumentName: "itemIds", operateType: FILTER,dependencySources: "itemIdList",expression: "listContain(itemIdList,ele)")
         {
             itemId
             name
@@ -156,7 +215,7 @@ query mapListArgument($itemIds: [Int]){
 query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 
     marketing
-    @skipBy(predicate: "abValue <= 3",dependencySource: "abValue")
+    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
     {
         coupon(couponId: $couponId){
             couponId

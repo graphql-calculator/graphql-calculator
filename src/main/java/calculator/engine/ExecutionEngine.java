@@ -32,6 +32,7 @@ import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
 import graphql.language.Directive;
 import graphql.parser.Parser;
@@ -56,6 +57,7 @@ import java.util.function.Supplier;
 import static calculator.common.CommonUtil.arraySize;
 import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
+import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.MAP;
@@ -252,8 +254,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
         for (Directive directive : dirOnField) {
             if (Objects.equals(SKIP_BY.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
-                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
-                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, predicate, dependencySource);
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, predicate, dependencySources);
                 continue;
             }
 
@@ -264,9 +266,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             if (Objects.equals(FILTER.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
-                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapFilterDataFetcher(
-                        dataFetcher, engineState, predicate, dependencySource,valueUnboxer
+                        dataFetcher, engineState, predicate, dependencySources, valueUnboxer
                 );
                 continue;
             }
@@ -286,18 +288,18 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 reversed = reversed != null
                         ? reversed
                         : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
-                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapSortByDataFetcher(
-                        dataFetcher, comparator, reversed, dependencySource, engineState, valueUnboxer
+                        dataFetcher, comparator, reversed, dependencySources, engineState, valueUnboxer
                 );
                 continue;
             }
 
             if (Objects.equals(MAP.getName(), directive.getName())) {
                 String mapper = getArgumentFromDirective(directive, "mapper");
-                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapMapDataFetcher(
-                        dataFetcher, mapper, dependencySource, engineState
+                        dataFetcher, mapper, dependencySources, engineState
                 );
                 continue;
             }
@@ -306,9 +308,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 String argumentName = getArgumentFromDirective(directive, "argumentName");
                 String operateType = getArgumentFromDirective(directive, "operateType");
                 String expression = getArgumentFromDirective(directive, "expression");
-                String dependencySource = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapArgumentTransformDataFetcher(
-                        argumentName, operateType, expression, dependencySource, dataFetcher, engineState
+                        argumentName, operateType, expression, dependencySources, dataFetcher, engineState
                 );
                 continue;
             }
@@ -319,7 +321,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, ExecutionEngineState engineState, String predicate, String dependencySource) {
+    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher,
+                                               ExecutionEngineState engineState,
+                                               String predicate,
+                                               List<String> dependencySources) {
         boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
@@ -327,12 +332,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Map<String, Object> env = new LinkedHashMap<>(environment.getArguments());
-            if (dependencySource != null) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    env.put(dependencySource, null);
-                } else {
-                    env.put(dependencySource, sourceTask.getTaskFuture().join());
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        env.put(dependencySource, null);
+                    } else {
+                        env.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
                 }
             }
 
@@ -344,7 +351,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return innerDataFetcher.get(environment);
         };
 
-        if (isAsyncFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
         return innerDataFetcher;
@@ -354,7 +361,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF,
                                                  ExecutionEngineState engineState,
                                                  String predicate,
-                                                 String dependencySource,
+                                                 List<String> dependencySources,
                                                  ValueUnboxer valueUnboxer) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
@@ -369,23 +376,22 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 return originalResult;
             }
 
-            Object source = null;
-            if (dependencySource != null) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    source = null;
-                } else {
-                    source = sourceTask.getTaskFuture().join();
+            Map<String, Object> sourceEnv = new LinkedHashMap<>();
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        sourceEnv.put(dependencySource, null);
+                    } else {
+                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
                 }
             }
 
             List<Object> filteredList = new ArrayList<>();
             for (Object ele : (Collection<?>) unWrapResult) {
                 Map<String, Object> fieldMap = getCalMap(ele);
-                // 如果为null则表示没有依赖的节点
-                if (dependencySource != null) {
-                    fieldMap.put(dependencySource, source);
-                }
+                fieldMap.putAll(sourceEnv);
                 if ((Boolean) scriptEvaluator.evaluate(predicate, fieldMap)) {
                     filteredList.add(ele);
                 }
@@ -393,7 +399,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, filteredList);
         };
 
-        if (isAsyncFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedFetcher, innerExecutor);
         }
         return wrappedFetcher;
@@ -425,7 +431,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 ).collect(toList());
             }
 
-            return wrapResult(sortedCollection, originalResult);
+            return wrapResult(originalResult, sortedCollection);
         };
 
         if (isAsyncFetcher) {
@@ -438,7 +444,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private DataFetcher<?> wrapSortByDataFetcher(DataFetcher<?> defaultDF,
                                                  String comparator,
                                                  Boolean reversed,
-                                                 String dependencySource,
+                                                 List<String> dependencySources,
                                                  ExecutionEngineState engineState,
                                                  ValueUnboxer valueUnboxer) {
 
@@ -454,43 +460,39 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 return originalResult;
             }
 
-            final Object source;
-            if (dependencySource != null) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    source = null;
-                } else {
-                    source = sourceTask.getTaskFuture().join();
+            Map<String, Object> sourceEnv = new LinkedHashMap<>();
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        sourceEnv.put(dependencySource, null);
+                    } else {
+                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
                 }
-            } else {
-                source = null;
             }
 
             List<Object> sortedList;
             if (reversed) {
                 sortedList = collectionData.stream().sorted(Comparator.comparing(ele -> {
                     Map<String, Object> env = getCalMap(ele);
-                    if (dependencySource != null) {
-                        env.put(dependencySource, source);
-                    }
+                    env.putAll(sourceEnv);
                     return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                 }).reversed()).collect(toList());
             } else {
                 sortedList = collectionData.stream().sorted(
                         Comparator.comparing(ele -> {
                             Map<String, Object> env = getCalMap(ele);
-                            if (dependencySource != null) {
-                                env.put(dependencySource, source);
-                            }
+                            env.putAll(sourceEnv);
                             return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                         })
                 ).collect(toList());
             }
 
-            return wrapResult(originalResult,sortedList);
+            return wrapResult(originalResult, sortedList);
         };
 
-        if (isAsyncFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
 
@@ -498,36 +500,37 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-    // directive @map(mapper:String!, dependencySource:String) on FIELD
+    // directive @map(mapper:String!, dependencySources:String) on FIELD
     private DataFetcher<?> wrapMapDataFetcher(DataFetcher<?> defaultDF,
                                               String mapper,
-                                              String dependencySource,
+                                              List<String> dependencySources,
                                               ExecutionEngineState engineState) {
 
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Object source = null;
-            if (dependencySource != null) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    source = null;
-                } else {
-                    source = sourceTask.getTaskFuture().join();
+
+            Map<String, Object> sourceEnv = new LinkedHashMap<>();
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        sourceEnv.put(dependencySource, null);
+                    } else {
+                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
                 }
             }
 
+            // new Map, do not alter original Map info.
             HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
-            if (dependencySource != null) {
-                expEnv.put(dependencySource, source);
-            }
+            expEnv.putAll(sourceEnv);
 
             return scriptEvaluator.evaluate(mapper, expEnv);
         };
 
-        if (isAsyncFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
 
@@ -539,7 +542,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private DataFetcher<?> wrapArgumentTransformDataFetcher(String argumentName,
                                                             String operateType,
                                                             String expression,
-                                                            String dependencySource,
+                                                            List<String> dependencySources,
                                                             DataFetcher<?> defaultDF,
                                                             ExecutionEngineState engineState) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
@@ -547,17 +550,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedFetcher = environment -> {
-
-            final Object source;
-            if (dependencySource != null) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                    source = null;
-                } else {
-                    source = sourceTask.getTaskFuture().join();
+            Map<String, Object> sourceEnv = new LinkedHashMap<>();
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        sourceEnv.put(dependencySource, null);
+                    } else {
+                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
                 }
-            } else {
-                source = null;
             }
 
             // filter list element of list argument
@@ -570,9 +572,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 argument = argument.stream().filter(ele -> {
                             HashMap<String, Object> env = new HashMap<>();
                             env.put("ele", ele);
-                            if (dependencySource != null) {
-                                env.put(dependencySource, source);
-                            }
+                            env.putAll(sourceEnv);
 
                             return (Boolean) scriptEvaluator.evaluate(expression, env);
                         }
@@ -595,9 +595,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 argument = argument.stream().map(ele -> {
                     Map<String, Object> transformEnv = new HashMap<>();
                     transformEnv.put("ele", ele);
-                    if (dependencySource != null) {
-                        transformEnv.put(dependencySource, source);
-                    }
+                    transformEnv.putAll(sourceEnv);
                     return scriptEvaluator.evaluate(expression, transformEnv);
                 }).collect(toList());
 
@@ -613,9 +611,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (Objects.equals(operateType, Directives.ParamTransformType.MAP.name())) {
 
                 Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
-                if (dependencySource != null) {
-                    transformEnv.put(dependencySource, source);
-                }
+                transformEnv.putAll(sourceEnv);
                 Object newParam = scriptEvaluator.evaluate(expression, transformEnv);
 
                 Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
@@ -630,7 +626,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             throw new RuntimeException("can not invoke here.");
         };
 
-        if (isAsyncFetcher || dependencySource != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedFetcher, innerExecutor);
         }
 
@@ -739,5 +735,18 @@ public class ExecutionEngine extends SimpleInstrumentation {
         return data;
     }
 
+    @Override
+    public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
+        return new InstrumentationContext<ExecutionResult>(){
 
+            @Override
+            public void onDispatched(CompletableFuture<ExecutionResult> result) {
+            }
+
+            @Override
+            public void onCompleted(ExecutionResult result, Throwable t) {
+                System.out.println(result);
+            }
+        };
+    }
 }

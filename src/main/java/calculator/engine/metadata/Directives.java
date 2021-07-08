@@ -21,6 +21,7 @@ import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLEnumValueDefinition;
+import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 
 import java.util.Collections;
@@ -33,7 +34,7 @@ import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 
 /**
  * The customized directives which to be provided to describe runtime operation, including query execution, type validation.
- * 
+ * <p>
  * Details in https://spec.graphql.org/draft/#sec-Language.Directives.
  */
 
@@ -57,9 +58,9 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencySource")
+                    .name("dependencySources")
                     .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLString))
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     // directive @mock(value: String!) on FIELD
@@ -84,9 +85,9 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencySource")
+                    .name("dependencySources")
                     .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLString))
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
 
@@ -123,9 +124,9 @@ public class Directives {
                     .type(GraphQLBoolean))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencySource")
+                    .name("dependencySources")
                     .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLString))
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     // directive @map(mapper:String!, dependencySource:String) on FIELD
@@ -140,9 +141,9 @@ public class Directives {
             // 用依赖的节点对结果进行处理
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencySource")
+                    .name("dependencySources")
                     .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLString))
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
 
@@ -222,9 +223,9 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("dependencySource")
+                    .name("dependencySources")
                     .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLString))
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     static {

@@ -34,8 +34,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
+import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.common.VisitorUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
@@ -105,13 +107,13 @@ public class SourceRule extends AbstractRule {
 
             if (Objects.equals(directive.getName(), SKIP_BY.getName())) {
 
-                String dependencySourceName = getArgumentFromDirective(directive, "dependencySource");
-                if (dependencySourceName == null) {
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                if (dependencySources == null || dependencySources.isEmpty()) {
                     continue;
                 }
 
                 // source 必须存在，存在这从unusedNode中删除
-                if (!validateExist(fieldFullPath, directive, dependencySourceName)) {
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -119,29 +121,29 @@ public class SourceRule extends AbstractRule {
                 String predicate = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, predicate)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
                     continue;
                 }
 
                 // 不和参数名称冲突
-                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySourceName)) {
+                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
                     continue;
                 }
 
                 // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySourceName)) {
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
                 
             } else if (Objects.equals(directive.getName(), MAP.getName())) {
 
-                String dependencySourceName = getArgumentFromDirective(directive, "dependencySource");
-                if (dependencySourceName == null) {
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                if (dependencySources == null || dependencySources.isEmpty()) {
                     continue;
                 }
 
                 // source 必须存在，存在这从unusedNode中删除
-                if (!validateExist(fieldFullPath, directive, dependencySourceName)) {
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -149,24 +151,24 @@ public class SourceRule extends AbstractRule {
                 String mapper = (String) CommonUtil.parseValue(
                         directive.getArgument("mapper").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, mapper)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, mapper)) {
                     continue;
                 }
 
                 // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySourceName)) {
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
 
             } else if (Objects.equals(directive.getName(), SORT_BY.getName())) {
-                String dependencySourceName = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 // emptyMap.containsKey(null)结果为true
-                if (dependencySourceName == null) {
+                if (dependencySources == null || dependencySources.isEmpty()) {
                     continue;
                 }
 
                 // 依赖的节点是否存在，存在这从unusedNode中删除
-                if (!validateExist(fieldFullPath, directive, dependencySourceName)) {
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
                 
@@ -174,25 +176,25 @@ public class SourceRule extends AbstractRule {
                 String comparator = (String) CommonUtil.parseValue(
                         directive.getArgument("comparator").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, comparator)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, comparator)) {
                     continue;
                 }
 
                 // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySourceName)) {
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
 
             } else if (Objects.equals(directive.getName(), FILTER.getName())) {
 
-                String dependencySourceName = getArgumentFromDirective(directive, "dependencySource");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 // emptyMap.containsKey(null)结果为true
-                if (dependencySourceName == null) {
+                if (dependencySources == null || dependencySources.isEmpty()) {
                     continue;
                 }
 
                 // 依赖的节点是否存在，存在这从unusedNode中删除
-                if (!validateExist(fieldFullPath, directive, dependencySourceName)) {
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -200,25 +202,25 @@ public class SourceRule extends AbstractRule {
                 String expression = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, expression)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, expression)) {
                     continue;
                 }
 
                 // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySourceName)) {
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
 
 
             } else if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
 
-                String dependencySourceName = getArgumentFromDirective(directive, "dependencySource");
-                if (dependencySourceName == null) {
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                if (dependencySources == null || dependencySources.isEmpty()) {
                     continue;
                 }
 
                 // 依赖的节点是否存在，存在这从unusedNode中删除
-                if (!validateExist(fieldFullPath, directive, dependencySourceName)) {
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -226,17 +228,17 @@ public class SourceRule extends AbstractRule {
                 String expression = (String) CommonUtil.parseValue(
                         directive.getArgument("expression").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, expression)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, expression)) {
                     continue;
                 }
 
                 // 不和参数名称冲突
-                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySourceName)) {
+                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
                     continue;
                 }
 
                 // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySourceName)) {
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
 
@@ -261,21 +263,26 @@ public class SourceRule extends AbstractRule {
      *
      * @param fieldFullPath 字段全路径
      * @param directive 字段上的指令
-     * @param dependencySourceName 指令依赖的节点名称
+     * @param dependencySources 指令依赖的节点名称
      *
      * @return 是否校验成功
      */
-    private boolean validateExist(String fieldFullPath, Directive directive, String dependencySourceName) {
+    private boolean validateExist(String fieldFullPath, Directive directive, List<String> dependencySources) {
         // 依赖的source必须存在。
-        if (!sourceWithAnnotatedField.containsKey(dependencySourceName)) {
+        if (!sourceWithAnnotatedField.keySet().containsAll(dependencySources)) {
+
+            List<String> unExistSource = dependencySources.stream()
+                    .filter(sourceName -> !sourceWithAnnotatedField.containsKey(sourceName))
+                    .collect(Collectors.toList());
+
             // 错误信息中，名称使用单引号''，路径使用花括号{}
             String errorMsg = format(
-                    "the fetchSource '%s' used by @%s on {%s} do not exist.", dependencySourceName, directive.getName(), fieldFullPath
+                    "the fetchSource %s used by @%s on {%s} do not exist.", unExistSource, directive.getName(), fieldFullPath
             );
             addValidError(directive.getSourceLocation(), errorMsg);
             return false;
         }
-        unusedSource.remove(dependencySourceName);
+        unusedSource.removeAll(dependencySources);
         return true;
     }
 
@@ -285,15 +292,20 @@ public class SourceRule extends AbstractRule {
      *
      * @param fieldFullPath 字段全路径
      * @param directive 字段上的指令
-     * @param dependencySourceName 指令依赖的节点名称
+     * @param dependencySources 指令依赖的节点名称
      * @param expression 指令表达式
      * @return 校验结果
      */
-    private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, String dependencySourceName, String expression) {
+    private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, List<String> dependencySources, String expression) {
         List<String> arguments = scriptEvaluator.getScriptArgument(expression);
-        if (!arguments.contains(dependencySourceName)) {
+        if (!arguments.containsAll(dependencySources)) {
+
+            List<String> unUsedSource = dependencySources.stream()
+                    .filter(sourceName -> !arguments.contains(sourceName))
+                    .collect(Collectors.toList());
+
             String errorMsg = format(
-                    "the fetchSource '%s' do not used by @%s on {%s}.", dependencySourceName, directive.getName(), fieldFullPath
+                    "the fetchSource %s do not used by @%s on {%s}.", unUsedSource, directive.getName(), fieldFullPath
             );
             addValidError(directive.getSourceLocation(), errorMsg);
             return false;
@@ -308,14 +320,15 @@ public class SourceRule extends AbstractRule {
      * @param fieldFullPath 字段全路径
      * @param argumentsOnField 请求字段上的参数
      * @param directive 字段上的指令
-     * @param dependencySourceName 指令依赖的节点名称
+     * @param dependencySources 指令依赖的节点名称
      * @return 校验结果
      */
-    private boolean validateNodeNameNotSameWithArgument(String fieldFullPath, Set<String> argumentsOnField, Directive directive, String dependencySourceName) {
-        if (argumentsOnField.contains(dependencySourceName)) {
+    private boolean validateNodeNameNotSameWithArgument(String fieldFullPath, Set<String> argumentsOnField, Directive directive, List<String> dependencySources) {
+        List<String> sourcesWithSameArgumentName = dependencySources.stream().filter(argumentsOnField::contains).collect(Collectors.toList());
+        if (!sourcesWithSameArgumentName.isEmpty()) {
             String errorMsg = format(
-                    "the dependencySource name '%s' on {%s} must be different to field argument name %s.",
-                    dependencySourceName, fieldFullPath, argumentsOnField
+                    "the dependencySources %s on {%s} must be different to field argument name %s.",
+                    sourcesWithSameArgumentName, fieldFullPath, argumentsOnField
             );
             addValidError(directive.getSourceLocation(), errorMsg);
             return false;
@@ -326,11 +339,16 @@ public class SourceRule extends AbstractRule {
 
 
 
-    private boolean circularReferenceCheck(SourceLocation sourceLocation, String fieldFullPath, String dependencySourceName) {
-        ArrayList<String> pathList = new ArrayList<>();
-        pathList.add(fieldFullPath);
-        pathList.add(sourceWithAnnotatedField.get(dependencySourceName));
-        return doCircularReferenceCheck(sourceLocation, pathList);
+    private boolean circularReferenceCheck(SourceLocation sourceLocation, String fieldFullPath, List<String> dependencySources) {
+        for (String dependencySource : dependencySources) {
+            ArrayList<String> pathList = new ArrayList<>();
+            pathList.add(fieldFullPath);
+            pathList.add(sourceWithAnnotatedField.get(dependencySource));
+            if (doCircularReferenceCheck(sourceLocation, pathList)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -344,7 +362,7 @@ public class SourceRule extends AbstractRule {
 
         for (int i = 0; i < pathList.size() - 1; i++) {
             String fromPath = pathList.get(i);
-            ArrayList<String> tmpTraversedPath = new ArrayList();
+            List<String> tmpTraversedPath = new ArrayList();
             tmpTraversedPath.add(fromPath);
 
             for (int j = i + 1; j < pathList.size(); j++) {
@@ -371,7 +389,7 @@ public class SourceRule extends AbstractRule {
 
 
         LinkedHashMap<String, String> fieldFullByTopTaskPath = new LinkedHashMap<>();
-        ArrayList traversedPath = new ArrayList();
+        List<String> traversedPath = new ArrayList();
         for (String fieldFullPath : pathList) {
             String topTaskPath = fieldWithTopTask.get(fieldFullPath);
             if (fieldFullByTopTaskPath.containsValue(topTaskPath)) {

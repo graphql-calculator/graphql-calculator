@@ -382,13 +382,13 @@ class ValidationTest extends Specification {
     }
 
 
-    def "dependencySource which @skipBy dependency must exist"() {
+    def "dependencySources which @skipBy dependency must exist"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(predicate: "userId<sellerId",dependencySource: "sellerId")
+                    @skipBy(predicate: "userId<sellerId",dependencySources: "sellerId")
                     {
                         userId
                         name
@@ -408,17 +408,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' used by @skipBy on {consumer.userInfo} do not exist."
+        validateResult.errors[0].description == "the fetchSource [sellerId] used by @skipBy on {consumer.userInfo} do not exist."
     }
 
 
-    def "dependencySource which @skipBy dependency has to be used"() {
+    def "dependencySources which @skipBy dependency has to be used"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(predicate: "userId!=0",dependencySource: "sellerId")
+                    @skipBy(predicate: "userId!=0",dependencySources: "sellerId")
                     {
                         userId
                         name
@@ -438,17 +438,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' do not used by @skipBy on {consumer.userInfo}."
+        validateResult.errors[0].description == "the fetchSource [sellerId] do not used by @skipBy on {consumer.userInfo}."
     }
 
 
-    def "dependencySource name used by @skipBy must be different to field argument name "() {
+    def "dependencySources name used by @skipBy must be different to field argument name "() {
         given:
         def query = """
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(predicate: "userId!=0",dependencySource: "userId")
+                    @skipBy(predicate: "userId!=0",dependencySources: "userId")
                     {
                         userId
                         name
@@ -468,20 +468,20 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the dependencySource name 'userId' on {consumer.userInfo} must be different to field argument name [userId]."
+        validateResult.errors[0].description == "the dependencySources [userId] on {consumer.userInfo} must be different to field argument name [userId]."
     }
 
 
     // map 依赖的字段必须存在、必须被使用
 
-    def "dependencySource used by @map dependency must exist"() {
+    def "dependencySources used by @map dependency must exist"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfo{
                         userId
-                        name @map(mapper: "concat(name,' can use ',couponText)",dependencySource: "couponText")
+                        name @map(mapper: "concat(name,' can use ',couponText)",dependencySources: "couponText")
                     }
                 }
 
@@ -498,17 +498,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'couponText' used by @map on {consumer.userInfo.name} do not exist."
+        validateResult.errors[0].description == "the fetchSource [couponText] used by @map on {consumer.userInfo.name} do not exist."
     }
 
-    def "dependencySource which @map dependency has to be used"() {
+    def "dependencySources which @map dependency has to be used"() {
         given:
         def query = """
                 query {
                     consumer{
                         userInfo{
                             userId
-                            name @map(mapper: "concat(name,' can use ')",dependencySource: "couponText")
+                            name @map(mapper: "concat(name,' can use ')",dependencySources: "couponText")
                         }
                     }
                 
@@ -525,17 +525,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'couponText' do not used by @map on {consumer.userInfo.name}."
+        validateResult.errors[0].description == "the fetchSource [couponText] do not used by @map on {consumer.userInfo.name}."
     }
 
 
-    def "dependencySource used by @sortBy dependency must exist"() {
+    def "dependencySources used by @sortBy dependency must exist"() {
         given:
         def query = """
              query {
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @sortBy(comparator: "userId/sellerId",dependencySource: "sellerId")
+                    @sortBy(comparator: "userId/sellerId",dependencySources: "sellerId")
                     {
                         userId
                         name
@@ -555,16 +555,16 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' used by @sortBy on {consumer.userInfoList} do not exist."
+        validateResult.errors[0].description == "the fetchSource [sellerId] used by @sortBy on {consumer.userInfoList} do not exist."
     }
 
-    def "dependencySource used by @sortBy dependency has to be used"() {
+    def "dependencySources used by @sortBy dependency has to be used"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "3>userId",dependencySource: "sellerId")
+                    @filter(predicate: "3>userId",dependencySources: "sellerId")
                     {
                         userId
                         name
@@ -584,19 +584,19 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' do not used by @filter on {consumer.userInfoList}."
+        validateResult.errors[0].description == "the fetchSource [sellerId] do not used by @filter on {consumer.userInfoList}."
     }
 
 
     // @filter 依赖的fetchSource必须存在、不能没有被使用
 
-    def "dependencySource used by @filter dependency must exist"() {
+    def "dependencySources used by @filter dependency must exist"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "sellerId>userId",dependencySource: "sellerId")
+                    @filter(predicate: "sellerId>userId",dependencySources: "sellerId")
                     {
                         userId
                         name 
@@ -616,16 +616,16 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' used by @filter on {consumer.userInfoList} do not exist."
+        validateResult.errors[0].description == "the fetchSource [sellerId] used by @filter on {consumer.userInfoList} do not exist."
     }
 
-    def "dependencySource used by @filter dependency has to be used"() {
+    def "dependencySources used by @filter dependency has to be used"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "3>userId",dependencySource: "sellerId")
+                    @filter(predicate: "3>userId",dependencySources: "sellerId")
                     {
                         userId
                         name
@@ -645,17 +645,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerId' do not used by @filter on {consumer.userInfoList}."
+        validateResult.errors[0].description == "the fetchSource [sellerId] do not used by @filter on {consumer.userInfoList}."
     }
 
 
-    def "dependencySource used by @argumentTransform dependency must exist"() {
+    def "dependencySources used by @argumentTransform dependency must exist"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfoList(userIds: 1)
-                    @argumentTransform(argumentName: "userIds",operateType: MAP,dependencySource: "sellerIdList", expression: "sellerIdList")
+                    @argumentTransform(argumentName: "userIds",operateType: MAP,dependencySources: "sellerIdList", expression: "sellerIdList")
                     {
                         userId
                         name
@@ -675,16 +675,16 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerIdList' used by @argumentTransform on {consumer.userInfoList} do not exist."
+        validateResult.errors[0].description == "the fetchSource [sellerIdList] used by @argumentTransform on {consumer.userInfoList} do not exist."
     }
 
-    def "dependencySource used by @argumentTransform dependency has to be used"() {
+    def "dependencySources used by @argumentTransform dependency has to be used"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfoList(userIds: 1)
-                    @argumentTransform(argumentName: "userIds",operateType: MAP,dependencySource: "sellerIdList", expression: "'[1,2,3]'")
+                    @argumentTransform(argumentName: "userIds",operateType: MAP,dependencySources: "sellerIdList", expression: "'[1,2,3]'")
                     {
                         userId
                         name
@@ -704,7 +704,7 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'sellerIdList' do not used by @argumentTransform on {consumer.userInfoList}."
+        validateResult.errors[0].description == "the fetchSource [sellerIdList] do not used by @argumentTransform on {consumer.userInfoList}."
     }
 
 
@@ -714,7 +714,7 @@ class ValidationTest extends Specification {
             query{
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySource: "sellerIdList", expression: "sellerIdList")
+                    @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySources: "sellerIdList", expression: "sellerIdList")
                     {
                         userId @fetchSource(name: "userIds")
                         name
@@ -724,7 +724,7 @@ class ValidationTest extends Specification {
                     sellerInfoList(sellerIds: [2,3,4]){
                         sellerId
                         @fetchSource(name: "sellerIdList")
-                        @map(mapper: "userIds", dependencySource: "userIds")
+                        @map(mapper: "userIds", dependencySources: "userIds")
                     }
                 }
             }
@@ -745,7 +745,7 @@ class ValidationTest extends Specification {
                 query{
                     consumer{
                         userInfoList(userIds: [1,2,3])
-                        @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySource: "sellerIdList", expression: "sellerIdList")
+                        @argumentTransform(argumentName: "userIds", operateType: MAP, dependencySources: "sellerIdList", expression: "sellerIdList")
                         @fetchSource(name: "userIdList")
                         {
                             userId
@@ -757,7 +757,7 @@ class ValidationTest extends Specification {
                         sellerInfoList(sellerIds: [2,3,4]){
                             sellerId
                             @fetchSource(name: "sellerIdList")
-                            @map(mapper: "userIdList",dependencySource: "userIdList")
+                            @map(mapper: "userIdList",dependencySources: "userIdList")
                         }
                     }
                 }

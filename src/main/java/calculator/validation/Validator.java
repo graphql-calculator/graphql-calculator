@@ -68,7 +68,7 @@ public class Validator {
 
         // 是否有未使用的node节点
         if (!nodeRule.getUnusedSource().isEmpty()) {
-            String errorMsg = String.format(" unused node: %s.", nodeRule.getUnusedSource().toString());
+            String errorMsg = String.format(" unused fetch source: %s.", nodeRule.getUnusedSource().toString());
             ValidationError error = ValidationError.newValidationError().description(errorMsg).build();
             return ParseAndValidateResult.newResult().validationErrors(Collections.singletonList(error)).build();
         }
