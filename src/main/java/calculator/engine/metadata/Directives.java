@@ -53,7 +53,7 @@ public class Directives {
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("expression")
+                    .name("predicate")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
@@ -114,7 +114,7 @@ public class Directives {
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("expression")
+                    .name("comparator")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .argument(GraphQLArgument
                     .newArgument()
@@ -130,12 +130,12 @@ public class Directives {
 
     // directive @map(mapper:String!, dependencySource:String) on FIELD
     public final static GraphQLDirective MAP = GraphQLDirective.newDirective()
-            .name("mapper")
+            .name("map")
             .description("transform the field value by expression.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
-                    .name("expression")
+                    .name("mapper")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             // 用依赖的节点对结果进行处理
             .argument(GraphQLArgument

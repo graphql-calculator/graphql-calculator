@@ -29,6 +29,7 @@ import graphql.schema.GraphQLSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 
 public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
@@ -40,6 +41,9 @@ public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
     private PreparsedDocumentProvider preparsedDocumentProvider;
 
     private final List<Instrumentation> instrumentations = new ArrayList<>();
+
+    private Consumer<GraphQL.Builder> graphQLTransform = ignored -> {
+    };
 
 
     @Override
@@ -80,6 +84,12 @@ public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
     }
 
     @Override
+    public GraphQLSource.Builder graphQLTransform(Consumer<GraphQL.Builder> graphQLTransform) {
+        this.graphQLTransform = graphQLTransform;
+        return this;
+    }
+
+    @Override
     public GraphQLSource build() {
         Objects.requireNonNull(wrapperConfig);
         Objects.requireNonNull(originalSchema);
@@ -98,6 +108,7 @@ public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
             }
             graphQLBuilder.preparsedDocumentProvider(preparsedDocumentProvider);
         }
+        graphQLTransform.accept(graphQLBuilder);
 
         return new DefaultGraphQLSource(wrappedSchema, graphQLBuilder.build());
     }

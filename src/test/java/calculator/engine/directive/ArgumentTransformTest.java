@@ -49,7 +49,7 @@ import static calculator.util.TestUtil.listsWithSameElements;
 public class ArgumentTransformTest {
 
 
-    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
@@ -209,7 +209,7 @@ public class ArgumentTransformTest {
                 "            base\n" +
                 "            price\n" +
                 "            bindingItemIds\n" +
-                "            desc: couponText @mapper(expression: \"'满' + base + '减' + price\")\n" +
+                "            desc: couponText @map(mapper: \"'满' + base + '减' + price\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "\n" +
@@ -218,9 +218,9 @@ public class ArgumentTransformTest {
                 "            itemId\n" +
                 "            name\n" +
                 "            salePrice\n" +
-                "            isUsedCoupon: onSale @mapper(dependencySource: \"itemCouponInfo\",expression: \"seq.get(itemCouponInfo,itemId)!=nil\")\n" +
+                "            isUsedCoupon: onSale @map(dependencySource: \"itemCouponInfo\",mapper: \"seq.get(itemCouponInfo,itemId)!=nil\")\n" +
                 "            # 券后价\n" +
-                "            couponPrice: salePrice @mapper(dependencySource: \"itemCouponInfo\",expression: \"salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) \")\n" +
+                "            couponPrice: salePrice @map(dependencySource: \"itemCouponInfo\",mapper: \"salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) \")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";

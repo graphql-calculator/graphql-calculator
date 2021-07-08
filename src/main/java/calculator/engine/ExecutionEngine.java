@@ -251,9 +251,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         for (Directive directive : dirOnField) {
             if (Objects.equals(SKIP_BY.getName(), directive.getName())) {
-                String expression = getArgumentFromDirective(directive, "expression");
+                String predicate = getArgumentFromDirective(directive, "predicate");
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
-                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, expression, dependencySource);
+                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, predicate, dependencySource);
                 continue;
             }
 
@@ -281,23 +281,23 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(SORT_BY.getName(), directive.getName())) {
-                String expression = getArgumentFromDirective(directive, "expression");
+                String comparator = getArgumentFromDirective(directive, "comparator");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null
                         ? reversed
                         : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
                 dataFetcher = wrapSortByDataFetcher(
-                        dataFetcher, expression, reversed, dependencySource, engineState, valueUnboxer
+                        dataFetcher, comparator, reversed, dependencySource, engineState, valueUnboxer
                 );
                 continue;
             }
 
             if (Objects.equals(MAP.getName(), directive.getName())) {
-                String expression = getArgumentFromDirective(directive, "expression");
+                String mapper = getArgumentFromDirective(directive, "mapper");
                 String dependencySource = getArgumentFromDirective(directive, "dependencySource");
                 dataFetcher = wrapMapDataFetcher(
-                        dataFetcher, expression, dependencySource, engineState
+                        dataFetcher, mapper, dependencySource, engineState
                 );
                 continue;
             }
@@ -319,7 +319,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, ExecutionEngineState engineState, String expression, String dependencySource) {
+    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher, ExecutionEngineState engineState, String predicate, String dependencySource) {
         boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
@@ -336,7 +336,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
             }
 
-            Boolean isSkip = (Boolean) scriptEvaluator.evaluate(expression, env);
+            Boolean isSkip = (Boolean) scriptEvaluator.evaluate(predicate, env);
             if (isSkip) {
                 return null;
             }
@@ -436,7 +436,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapSortByDataFetcher(DataFetcher<?> defaultDF,
-                                                 String sortExp,
+                                                 String comparator,
                                                  Boolean reversed,
                                                  String dependencySource,
                                                  ExecutionEngineState engineState,
@@ -473,7 +473,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                     if (dependencySource != null) {
                         env.put(dependencySource, source);
                     }
-                    return (Comparable<Object>) scriptEvaluator.evaluate(sortExp, env);
+                    return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                 }).reversed()).collect(toList());
             } else {
                 sortedList = collectionData.stream().sorted(
@@ -482,7 +482,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                             if (dependencySource != null) {
                                 env.put(dependencySource, source);
                             }
-                            return (Comparable<Object>) scriptEvaluator.evaluate(sortExp, env);
+                            return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                         })
                 ).collect(toList());
             }
@@ -500,7 +500,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     // directive @map(mapper:String!, dependencySource:String) on FIELD
     private DataFetcher<?> wrapMapDataFetcher(DataFetcher<?> defaultDF,
-                                              String expression,
+                                              String mapper,
                                               String dependencySource,
                                               ExecutionEngineState engineState) {
 
@@ -524,7 +524,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 expEnv.put(dependencySource, source);
             }
 
-            return scriptEvaluator.evaluate(expression, expEnv);
+            return scriptEvaluator.evaluate(mapper, expEnv);
         };
 
         if (isAsyncFetcher || dependencySource != null) {

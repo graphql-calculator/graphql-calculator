@@ -57,12 +57,6 @@ public class SourceRule extends AbstractRule {
     // <sourceName, annotatedFieldFullPath>
     private final Map<String, String> sourceWithAnnotatedField;
 
-    // <sourceName, topTaskFieldPath>
-    private final Map<String, String> sourceWithTopTask;
-
-    // <sourceName, List<ancestorNode>>
-    private final Map<String, Set<String>> sourceWithAncestorPath;
-
     // <fieldFullPath, topTaskFieldPath>
     private final Map<String, String> fieldWithTopTask;
 
@@ -77,15 +71,11 @@ public class SourceRule extends AbstractRule {
 
     public SourceRule(ScriptEvaluator scriptEvaluator,
                       Map<String, String> sourceWithAnnotatedField,
-                      Map<String, String> sourceWithTopTask,
-                      Map<String, Set<String>> sourceWithAncestorPath,
                       Map<String, String> fieldWithTopTask,
                       Map<String, List<String>> sourceUsedByField,
                       Map<String, Set<String>> fieldWithAncestorPath) {
         this.scriptEvaluator = Objects.requireNonNull(scriptEvaluator);
         this.sourceWithAnnotatedField = sourceWithAnnotatedField;
-        this.sourceWithTopTask = sourceWithTopTask;
-        this.sourceWithAncestorPath = sourceWithAncestorPath;
         this.fieldWithTopTask = fieldWithTopTask;
         this.sourceUsedByField = sourceUsedByField;
         this.fieldWithAncestorPath = fieldWithAncestorPath;
@@ -126,10 +116,10 @@ public class SourceRule extends AbstractRule {
                 }
 
                 // source 必须被使用了
-                String expression = (String) CommonUtil.parseValue(
-                        directive.getArgument("expression").getValue()
+                String predicate = (String) CommonUtil.parseValue(
+                        directive.getArgument("predicate").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, expression)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, predicate)) {
                     continue;
                 }
 
@@ -156,10 +146,10 @@ public class SourceRule extends AbstractRule {
                 }
 
                 // source 必须被使用了
-                String expression = (String) CommonUtil.parseValue(
-                        directive.getArgument("expression").getValue()
+                String mapper = (String) CommonUtil.parseValue(
+                        directive.getArgument("mapper").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, expression)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, mapper)) {
                     continue;
                 }
 
@@ -181,10 +171,10 @@ public class SourceRule extends AbstractRule {
                 }
                 
                 // 依赖的source必须被使用了
-                String expression = (String) CommonUtil.parseValue(
-                        directive.getArgument("expression").getValue()
+                String comparator = (String) CommonUtil.parseValue(
+                        directive.getArgument("comparator").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, expression)) {
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySourceName, comparator)) {
                     continue;
                 }
 

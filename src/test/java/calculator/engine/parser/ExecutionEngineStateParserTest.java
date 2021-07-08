@@ -37,7 +37,7 @@ import java.util.Collections;
 
 public class ExecutionEngineStateParserTest {
 
-    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
 

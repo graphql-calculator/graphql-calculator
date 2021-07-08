@@ -20,7 +20,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.0.2</version>
+    <version></version>
 </dependency>
 ```
 
@@ -268,7 +268,7 @@ switch(value):
 query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 
     marketing
-    @skipBy(expression: "abValue <= 3",dependencySource: "abValue")
+    @skipBy(predicate: "abValue <= 3",dependencySource: "abValue")
     {
         coupon(couponId: $couponId){
             couponId
@@ -298,7 +298,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             base
             price
             bindingItemIds
-            desc: couponText @mapper(expression: "'满' + base + '减' + price")
+            desc: couponText @map(mapper: "'满' + base + '减' + price")
         }
     }
 
@@ -307,9 +307,9 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             itemId
             name
             salePrice
-            isUsedCoupon: onSale @mapper(dependencySource: "itemCouponInfo",expression: "seq.get(itemCouponInfo,itemId)!=nil")
+            isUsedCoupon: onSale @map(dependencySource: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
             # 券后价
-            couponPrice: salePrice @mapper(dependencySource: "itemCouponInfo",expression: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
+            couponPrice: salePrice @map(dependencySource: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
         }
     }
 }

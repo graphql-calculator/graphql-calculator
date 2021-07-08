@@ -25,6 +25,7 @@ import graphql.execution.preparsed.PreparsedDocumentProvider;
 import graphql.schema.GraphQLSchema;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @PublicApi
 public interface GraphQLSource {
@@ -48,6 +49,8 @@ public interface GraphQLSource {
         Builder instrumentation(Instrumentation instrumentation);
 
         Builder instrumentations(List<Instrumentation> instrumentations);
+
+        Builder graphQLTransform(Consumer<GraphQL.Builder> builderConsumer);
 
         GraphQLSource build();
 

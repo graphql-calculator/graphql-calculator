@@ -64,12 +64,6 @@ public class BasicRule extends AbstractRule {
     // <sourceName, annotatedField>
     private final Map<String, String> sourceWithAnnotatedField = new LinkedHashMap<>();
 
-    // <sourceName, topTaskFieldPath>
-    private final Map<String, String> sourceWithTopTask = new LinkedHashMap<>();
-
-    // <sourceName, List<ancestorNode>>
-    private final Map<String, Set<String>> sourceWithAncestorPath = new LinkedHashMap<>();
-
     // <fieldFullPath, topTaskFieldPath>
     private final Map<String, String> fieldWithTopTask = new LinkedHashMap<>();
 
@@ -86,14 +80,6 @@ public class BasicRule extends AbstractRule {
 
     public Map<String, String> getSourceWithAnnotatedField() {
         return sourceWithAnnotatedField;
-    }
-
-    public Map<String, String> getSourceWithTopTask() {
-        return sourceWithTopTask;
-    }
-
-    public Map<String, Set<String>> getSourceWithAncestorPath() {
-        return sourceWithAncestorPath;
     }
 
     public Map<String, String> getFieldWithTopTask() {
@@ -124,18 +110,18 @@ public class BasicRule extends AbstractRule {
             String directiveName = directive.getName();
 
             if (Objects.equals(directiveName, SKIP_BY.getName())) {
-                String expression = (String) parseValue(
-                        directive.getArgument("expression").getValue()
+                String predicate = (String) parseValue(
+                        directive.getArgument("predicate").getValue()
                 );
 
-                if (expression == null || expression.isEmpty()) {
+                if (predicate == null || predicate.isEmpty()) {
                     String errorMsg = String.format("the expression for @skipBy on {%s} can not be empty.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
 
-                if (!scriptEvaluator.isValidScript(expression)) {
-                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
+                if (!scriptEvaluator.isValidScript(predicate)) {
+                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", predicate, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -209,12 +195,12 @@ public class BasicRule extends AbstractRule {
                 }
 
             } else if (Objects.equals(directiveName, SORT_BY.getName())) {
-                String expression = (String) parseValue(
-                        directive.getArgument("expression").getValue()
+                String comparator = (String) parseValue(
+                        directive.getArgument("comparator").getValue()
                 );
 
-                if (!scriptEvaluator.isValidScript(expression)) {
-                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", expression, fieldFullPath);
+                if (!scriptEvaluator.isValidScript(comparator)) {
+                    String errorMsg = String.format("invalid comparator '%s' for @skipBy on {%s}.", comparator, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -236,9 +222,9 @@ public class BasicRule extends AbstractRule {
 
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
-                String mapper = getArgumentFromDirective(directive, "expression");
+                String mapper = getArgumentFromDirective(directive, "mapper");
                 if (!scriptEvaluator.isValidScript(mapper)) {
-                    String errorMsg = String.format("invalid expression '%s' for @map on {%s}.", mapper, fieldFullPath);
+                    String errorMsg = String.format("invalid mapper '%s' for @map on {%s}.", mapper, fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -309,15 +295,9 @@ public class BasicRule extends AbstractRule {
                     addValidError(location, errorMsg);
                 }
 
-                // 获取其顶层任务节点路径
-                QueryVisitorFieldEnvironment topTaskEnv = getTopTaskEnv(environment);
-                String topTaskFieldPath = pathForTraverse(topTaskEnv);
-                sourceWithTopTask.put(sourceName, topTaskFieldPath);
 
                 // 获取其父类节点路径
                 Set<String> parentPathSet = parentPathSet(environment);
-                sourceWithAncestorPath.put(sourceName, parentPathSet);
-
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
                 checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
                 fieldWithAncestorPath.put(fieldFullPath,parentPathSet);

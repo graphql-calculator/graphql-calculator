@@ -56,8 +56,6 @@ public class Validator {
         SourceRule nodeRule = new SourceRule(
                 wrapperConfig.getScriptEvaluator(),
                 basicRule.getSourceWithAnnotatedField(),
-                basicRule.getSourceWithTopTask(),
-                basicRule.getSourceWithAncestorPath(),
                 basicRule.getFieldWithTopTask(),
                 basicRule.getSourceUsedByField(),
                 basicRule.getFieldWithAncestorPath()

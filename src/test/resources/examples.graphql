@@ -1,12 +1,12 @@
 # 指令定义
 
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
-directive @skipBy(expression: String!, dependencySource: String) on FIELD
+directive @skipBy(predicate: String!, dependencySource: String) on FIELD
 directive @mock(value: String!) on FIELD
 directive @filter(predicate: String!, dependencySource: String) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
-directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD
-directive @mapper(expression:String!, dependencySource:String) on FIELD
+directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySource: String) on FIELD
+directive @map(mapper:String!, dependencySource:String) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD
 enum ParamTransformType{
     MAP
@@ -42,8 +42,8 @@ query sourceOnAncestorPath_case01{
     commodity{
         item(itemId: 1){
             itemId
-            userId: itemId @mapper(expression: "userId",dependencySource: "userId")
-            userIdInUserInfo: itemId @mapper(expression: "userInfo.userId",dependencySource: "userInfo")
+            userId: itemId @map(mapper: "userId",dependencySource: "userId")
+            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySource: "userInfo")
         }
     }
 }
@@ -61,8 +61,8 @@ query sourceOnAncestorPath_case02{
     commodity{
         item(itemId: 1){
             itemId
-            userId: itemId @mapper(expression: "userId",dependencySource: "userId")
-            userIdInUserInfo: itemId @mapper(expression: "userInfo.userId",dependencySource: "userInfo")
+            userId: itemId @map(mapper: "userId",dependencySource: "userId")
+            userIdInUserInfo: itemId @map(mapper: "userInfo.userId",dependencySource: "userInfo")
         }
     }
 }
@@ -78,7 +78,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             base
             price
             bindingItemIds
-            desc: couponText @mapper(expression: "'满' + base + '减' + price")
+            desc: couponText @map(mapper: "'满' + base + '减' + price")
         }
     }
 
@@ -87,9 +87,9 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             itemId
             name
             salePrice
-            isUsedCoupon: onSale @mapper(dependencySource: "itemCouponInfo",expression: "seq.get(itemCouponInfo,itemId)!=nil")
+            isUsedCoupon: onSale @map(dependencySource: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
             # 券后价
-            couponPrice: salePrice @mapper(dependencySource: "itemCouponInfo",expression: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
+            couponPrice: salePrice @map(dependencySource: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
         }
     }
 }
@@ -156,7 +156,7 @@ query mapListArgument($itemIds: [Int]){
 query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 
     marketing
-    @skipBy(expression: "abValue <= 3",dependencySource: "abValue")
+    @skipBy(predicate: "abValue <= 3",dependencySource: "abValue")
     {
         coupon(couponId: $couponId){
             couponId
