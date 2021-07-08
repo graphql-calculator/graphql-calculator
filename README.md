@@ -20,7 +20,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version></version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -314,3 +314,10 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
     }
 }
 ```
+
+# 联系我们&获取帮助
+
+作者：[杜艮魁](https://github.com/dugenkui03)，先后在美团、快手从事`graphql`平台化的开发，[`graphql-java`](https://github.com/graphql-java/graphql-java/graphs/contributors)代码贡献者；
+
+欢迎对项目使用问题、建议在issue中提出反馈，也可通过邮件`dugk@foxmail.com`或在qq群`302490951`向作者提问。
+
