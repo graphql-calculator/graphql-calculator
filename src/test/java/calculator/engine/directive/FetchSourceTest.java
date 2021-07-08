@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class FetchSourceTest {
-    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
@@ -54,8 +54,8 @@ public class FetchSourceTest {
                 "    commodity{\n" +
                 "        item(itemId: 1){\n" +
                 "            itemId\n" +
-                "            userId: itemId @mapper(expression: \"userId\",dependencySource: \"userId\")\n" +
-                "            userIdInUserInfo: itemId @mapper(expression: \"userInfo.userId\",dependencySource: \"userInfo\")\n" +
+                "            userId: itemId @map(mapper: \"userId\",dependencySource: \"userId\")\n" +
+                "            userIdInUserInfo: itemId @map(mapper: \"userInfo.userId\",dependencySource: \"userInfo\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";
@@ -84,8 +84,8 @@ public class FetchSourceTest {
                 "    commodity{\n" +
                 "        item(itemId: 1){\n" +
                 "            itemId\n" +
-                "            userId: itemId @mapper(expression: \"userId\",dependencySource: \"userId\")\n" +
-                "            userIdInUserInfo: itemId @mapper(expression: \"userInfo == nil?nil:(userInfo.userId)\",dependencySource: \"userInfo\")\n" +
+                "            userId: itemId @map(mapper: \"userId\",dependencySource: \"userId\")\n" +
+                "            userIdInUserInfo: itemId @map(mapper: \"userInfo == nil?nil:(userInfo.userId)\",dependencySource: \"userInfo\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";

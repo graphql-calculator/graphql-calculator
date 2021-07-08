@@ -73,7 +73,7 @@ public class Example {
          * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
          */
 
-        GraphQLSchema schema = GraphQLSourceHolder.getSchema();
+        GraphQLSchema schema = GraphQLSourceHolder.getDefaultSchema();
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .objectMapper(new DefaultObjectMapper())

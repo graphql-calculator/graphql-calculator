@@ -40,7 +40,7 @@ import java.util.Objects;
 
 public class CommonTest {
 
-    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getSchema();
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
@@ -75,7 +75,7 @@ public class CommonTest {
                 "query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){\n" +
                 "\n" +
                 "    marketing\n" +
-                "    @skipBy(expression: \"abValue <= 3\",dependencySource: \"abValue\")\n" +
+                "    @skipBy(predicate: \"abValue <= 3\",dependencySource: \"abValue\")\n" +
                 "    {\n" +
                 "        coupon(couponId: $couponId){\n" +
                 "            couponId\n" +
@@ -140,7 +140,7 @@ public class CommonTest {
                 "    }\n" +
                 "\n" +
                 "    marketing\n" +
-                "    @mapper(expression: \"nil\")\n" +
+                "    @map(mapper: \"nil\")\n" +
                 "    {\n" +
                 "        coupon(couponId: $couponId){\n" +
                 "            bindingItemIds\n" +

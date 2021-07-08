@@ -91,7 +91,7 @@ public class GraphQLSourceHolder {
         return MarketingServiceClient.batchCouponInfoByIds(ids);
     };
 
-    public static GraphQLSchema getSchema() {
+    public static GraphQLSchema getDefaultSchema() {
         RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
         for (Map.Entry<String, Map<String, DataFetcher>> entry : defaultDataFetcherInfo().entrySet()) {
             TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());

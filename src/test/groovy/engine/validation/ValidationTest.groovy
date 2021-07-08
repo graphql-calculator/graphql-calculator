@@ -22,12 +22,12 @@ import calculator.engine.SchemaWrapper
 import calculator.validation.Validator
 import spock.lang.Specification
 
-import static calculator.util.GraphQLSourceHolder.getSchema
+import static calculator.util.GraphQLSourceHolder.getDefaultSchema
 
 class ValidationTest extends Specification {
 
     def wrapperConfig = ConfigImpl.newConfig().build()
-    def wrappedSchema = SchemaWrapper.wrap(wrapperConfig, getSchema())
+    def wrappedSchema = SchemaWrapper.wrap(wrapperConfig, getDefaultSchema())
 
 
     def "empty expression for @skipBy"() {
@@ -36,7 +36,7 @@ class ValidationTest extends Specification {
             query{
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(expression: "")
+                    @skipBy(predicate: "")
                     {
                         userId
                         name
@@ -60,7 +60,7 @@ class ValidationTest extends Specification {
             query{
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(expression: "12_ab")
+                    @skipBy(predicate: "12_ab")
                     {
                         userId
                         name
@@ -204,7 +204,7 @@ class ValidationTest extends Specification {
             query{
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @sortBy(expression: "12_ab")
+                    @sortBy(comparator: "12_ab")
                     {
                         userId
                         name
@@ -218,7 +218,7 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @skipBy on {consumer.userInfoList}."
+        validateResult.errors[0].description == "invalid comparator '12_ab' for @skipBy on {consumer.userInfoList}."
     }
 
     def "invalid location for @sortBy"() {
@@ -227,7 +227,7 @@ class ValidationTest extends Specification {
             query{
                 consumer{
                     userInfo(userId: 1)
-                    @sortBy(expression: "userId%2==0")
+                    @sortBy(comparator: "userId%2==0")
                     {
                         userId
                         name
@@ -388,7 +388,7 @@ class ValidationTest extends Specification {
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(expression: "userId<sellerId",dependencySource: "sellerId")
+                    @skipBy(predicate: "userId<sellerId",dependencySource: "sellerId")
                     {
                         userId
                         name
@@ -418,7 +418,7 @@ class ValidationTest extends Specification {
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(expression: "userId!=0",dependencySource: "sellerId")
+                    @skipBy(predicate: "userId!=0",dependencySource: "sellerId")
                     {
                         userId
                         name
@@ -448,7 +448,7 @@ class ValidationTest extends Specification {
             query {
                 consumer{
                     userInfo(userId: 1)
-                    @skipBy(expression: "userId!=0",dependencySource: "userId")
+                    @skipBy(predicate: "userId!=0",dependencySource: "userId")
                     {
                         userId
                         name
@@ -474,14 +474,14 @@ class ValidationTest extends Specification {
 
     // map 依赖的字段必须存在、必须被使用
 
-    def "dependencySource used by @mapper dependency must exist"() {
+    def "dependencySource used by @map dependency must exist"() {
         given:
         def query = """
             query {
                 consumer{
                     userInfo{
                         userId
-                        name @mapper(expression: "concat(name,' can use ',couponText)",dependencySource: "couponText")
+                        name @map(mapper: "concat(name,' can use ',couponText)",dependencySource: "couponText")
                     }
                 }
 
@@ -498,17 +498,17 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'couponText' used by @mapper on {consumer.userInfo.name} do not exist."
+        validateResult.errors[0].description == "the fetchSource 'couponText' used by @map on {consumer.userInfo.name} do not exist."
     }
 
-    def "dependencySource which @mapper dependency has to be used"() {
+    def "dependencySource which @map dependency has to be used"() {
         given:
         def query = """
                 query {
                     consumer{
                         userInfo{
                             userId
-                            name @mapper(expression: "concat(name,' can use ')",dependencySource: "couponText")
+                            name @map(mapper: "concat(name,' can use ')",dependencySource: "couponText")
                         }
                     }
                 
@@ -525,7 +525,7 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource 'couponText' do not used by @mapper on {consumer.userInfo.name}."
+        validateResult.errors[0].description == "the fetchSource 'couponText' do not used by @map on {consumer.userInfo.name}."
     }
 
 
@@ -535,7 +535,7 @@ class ValidationTest extends Specification {
              query {
                 consumer{
                     userInfoList(userIds: [1,2,3])
-                    @sortBy(expression: "userId/sellerId",dependencySource: "sellerId")
+                    @sortBy(comparator: "userId/sellerId",dependencySource: "sellerId")
                     {
                         userId
                         name
@@ -724,7 +724,7 @@ class ValidationTest extends Specification {
                     sellerInfoList(sellerIds: [2,3,4]){
                         sellerId
                         @fetchSource(name: "sellerIdList")
-                        @mapper(expression: "userIds", dependencySource: "userIds")
+                        @map(mapper: "userIds", dependencySource: "userIds")
                     }
                 }
             }
@@ -757,7 +757,7 @@ class ValidationTest extends Specification {
                         sellerInfoList(sellerIds: [2,3,4]){
                             sellerId
                             @fetchSource(name: "sellerIdList")
-                            @mapper(expression: "userIdList",dependencySource: "userIdList")
+                            @map(mapper: "userIdList",dependencySource: "userIdList")
                         }
                     }
                 }

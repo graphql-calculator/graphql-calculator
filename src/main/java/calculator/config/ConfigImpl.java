@@ -77,14 +77,14 @@ public class ConfigImpl implements Config {
 
         private ScriptEvaluator scriptEvaluator;
 
-        public Builder threadPool(Executor objectMapper) {
-            Objects.requireNonNull(scriptEvaluator, "scriptEvaluator can not be null.");
+        public Builder threadPool(Executor threadPool) {
+            Objects.requireNonNull(threadPool, "threadPool can not be null.");
             this.threadPool = threadPool;
             return this;
         }
 
         public Builder objectMapper(ObjectMapper objectMapper) {
-            Objects.requireNonNull(scriptEvaluator, "scriptEvaluator can not be null.");
+            Objects.requireNonNull(objectMapper, "objectMapper can not be null.");
             this.objectMapper = objectMapper;
             return this;
         }
