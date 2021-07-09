@@ -57,7 +57,7 @@ public class CompletableFutureResultTest {
                 + "query( $couponId: Int){\n" +
                 "    commodity{\n" +
                 "        itemList(itemIds: 1)\n" +
-                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySource: \"itemIdList\",expression: \"itemIdList\")\n" +
+                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySources: \"itemIdList\",expression: \"itemIdList\")\n" +
                 "        @filter(predicate: \"onSale\")\n" +
                 "        {\n" +
                 "           itemId\n" +

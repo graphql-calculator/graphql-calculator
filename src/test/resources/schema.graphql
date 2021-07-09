@@ -71,6 +71,7 @@ type ItemBaseInfo{
     stockAmount: Int
     onSale: Boolean
     skuList: [Sku]
+    saleAmount(itemId:Int): Int
 }
 
 type Sku{

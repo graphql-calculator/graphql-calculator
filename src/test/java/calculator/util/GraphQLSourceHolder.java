@@ -46,18 +46,18 @@ public class GraphQLSourceHolder {
     private static DataFetcher<Map> emptyDataFetcher = environment -> Collections.emptyMap();
 
     private static DataFetcher userDataFetcher = environment -> {
-        Number userIdNumber = (Number) environment.getArguments().get("userId");
+        Integer userIdNumber = (Integer) environment.getArguments().get("userId");
         if (userIdNumber == null) {
             return null;
         }
 
-        return ConsumerServiceClient.getUserInfoById(userIdNumber.longValue());
+        return ConsumerServiceClient.getUserInfoById(userIdNumber);
     };
 
 
     private static DataFetcher userListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
-        List<Long> ids = (List<Long>) arguments.get("userIds");
+        List<Integer> ids = (List<Integer>) arguments.get("userIds");
         return batchUserInfoByIds(ids);
     };
 
@@ -101,8 +101,11 @@ public class GraphQLSourceHolder {
     }
 
     public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
+        return getGraphQLByDataFetcherMap(dataFetcherInfoMap,ConfigImpl.newConfig().build());
+    }
+
+    public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap,ConfigImpl config) {
         GraphQLSchema schema = getSchemaByDataFetcherMap(dataFetcherInfoMap);
-        ConfigImpl config = ConfigImpl.newConfig().build();
         DefaultGraphQLSourceBuilder sourceBuilder = new DefaultGraphQLSourceBuilder();
         sourceBuilder.wrapperConfig(config).originalSchema(schema)
                 .preparsedDocumentProvider(new CalculatorDocumentCachedProvider() {
@@ -163,6 +166,17 @@ public class GraphQLSourceHolder {
         Map<String, DataFetcher> toolInfoFieldFetchers = new HashMap<>();
         toolInfoFieldFetchers.put("abInfo", async(abInfoDataFetcher));
         dataFetcherInfo.put("ToolInfo", toolInfoFieldFetchers);
+
+        Map<String, DataFetcher> itemBaseInfoDataFetcher = new HashMap<>();
+        businessFieldFetchers.put("saleAmount", async(environment -> {
+            Integer itemId = environment.getArgumentOrDefault("itemId", 0);
+            if (itemId == null) {
+                return 0;
+            }
+            return itemId * 10;
+        }));
+        dataFetcherInfo.put("ItemBaseInfo", itemBaseInfoDataFetcher);
+
 
         return dataFetcherInfo;
     }

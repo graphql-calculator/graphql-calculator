@@ -53,7 +53,7 @@
 - `name`：source的名称，一个查询语句中source名称必须是唯一的；
 - `sourceConvert`：对字段绑定`DataFetcher`的获取结果进行转换，所有依赖该source的指令获取的都是转换后的数据。
 
-`@fetchSource`指令是进行数据编排的基础，该指令注解的的字段的`DataFetcher`的获取结果可在其他字段上的计算指令中通过`dependencySource`获取。
+`@fetchSource`指令是进行数据编排的基础，该指令注解的的字段的`DataFetcher`的获取结果可在其他字段上的计算指令中通过`dependencySources`获取。
 
 如果`@fetchSource`所注解的字段在列表路径中，则将该字段的集合作为source的值。如下使用方式，source结果为包含每个用户的`List<String>`。
 
@@ -71,11 +71,11 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@skipBy`
 
-`directive @skipBy(expression: String!, dependencySource: String) on FIELD`
+`directive @skipBy(expression: String!, dependencySources: String) on FIELD`
 
 参数解释：
 - `expression`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
-- `dependencySource`：表达式依赖的source，sourceName不可和变量名称同名。
+- `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
 
 `@skipBy`是graphql内置指令`@skip`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
 
@@ -86,11 +86,11 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@filter`
 
-`directive @filter(predicate: String!, dependencySource: String) on FIELD`
+`directive @filter(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
 - `predicate`：过滤判断表达式，结果为true的元素会保留；
-- `dependencySource`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
+- `dependencySources`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
 
 对列表类型字段的结果进行过滤，可依赖其他source进行判断。
 
@@ -98,12 +98,12 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@sortBy`
 
-`directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD`
+`directive @sortBy(expression: String!, reversed: Boolean = false, dependencySources: String) on FIELD`
 
 参数解释：
 - `expression`：按照该表达式计算结果、对列表元素进行排序；
 - `reversed`：是否进行逆序排序，默认为false；
-- `dependencySource`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
+- `dependencySources`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
 
 
 对列表类型字段的结果进行排序，可依赖其他source进行判断。
@@ -113,24 +113,24 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@mapper`
 
-`directive @mapper(expression:String!, dependencySource:String) on FIELD`
+`directive @mapper(expression:String!, dependencySources:String) on FIELD`
 
 参数解释：
 - `expression`：计算字段值的表达式；
-- `dependencySource`：表达式依赖的source，sourceName如果和父节点绑定`DataFetcher`的获取结果key相同，则会覆父节点中的数据。
+- `dependencySources`：表达式依赖的source，sourceName如果和父节点绑定`DataFetcher`的获取结果key相同，则会覆父节点中的数据。
 
-以父节点绑定的`DataFetcher`获取结果和`dependencySource`为参数变量，计算注解的字段的值。**被注解的字段的`DataFetcher`不会在执行。**。
+以父节点绑定的`DataFetcher`获取结果和`dependencySources`为参数变量，计算注解的字段的值。**被注解的字段的`DataFetcher`不会在执行。**。
 
 
 #### `@argumentTransform`
 
-`directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySource:String) on FIELD`
+`directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:String) on FIELD`
 
 **参数解释**：
 - `argumentName`：该指令进行转换的参数名称；
 - `operateType`：操作类型，包括参数整体映射、列表参数过滤、列表参数映射三种；
 - `expression`：计算新值、或者对参数进行过滤的表达式；
-- `dependencySource`：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
+- `dependencySources`：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
 
 
 对字段参数进行转换、过滤，具体操作有如下三种：
@@ -163,7 +163,7 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
     commodity{
         itemList(itemIds: 1)
         # 对参数 itemIds 进行映射转换，映射规则为'itemIdList'、即直接使用变量 itemIdList 进行替换，该计算依赖了名称为 itemIdList 的source
-        @argumentTransform(argumentName: "itemIds", operateType: MAP,expression: "itemIdList",dependencySource: "itemIdList")
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,expression: "itemIdList",dependencySources: "itemIdList")
         {
             itemId
             name
@@ -200,7 +200,7 @@ query userNewInfo($userId: Int){
 query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$itemIds: [Int]) {
     commodity{
         itemList(itemIds: $itemIds)
-        @argumentTransform(argumentName: "itemIds", operateType: FILTER,dependencySource: "itemIdList",expression: "listContain(itemIdList,ele)")
+        @argumentTransform(argumentName: "itemIds", operateType: FILTER,dependencySources: "itemIdList",expression: "listContain(itemIdList,ele)")
         {
             itemId
             name
@@ -225,7 +225,7 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
 query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
     commodity{
         itemList(itemIds: 1)
-        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySource: "itemIdList",expression: "itemIdList")
+        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySources: "itemIdList",expression: "itemIdList")
         @filter(predicate: "onSale")
         {
             itemId
@@ -249,7 +249,7 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 
 控制流主要为根据条件，判断是否请求某个类型数据、或者请求哪个类型数据。
 
-控制流通过 **@skipBy**进行控制 `directive @skipBy(expression: String!, dependencySource: String) on FIELD`。
+控制流通过 **@skipBy**进行控制 `directive @skipBy(expression: String!, dependencySources: String) on FIELD`。
 
 通过 **@skipBy** 可实现类似 `switch-case`的控制流，
 ```
@@ -268,7 +268,7 @@ switch(value):
 query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 
     marketing
-    @skipBy(predicate: "abValue <= 3",dependencySource: "abValue")
+    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
     {
         coupon(couponId: $couponId){
             couponId
@@ -307,9 +307,9 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
             itemId
             name
             salePrice
-            isUsedCoupon: onSale @map(dependencySource: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
+            isUsedCoupon: onSale @map(dependencySources: "itemCouponInfo",mapper: "seq.get(itemCouponInfo,itemId)!=nil")
             # 券后价
-            couponPrice: salePrice @map(dependencySource: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
+            couponPrice: salePrice @map(dependencySources: "itemCouponInfo",mapper: "salePrice - (seq.get(itemCouponInfo,itemId) == nil? 0:seq.get(itemCouponInfo,itemId)) ")
         }
     }
 }
@@ -317,7 +317,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 
 # 联系我们&获取帮助
 
-作者：[杜艮魁](https://github.com/dugenkui03)，先后在美团、快手从事`graphql`平台化的开发，[`graphql-java`](https://github.com/graphql-java/graphql-java/graphs/contributors)代码贡献者；
+作者：[杜艮魁](https://github.com/dugenkui03)，毕业以来从事于`graphql`的平台化开发，[`graphql-java`](https://github.com/graphql-java/graphql-java/graphs/contributors)代码贡献者；
 
 欢迎对项目使用问题、建议在issue中提出反馈，也可通过邮件`dugk@foxmail.com`或在qq群`302490951`向作者提问。
 

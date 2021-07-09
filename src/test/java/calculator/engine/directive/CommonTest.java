@@ -44,9 +44,6 @@ public class CommonTest {
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
     private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
-    static{
-//        AviatorScriptEvaluator.getDefaultInstance().addFunction(new ListContain()).function(new ListMapper())
-    }
 
     @Test
     public void mockTest() {
@@ -75,7 +72,7 @@ public class CommonTest {
                 "query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){\n" +
                 "\n" +
                 "    marketing\n" +
-                "    @skipBy(predicate: \"abValue <= 3\",dependencySource: \"abValue\")\n" +
+                "    @skipBy(predicate: \"abValue <= 3\",dependencySources: \"abValue\")\n" +
                 "    {\n" +
                 "        coupon(couponId: $couponId){\n" +
                 "            couponId\n" +
@@ -130,7 +127,7 @@ public class CommonTest {
                 "    commodity\n" +
                 "    {\n" +
                 "        itemList(itemIds: 1)\n" +
-                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySource: \"itemIdList\",expression: \"itemIdList\")\n" +
+                "        @argumentTransform(argumentName: \"itemIds\", operateType: MAP,dependencySources: \"itemIdList\",expression: \"itemIdList\")\n" +
                 "        {\n" +
                 "            itemId\n" +
                 "            name\n" +

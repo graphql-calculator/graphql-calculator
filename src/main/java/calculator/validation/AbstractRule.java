@@ -19,6 +19,7 @@ package calculator.validation;
 import graphql.analysis.QueryVisitor;
 import graphql.language.SourceLocation;
 import graphql.validation.ValidationError;
+import graphql.validation.ValidationErrorType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ public abstract class AbstractRule implements QueryVisitor {
 
     public void addValidError(SourceLocation location, String errorMsg) {
         ValidationError error = ValidationError.newValidationError()
+                .validationErrorType(ValidationErrorType.UnknownType)
                 .sourceLocation(location)
                 .description(errorMsg)
                 .build();

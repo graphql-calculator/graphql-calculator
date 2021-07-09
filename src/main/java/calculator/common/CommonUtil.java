@@ -20,6 +20,7 @@ import calculator.engine.annotation.Internal;
 import graphql.Assert;
 import graphql.execution.ResultPath;
 import graphql.language.Argument;
+import graphql.language.ArrayValue;
 import graphql.language.BooleanValue;
 import graphql.language.Directive;
 import graphql.language.EnumValue;
@@ -29,7 +30,10 @@ import graphql.language.StringValue;
 import graphql.language.Value;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import static calculator.common.VisitorUtil.PATH_SEPARATOR;
 
@@ -37,6 +41,36 @@ import static calculator.common.VisitorUtil.PATH_SEPARATOR;
 @Internal
 public class CommonUtil {
 
+
+    public static List<String> getDependenceSourceFromDirective(Directive directive) {
+        Object dependencySources = getArgumentFromDirective(directive, "dependencySources");
+        if (dependencySources instanceof String) {
+            return Collections.singletonList((String) dependencySources);
+        }
+
+        return (List<String>) dependencySources;
+    }
+
+
+    public static List<String> getDependencySources(Value value) {
+        if (value instanceof StringValue) {
+            return Collections.singletonList(((StringValue) value).getValue());
+        }
+
+        if (value instanceof ArrayValue) {
+            List<String> dependencySources = new ArrayList<>();
+            for (Value element : ((ArrayValue) value).getValues()) {
+                if (element instanceof StringValue) {
+                    dependencySources.add(((StringValue) element).getValue());
+                } else {
+                    throw new RuntimeException("error value type: " + element.getClass().getSimpleName());
+                }
+            }
+            return dependencySources;
+        }
+
+        throw new RuntimeException("error value type: " + value.getClass().getSimpleName());
+    }
 
     /**
      * Get argument value on directive by argument name.
@@ -75,6 +109,15 @@ public class CommonUtil {
 
         if (value instanceof EnumValue) {
             return ((EnumValue) value).getName();
+        }
+
+        if (value instanceof ArrayValue) {
+            List<Object> listValue = new ArrayList<>();
+            for (Value element : ((ArrayValue) value).getValues()) {
+                Object elementValue = parseValue(element);
+                listValue.add(elementValue);
+            }
+            return listValue;
         }
 
         throw new RuntimeException("can not invoke here.");
