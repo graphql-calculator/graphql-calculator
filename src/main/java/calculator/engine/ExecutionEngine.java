@@ -745,7 +745,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             @Override
             public void onCompleted(ExecutionResult result, Throwable t) {
-                System.out.println(result);
+                // filter or sort
+                // 过滤和排序放到这里用的话，就不能组合使用了
             }
         };
     }
