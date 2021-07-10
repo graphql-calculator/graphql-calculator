@@ -190,21 +190,17 @@ public class SortTest {
 
     @Test
     public void sortResult_case01() {
-        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
         AviatorEvaluator.addFunction(new ListContain());
-
-        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
-                dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
-        );
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(GraphQLSourceHolder.defaultDataFetcherInfo());
 
         String query = "" +
                 "query sortResult_case01{\n" +
                 "    commodity{\n" +
-                "        itemList(itemIds: [1,2,3,4])\n" +
+                "        itemList(itemIds: [3,4,1,2])\n" +
+                "        @sortBy(comparator: \"sortKey\")\n" +
                 "        {\n" +
                 "            itemId\n" +
-                "            sortKey: itemId @map(mapper: \"itemId/2\")\n" +
+                "            sortKey: itemId @map(mapper: \"itemId\")\n" +
                 "            salePrice\n" +
                 "            saleAmount(itemId: 1)\n" +
                 "        }\n" +
@@ -215,7 +211,13 @@ public class SortTest {
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
-        System.out.println(executionResult.getData().toString());
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(data.get("commodity").get("itemList").toString(),
+                "[{itemId=1, sortKey=1, salePrice=11, saleAmount=10}, " +
+                        "{itemId=2, sortKey=2, salePrice=21, saleAmount=10}, " +
+                        "{itemId=3, sortKey=3, salePrice=31, saleAmount=10}, " +
+                        "{itemId=4, sortKey=4, salePrice=41, saleAmount=10}]"
+        );
     }
 
 }
