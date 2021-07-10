@@ -85,7 +85,6 @@ public class SortTest {
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
-        System.out.println(executionResult.getData().toString());
         assert Objects.equals(
                 executionResult.getData().toString(),
                 "{consumer={userInfoList=[{userId=4, name=4_name}, {userId=3, name=3_name}, {userId=2, name=2_name}, {userId=1, name=1_name}]}}"
@@ -215,7 +214,6 @@ public class SortTest {
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
-        System.out.println(executionResult.getData().toString());
     }
 
 }
