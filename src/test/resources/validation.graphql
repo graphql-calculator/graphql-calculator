@@ -1,5 +1,40 @@
 
 
+
+
+query dependencyMultiSources{
+    consumer{
+        userInfo{
+            userId @fetchSource(name: "userId_a")
+            name @fetchSource(name: "name_a")
+        }
+
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",dependencySources: ["userId_a","name_a"],operateType: MAP,expression: "ignored(userId_a,name_a)")
+        {
+            userId
+            name
+        }
+    }
+}
+
+query dependencySingleSources{
+    consumer{
+        userInfo{
+            userId @fetchSource(name: "userId_a")
+        }
+
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",dependencySources: "userId_a",operateType: MAP,expression: "ignored(userId_a)")
+        {
+            userId
+            name
+        }
+    }
+}
+
+
+
 # 依赖的source报错时，程序可以正常运行
 #query sourceIsNullCase_01 ( $couponId: Int) {
 #    commodity

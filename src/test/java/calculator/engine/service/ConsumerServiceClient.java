@@ -24,23 +24,23 @@ import java.util.stream.Collectors;
 public class ConsumerServiceClient {
 
     static class UserInfo {
-        private long userId;
+        private int userId;
         private int age;
         private String name;
         private String email;
 
-        public UserInfo(long userId, int age, String name, String email) {
+        public UserInfo(int userId, int age, String name, String email) {
             this.userId = userId;
             this.age = age;
             this.name = name;
             this.email = email;
         }
 
-        public long getUserId() {
+        public int getUserId() {
             return userId;
         }
 
-        public void setUserId(long userId) {
+        public void setUserId(int userId) {
             this.userId = userId;
         }
 
@@ -69,31 +69,31 @@ public class ConsumerServiceClient {
         }
     }
 
-    public static UserInfo getUserInfoById(long userId) {
-        return new UserInfo(userId, (int) (userId * 10 % 100), userId + "_name", userId + "dugk@foxmail.com");
+    public static UserInfo getUserInfoById(int userId) {
+        return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com");
     }
 
-    public static List<UserInfo> batchUserInfoByIds(List<Long> userIdList) {
+    public static List<UserInfo> batchUserInfoByIds(List<Integer> userIdList) {
         return userIdList.stream().map(ConsumerServiceClient::getUserInfoById).collect(Collectors.toList());
     }
 
 
     static class NewUserInfo {
-        private long userId;
+        private int userId;
         private String sceneKey;
         private boolean isNewUser;
 
-        public NewUserInfo(long userId, String sceneKey, boolean isNewUser) {
+        public NewUserInfo(int userId, String sceneKey, boolean isNewUser) {
             this.userId = userId;
             this.sceneKey = sceneKey;
             this.isNewUser = isNewUser;
         }
 
-        public long getUserId() {
+        public int getUserId() {
             return userId;
         }
 
-        public void setUserId(long userId) {
+        public void setUserId(int userId) {
             this.userId = userId;
         }
 
@@ -124,6 +124,6 @@ public class ConsumerServiceClient {
             return null;
         }
 
-        return new NewUserInfo(Long.parseLong(split[2]), split[0] + "_" + split[1], Long.parseLong(split[2]) % 2 == 0);
+        return new NewUserInfo(Integer.parseInt(split[2]), split[0] + "_" + split[1], Integer.parseInt(split[2]) % 2 == 0);
     }
 }

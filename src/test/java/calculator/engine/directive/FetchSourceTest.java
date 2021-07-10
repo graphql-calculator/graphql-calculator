@@ -54,8 +54,8 @@ public class FetchSourceTest {
                 "    commodity{\n" +
                 "        item(itemId: 1){\n" +
                 "            itemId\n" +
-                "            userId: itemId @map(mapper: \"userId\",dependencySource: \"userId\")\n" +
-                "            userIdInUserInfo: itemId @map(mapper: \"userInfo.userId\",dependencySource: \"userInfo\")\n" +
+                "            userId: itemId @map(mapper: \"userId\",dependencySources: \"userId\")\n" +
+                "            userIdInUserInfo: itemId @map(mapper: \"userInfo.userId\",dependencySources: \"userInfo\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";
@@ -84,8 +84,8 @@ public class FetchSourceTest {
                 "    commodity{\n" +
                 "        item(itemId: 1){\n" +
                 "            itemId\n" +
-                "            userId: itemId @map(mapper: \"userId\",dependencySource: \"userId\")\n" +
-                "            userIdInUserInfo: itemId @map(mapper: \"userInfo == nil?nil:(userInfo.userId)\",dependencySource: \"userInfo\")\n" +
+                "            userId: itemId @map(mapper: \"userId\",dependencySources: \"userId\")\n" +
+                "            userIdInUserInfo: itemId @map(mapper: \"userInfo == nil?nil:(userInfo.userId)\",dependencySources: \"userInfo\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";

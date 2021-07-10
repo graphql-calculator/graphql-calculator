@@ -61,6 +61,8 @@ public abstract class CalculatorDocumentCachedProvider implements PreparsedDocum
         } else {
             preparsedDocumentEntry = new PreparsedDocumentEntry(validateResult.getDocument());
         }
+
+        setDocumentCache(executionInput, preparsedDocumentEntry);
         return preparsedDocumentEntry;
     }
 

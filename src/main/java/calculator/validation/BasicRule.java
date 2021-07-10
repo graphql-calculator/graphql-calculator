@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
+import static calculator.common.CommonUtil.getDependencySources;
 import static calculator.common.CommonUtil.isValidEleName;
 import static calculator.common.CommonUtil.parseValue;
 import static calculator.common.VisitorUtil.getTopTaskEnv;
@@ -306,7 +307,7 @@ public class BasicRule extends AbstractRule {
     }
 
     private void checkAndSetFieldWithTopTask(String fieldFullPath, Directive directive, QueryVisitorFieldEnvironment visitorFieldEnvironment) {
-        Argument sourceArgument = directive.getArgument("dependencySource");
+        Argument sourceArgument = directive.getArgument("dependencySources");
 
         if (sourceArgument != null && sourceArgument.getValue() != null) {
             QueryVisitorFieldEnvironment topTaskEnv = getTopTaskEnv(visitorFieldEnvironment);
@@ -318,16 +319,16 @@ public class BasicRule extends AbstractRule {
     //    // <fieldFullPath, List<sourceName>>
     //    private final Map<String, List<String>> sourceUsedByField = new LinkedHashMap<>();
     private void checkAndSetSourceUsedByFieldInfo(String fieldFullPath,Directive directive) {
-        Argument sourceArgument = directive.getArgument("dependencySource");
+        Argument sourceArgument = directive.getArgument("dependencySources");
 
         if (sourceArgument != null && sourceArgument.getValue() != null) {
-            String dependencySource = (String) parseValue(sourceArgument.getValue());
+            List<String> dependencySources = getDependencySources(sourceArgument.getValue());
 
             if (sourceUsedByField.containsKey(fieldFullPath)) {
-                sourceUsedByField.get(fieldFullPath).add(dependencySource);
+                sourceUsedByField.get(fieldFullPath).addAll(dependencySources);
             } else {
                 ArrayList<String> sourceNames = new ArrayList<>();
-                sourceNames.add(dependencySource);
+                sourceNames.addAll(dependencySources);
                 sourceUsedByField.put(fieldFullPath, sourceNames);
             }
         }
