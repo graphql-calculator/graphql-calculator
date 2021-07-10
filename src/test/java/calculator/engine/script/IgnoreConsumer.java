@@ -42,7 +42,6 @@ public class IgnoreConsumer extends AbstractFunction {
         String msg = format("ignored function, env = %s , name = %s",
                 env != null ? env.toString() : null, ((AviatorJavaType) element).getName()
         );
-        System.out.println(msg);
 
         return AviatorRuntimeJavaType.valueOf(null);
     }

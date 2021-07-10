@@ -52,6 +52,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -70,6 +71,8 @@ import static calculator.graphql.AsyncDataFetcher.async;
 import static java.util.stream.Collectors.toList;
 
 public class ExecutionEngine extends SimpleInstrumentation {
+
+    // todo 在执行结束前、保证所有的执行都完成
 
     private final Executor executor;
 
@@ -318,7 +321,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 return null;
             }
 
-            return innerDataFetcher.get(environment);
+            Object innerResult = innerDataFetcher.get(environment);
+            if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
+            }
+            return innerResult;
         };
 
         if (isAsyncFetcher || dependencySources != null) {
@@ -326,7 +333,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
         return innerDataFetcher;
     }
-
 
 
     // directive @map(mapper:String!, dependencySources:String) on FIELD
@@ -411,7 +417,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
-                return innerDataFetcher.get(newEnvironment);
+                Object innerResult = innerDataFetcher.get(newEnvironment);
+                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                    return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
+                }
+                return innerResult;
             }
 
             // map each element of list argument
@@ -433,7 +443,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
 
-                return innerDataFetcher.get(newEnvironment);
+                Object innerResult = innerDataFetcher.get(newEnvironment);
+                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                    return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
+                }
+                return innerResult;
             }
 
             // map argument by expression
@@ -449,7 +463,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
 
-                return innerDataFetcher.get(newEnvironment);
+                Object innerResult = innerDataFetcher.get(newEnvironment);
+                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                    return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
+                }
+                return innerResult;
             }
 
             throw new RuntimeException("can not invoke here.");
@@ -488,7 +506,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                     valueTask.getTaskFuture().complete(null);
                     return;
                 }
-            }).join();
+            }).join(); // kp step_a_5 sortByWithSource_case01 会在这里block
 
             if (valueTask.getTaskFuture().isDone()) {
                 return valueTask;
@@ -568,7 +586,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     @Override
     public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
 
-        return new InstrumentationContext<ExecutionResult>() {
+        return new InstrumentationContext<ExecutionResult>() {  // kp step_a_1
 
             @Override
             public void onDispatched(CompletableFuture<ExecutionResult> result) {
@@ -586,7 +604,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
                 List<Directive> directives = parameters.getExecutionStepInfo().getField().getSingleField().getDirectives();
                 if (directives != null && !directives.isEmpty()) {
-                    transformListResultByDirectives(result, directives, parameters);
+                    transformListResultByDirectives(result, directives, parameters);  // kp step_a_2
                 }
             }
         };
@@ -626,7 +644,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         ? reversed
                         : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
-                sortByCollectionData(
+                sortByCollectionData( // kp step_a_3
                         listOrArray,
                         parameters.getInstrumentationState(),
                         comparator, reversed, dependencySources
@@ -685,7 +703,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         final Map<String, Object> sourceEnv = new LinkedHashMap<>();
         if (dependencySources != null && !dependencySources.isEmpty()) {
             for (String dependencySource : dependencySources) {
-                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource); // kp step_a_4
                 if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
                     sourceEnv.put(dependencySource, null);
                 } else {

@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class SortTest {
 
@@ -85,7 +86,6 @@ public class SortTest {
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
-        System.out.println(executionResult.getData().toString());
         assert Objects.equals(
                 executionResult.getData().toString(),
                 "{consumer={userInfoList=[{userId=4, name=4_name}, {userId=3, name=3_name}, {userId=2, name=2_name}, {userId=1, name=1_name}]}}"
@@ -147,7 +147,40 @@ public class SortTest {
         );
     }
 
+    @Test
+    public void sortByResult_case01() {
+        AviatorEvaluator.addFunction(new ListContain());
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(GraphQLSourceHolder.defaultDataFetcherInfo());
 
+        String query = "" +
+                "query sortResult_case01{\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: [3,4,1,2])\n" +
+                "        @sortBy(comparator: \"sortKey\")\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            sortKey: itemId @map(mapper: \"itemId\")\n" +
+                "            salePrice\n" +
+                "            saleAmount(itemId: 1)\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        System.out.println(Thread.currentThread().getId());
+        assert Objects.equals(data.get("commodity").get("itemList").toString(),
+                "[{itemId=1, sortKey=1, salePrice=11, saleAmount=10}, " +
+                        "{itemId=2, sortKey=2, salePrice=21, saleAmount=10}, " +
+                        "{itemId=3, sortKey=3, salePrice=31, saleAmount=10}, " +
+                        "{itemId=4, sortKey=4, salePrice=41, saleAmount=10}]"
+        );
+    }
+
+    // todo 线程block问题
     @Test
     public void sortByWithSource_case01() {
         Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
@@ -185,38 +218,6 @@ public class SortTest {
         assert Objects.equals(
                 data.get("commodity").get("itemList").toString(),
                 "[{itemId=11, name=item_name_11, salePrice=111}, {itemId=12, name=item_name_12, salePrice=121}, {itemId=9, name=item_name_9, salePrice=91}, {itemId=10, name=item_name_10, salePrice=101}]"
-        );
-    }
-
-    @Test
-    public void sortResult_case01() {
-        AviatorEvaluator.addFunction(new ListContain());
-        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(GraphQLSourceHolder.defaultDataFetcherInfo());
-
-        String query = "" +
-                "query sortResult_case01{\n" +
-                "    commodity{\n" +
-                "        itemList(itemIds: [3,4,1,2])\n" +
-                "        @sortBy(comparator: \"sortKey\")\n" +
-                "        {\n" +
-                "            itemId\n" +
-                "            sortKey: itemId @map(mapper: \"itemId\")\n" +
-                "            salePrice\n" +
-                "            saleAmount(itemId: 1)\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
-        assert !validateResult.isFailure();
-
-        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
-        assert executionResult.getErrors().isEmpty();
-        Map<String, Map<String, Object>> data = executionResult.getData();
-        assert Objects.equals(data.get("commodity").get("itemList").toString(),
-                "[{itemId=1, sortKey=1, salePrice=11, saleAmount=10}, " +
-                        "{itemId=2, sortKey=2, salePrice=21, saleAmount=10}, " +
-                        "{itemId=3, sortKey=3, salePrice=31, saleAmount=10}, " +
-                        "{itemId=4, sortKey=4, salePrice=41, saleAmount=10}]"
         );
     }
 
