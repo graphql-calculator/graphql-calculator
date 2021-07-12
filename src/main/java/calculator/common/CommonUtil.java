@@ -29,14 +29,9 @@ import graphql.language.IntValue;
 import graphql.language.StringValue;
 import graphql.language.Value;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 
 import static calculator.common.VisitorUtil.PATH_SEPARATOR;
 
@@ -162,55 +157,6 @@ public class CommonUtil {
         }
 
         return sb.toString();
-    }
-
-
-    public static int arraySize(Object object) {
-        if (object instanceof Collection) {
-            return ((Collection<?>) object).size();
-        }
-
-        if (object.getClass().isArray()) {
-            return Array.getLength(object);
-        }
-
-        return 0;
-    }
-
-
-    // todo 如果 listOrArray 是HashSet，则最后返回的结果还是乱序的
-    public static void sortListOrArray(Object listOrArray, Comparator<Object> comparator){
-        if(listOrArray instanceof List){
-            Collections.sort((List<Object>)listOrArray,comparator);
-            return;
-        }
-
-        if (listOrArray instanceof Collection) {
-            List<Object> list = new ArrayList<>((Collection) listOrArray);
-            Collections.sort(list, comparator);
-
-            Collection<Object> collection = (Collection) listOrArray;
-            collection.clear();
-            collection.addAll(list);
-            return;
-        }
-
-        if(listOrArray.getClass().isArray()){
-            Arrays.sort((Object[]) listOrArray, comparator);
-            return;
-        }
-    }
-
-    public static void filterListOrArray(Object listOrArray, Predicate<Object> willKeep) {
-
-        if (listOrArray instanceof Collection) {
-            ((Collection) listOrArray).removeIf(ele -> !willKeep.test(ele));
-            return;
-        }
-
-        if (listOrArray.getClass().isArray()) {
-            throw new UnsupportedOperationException("can not filter Array object");
-        }
     }
 
 }

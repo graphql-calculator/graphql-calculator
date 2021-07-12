@@ -16,7 +16,7 @@
  */
 package calculator.engine;
 
-import calculator.common.CommonUtil;
+import calculator.common.CollectionUtil;
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
@@ -52,11 +52,10 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import static calculator.common.CommonUtil.arraySize;
+import static calculator.common.CollectionUtil.arraySize;
 import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
@@ -676,7 +675,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
         };
 
-        CommonUtil.filterListOrArray(listOrArray, willKeep);
+        CollectionUtil.filterListOrArray(listOrArray, willKeep);
     }
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
@@ -692,7 +691,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             comparator = comparator.reversed();
         }
 
-        CommonUtil.sortListOrArray(listOrArray, comparator);
+        CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
 
     private void sortByCollectionData(Object listOrArray,
@@ -722,6 +721,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
             comparator = comparator.reversed();
         }
 
-        CommonUtil.sortListOrArray(listOrArray, comparator);
+        CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
 }
