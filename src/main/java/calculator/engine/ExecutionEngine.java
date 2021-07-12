@@ -163,7 +163,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), getCalMap(result)
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getCalMap(result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -399,7 +399,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             List<Object> filteredList = new ArrayList<>();
             for (Object ele : (Collection<?>) unWrapResult) {
-                Map<String, Object> fieldMap = getCalMap(ele);
+                Map<String, Object> fieldMap = (Map<String, Object>)getCalMap(ele);
                 fieldMap.putAll(sourceEnv);
                 if ((Boolean) scriptEvaluator.evaluate(predicate, fieldMap)) {
                     filteredList.add(ele);
@@ -436,11 +436,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
             List<Object> sortedCollection;
             if (reversed) {
                 sortedCollection = collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable<Object>) getCalMap(ele).get(sortKey)).reversed()
+                        Comparator.comparing(ele -> (Comparable<Object>) ((Map<String, Object>) getCalMap(ele)).get(sortKey)).reversed()
                 ).collect(toList());
             } else {
                 sortedCollection = collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable<Object>) getCalMap(ele).get(sortKey))
+                        Comparator.comparing(ele -> (Comparable<Object>) ((Map<String, Object>) getCalMap(ele)).get(sortKey))
                 ).collect(toList());
             }
 
@@ -492,14 +492,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
             List<Object> sortedList;
             if (reversed) {
                 sortedList = collectionData.stream().sorted(Comparator.comparing(ele -> {
-                    Map<String, Object> env = getCalMap(ele);
+                    Map<String, Object> env = (Map<String, Object>) getCalMap(ele);
                     env.putAll(sourceEnv);
                     return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                 }).reversed()).collect(toList());
             } else {
                 sortedList = collectionData.stream().sorted(
                         Comparator.comparing(ele -> {
-                            Map<String, Object> env = getCalMap(ele);
+                            Map<String, Object> env = (Map<String, Object>) getCalMap(ele);
                             env.putAll(sourceEnv);
                             return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
                         })
@@ -541,7 +541,15 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             // new Map, do not alter original Map info.
-            HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
+            HashMap<String, Object> expEnv = new HashMap<>();
+            Object sourceInfo = getCalMap(environment.getSource());
+            if (sourceInfo instanceof Map) {
+                expEnv.putAll((Map) sourceInfo);
+            }else if (sourceInfo instanceof Collection){
+                // FIXME ignored
+                int a  = 1;
+            }
+
             expEnv.putAll(sourceEnv);
 
             return scriptEvaluator.evaluate(mapper, expEnv);
@@ -716,20 +724,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
         throw new RuntimeException("can not invoke here");
     }
 
-    private Map<String, Object> getCalMap(Object res) {
+    private Object getCalMap(Object res) {
         if (res == null) {
             return Collections.emptyMap();
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
         if (res.getClass().isPrimitive()) {
-            result.put("ele", res);
+            return Collections.singletonMap("ele", res);
         } else {
-            Map<String, Object> objectMap = objectMapper.toMap(res);
-            objectMap = objectMap != null ? objectMap : Collections.emptyMap();
-            result.putAll(objectMap);
+            return objectMapper.toSimpleCollection(res);
         }
-        return result;
     }
 
 
@@ -774,7 +778,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             @Override
             public void onCompleted(ExecutionResult result, Throwable t) {
-                System.out.println(result);
             }
         };
     }

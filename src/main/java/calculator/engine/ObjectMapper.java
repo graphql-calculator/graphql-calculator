@@ -20,11 +20,9 @@ package calculator.engine;
 
 import calculator.engine.annotation.PublicApi;
 
-import java.util.Map;
-
 @PublicApi
 public interface ObjectMapper {
 
-    Map<String, Object> toMap(Object object);
+    Object toSimpleCollection(Object object);
 
 }

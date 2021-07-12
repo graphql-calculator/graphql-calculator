@@ -51,12 +51,8 @@ public class ListMapper extends AbstractFunction {
             return AviatorNil.NIL;
         }
 
-        String listName = ((AviatorString) listNameObj).getLexeme(Collections.emptyMap());
-        if (!env.containsKey(listName)) {
-            return AviatorNil.NIL;
-        }
-
-        List<Object> listValue = (List) env.get(listName);
+        String listPath = ((AviatorString) listNameObj).getLexeme(Collections.emptyMap());
+        List<Object> listValue = (List<Object>) AviatorEvaluator.execute(listPath, env);
         if (listValue == null) {
             return AviatorNil.NIL;
         }
