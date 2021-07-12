@@ -293,7 +293,7 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 
     marketing{
         coupon(couponId: $couponId)
-        @fetchSource(name: "itemCouponInfo",sourceConvert: "list2MapWithAssignedValue('bindingItemIds','price')")
+        @fetchSource(name: "itemCouponInfo",sourceConvert: "list2MapWithAssignedValue('coupon.bindingItemIds','coupon.price')")
         {
             base
             price
