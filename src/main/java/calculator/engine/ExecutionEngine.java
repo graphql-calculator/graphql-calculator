@@ -42,6 +42,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -165,7 +166,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), getCalMap(result)
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getCalMap(result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -358,7 +359,15 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             // new Map, do not alter original Map info.
-            HashMap<String, Object> expEnv = new HashMap<>(getCalMap(environment.getSource()));
+            HashMap<String, Object> expEnv = new HashMap<>();
+            Object sourceInfo = getCalMap(environment.getSource());
+            if (sourceInfo instanceof Map) {
+                expEnv.putAll((Map) sourceInfo);
+            }else if (sourceInfo instanceof Collection){
+                // FIXME ignored
+                int a  = 1;
+            }
+
             expEnv.putAll(sourceEnv);
 
             return scriptEvaluator.evaluate(mapper, expEnv);
@@ -533,21 +542,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
         throw new RuntimeException("can not invoke here");
     }
 
-    // 如果 res 是 Map，则返回其拷贝
-    private Map<String, Object> getCalMap(Object res) {
+    private Object getCalMap(Object res) {
         if (res == null) {
             return Collections.emptyMap();
         }
 
-        Map<String, Object> result = new LinkedHashMap<>();
         if (res.getClass().isPrimitive()) {
-            result.put("ele", res);
+            return Collections.singletonMap("ele", res);
         } else {
-            Map<String, Object> objectMap = objectMapper.toMap(res);
-            objectMap = objectMap != null ? objectMap : Collections.emptyMap();
-            result.putAll(objectMap);
+            return objectMapper.toSimpleCollection(res);
         }
-        return result;
     }
 
 
@@ -670,7 +674,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
 
         Predicate<Object> willKeep = ele -> {
-            Map<String, Object> fieldMap = getCalMap(ele);
+            Map<String, Object> fieldMap = (Map<String, Object>)getCalMap(ele);
             fieldMap.putAll(sourceEnv);
             return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
         };
@@ -680,11 +684,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
         Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = getCalMap(ele);
+            Map<String, Object> calMap = (Map<String, Object>)getCalMap(ele);
             if (calMap == null) {
                 return null;
             }
-            return (Comparable<Object>) getCalMap(ele).get(sortKey);
+            return (Comparable<Object>) ((Map<String, Object>)getCalMap(ele)).get(sortKey);
         });
 
         if (reversed) {
@@ -712,7 +716,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
 
         Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = getCalMap(ele);
+            Map<String, Object> calMap = (Map<String, Object>)getCalMap(ele);
             calMap.putAll(sourceEnv);
             return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, calMap);
         });

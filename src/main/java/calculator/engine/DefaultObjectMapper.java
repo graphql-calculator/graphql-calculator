@@ -20,6 +20,7 @@ package calculator.engine;
 import calculator.engine.annotation.Internal;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,13 +28,17 @@ import java.util.Map;
 public class DefaultObjectMapper implements ObjectMapper{
 
     @Override
-    public Map<String, Object> toMap(Object object) {
+    public Object toSimpleCollection(Object object) {
         if (object == null) {
             return null;
         }
 
         if (Map.class.isAssignableFrom(object.getClass())) {
-            return (Map<String, Object>) object;
+            return object;
+        }
+
+        if (Collection.class.isAssignableFrom(object.getClass()) || object.getClass().isArray()) {
+            return object;
         }
 
         Map<String, Object> result = new HashMap<>();

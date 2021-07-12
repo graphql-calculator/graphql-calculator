@@ -204,7 +204,7 @@ public class ArgumentTransformTest {
                 "\n" +
                 "    marketing{\n" +
                 "        coupon(couponId: $couponId)\n" +
-                "        @fetchSource(name: \"itemCouponInfo\",sourceConvert: \"list2MapWithAssignedValue('bindingItemIds','price')\")\n" +
+                "        @fetchSource(name: \"itemCouponInfo\",sourceConvert: \"list2MapWithAssignedValue('coupon.bindingItemIds','coupon.price')\")\n" +
                 "        {\n" +
                 "            base\n" +
                 "            price\n" +
