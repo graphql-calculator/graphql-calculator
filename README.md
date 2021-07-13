@@ -20,7 +20,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version></version>
+    <version>1.0.5</version>
 </dependency>
 ```
 
