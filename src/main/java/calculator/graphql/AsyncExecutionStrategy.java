@@ -52,7 +52,7 @@ import static graphql.execution.FieldValueInfo.CompleteValueType.LIST;
 
 
 /**
- * copy from
+ * copy from graphql-java, min change.
  */
 public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
 
@@ -183,6 +183,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
                 completedResults.add(completedValue.getData());
             }
             ExecutionResultImpl executionResult = new ExecutionResultImpl(completedResults, null);
+            // onCompleted before 'overallResult.complete(executionResult)'
             completeListCtx.onCompleted(executionResult, null);
             overallResult.complete(executionResult);
         });

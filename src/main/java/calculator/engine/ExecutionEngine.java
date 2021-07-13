@@ -53,10 +53,13 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static calculator.common.CollectionUtil.arraySize;
+import static calculator.common.CollectionUtil.arrayToList;
+import static calculator.common.CollectionUtil.collectionToListOrArray;
 import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
@@ -268,6 +271,30 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 continue;
             }
 
+            if (Objects.equals(FILTER.getName(), directive.getName())) {
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                dataFetcher = wrapFilterDataFetcher(dataFetcher, valueUnboxer, dependencySources);
+                continue;
+            }
+
+            if (Objects.equals(SORT.getName(), directive.getName())) {
+                dataFetcher = wrapSortDataFetcher(dataFetcher, valueUnboxer);
+                continue;
+            }
+
+            if (Objects.equals(SORT_BY.getName(), directive.getName())) {
+                String comparator = getArgumentFromDirective(directive, "comparator");
+                Boolean reversed = getArgumentFromDirective(directive, "reversed");
+                reversed = reversed != null
+                        ? reversed
+                        : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                dataFetcher = wrapSortByDataFetcher(
+                        dataFetcher, valueUnboxer, dependencySources
+                );
+                continue;
+            }
+
             if (Objects.equals(MAP.getName(), directive.getName())) {
                 String mapper = getArgumentFromDirective(directive, "mapper");
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
@@ -332,6 +359,98 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return async(wrappedDataFetcher, innerExecutor);
         }
         return innerDataFetcher;
+    }
+
+    // if the result of data is array, replace it with List which support filter operation.
+    private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer, List<String> dependencySources) {
+        AtomicBoolean needAsyncFetcher = new AtomicBoolean(defaultDF instanceof AsyncDataFetcherInterface);
+        Executor innerExecutor = needAsyncFetcher.get() ? ((AsyncDataFetcherInterface) defaultDF).getExecutor() : executor;
+        DataFetcher innerDataFetcher = ((AsyncDataFetcherInterface) defaultDF).getWrappedDataFetcher();
+
+        DataFetcher<?> wrappedFetcher = environment -> {
+            Object originalResult = innerDataFetcher.get(environment);
+            if (originalResult instanceof CompletionStage) {
+                originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
+                needAsyncFetcher.set(true);
+            }
+
+            Object unWrapResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (unWrapResult == null) {
+                needAsyncFetcher.set(false);
+                return originalResult;
+            }
+
+            List<Object> listResult = arrayToList(unWrapResult);
+
+
+            return wrapResult(originalResult, listResult);
+        };
+
+        if (needAsyncFetcher.get() || dependencySources != null) {
+            return async(wrappedFetcher, innerExecutor);
+        }
+        return wrappedFetcher;
+    }
+
+    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
+        AtomicBoolean needAsyncFetcher = new AtomicBoolean(defaultDF instanceof AsyncDataFetcherInterface);
+        Executor innerExecutor = needAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = needAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+        DataFetcher<?> wrappedDataFetcher = environment -> {
+            Object originalResult = innerDataFetcher.get(environment);
+            if (originalResult instanceof CompletionStage) {
+                originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
+                needAsyncFetcher.set(true);
+            }
+
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (arraySize(unWrappedData) == 0) {
+                needAsyncFetcher.set(false);
+                return originalResult;
+            }
+
+            Object listOrArray = collectionToListOrArray(unWrappedData);
+            return wrapResult(originalResult, listOrArray);
+        };
+
+        if (needAsyncFetcher.get()) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+        return wrappedDataFetcher;
+    }
+
+
+    private DataFetcher<?> wrapSortByDataFetcher(DataFetcher<?> defaultDF,
+                                                 ValueUnboxer valueUnboxer,
+                                                 List<String> dependencySources) {
+
+        AtomicBoolean needAsyncFetcher = new AtomicBoolean(defaultDF instanceof AsyncDataFetcherInterface);
+        Executor innerExecutor = needAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = needAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+        DataFetcher<?> wrappedDataFetcher = environment -> {
+            Object originalResult = innerDataFetcher.get(environment);
+            if (originalResult instanceof CompletionStage) {
+                originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
+                needAsyncFetcher.set(true);
+            }
+
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (arraySize(unWrappedData) == 0) {
+                needAsyncFetcher.set(false);
+                return originalResult;
+            }
+
+            Object listOrArray = collectionToListOrArray(unWrappedData);
+            return wrapResult(originalResult, listOrArray);
+        };
+
+        if (needAsyncFetcher.get() || dependencySources != null) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+
+        return wrappedDataFetcher;
     }
 
 

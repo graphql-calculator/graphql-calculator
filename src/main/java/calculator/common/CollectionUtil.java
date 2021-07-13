@@ -25,25 +25,30 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CollectionUtil {
 
     /**
      * Get the size of collection or array.
      *
-     * @param object the collection/array
+     * @param listOrArray the collection/array
      * @return the size of collection or array
      */
-    public static int arraySize(Object object) {
-        if (object instanceof Collection) {
-            return ((Collection<?>) object).size();
+    public static int arraySize(Object listOrArray) {
+        if(listOrArray == null){
+            return 0;
         }
 
-        if (object.getClass().isArray()) {
-            return Array.getLength(object);
+        if (listOrArray instanceof Collection) {
+            return ((Collection<?>) listOrArray).size();
         }
 
-        return 0;
+        if (listOrArray.getClass().isArray()) {
+            return Array.getLength(listOrArray);
+        }
+
+        throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
     }
 
 
@@ -77,7 +82,7 @@ public class CollectionUtil {
      * Just keep the element that satisfy the given predicate.
      *
      * @param listOrArray the list to be filtered
-     * @param willKeep a predicate which returns {@code true} for elements to be keep
+     * @param willKeep    a predicate which returns {@code true} for elements to be keep
      */
     public static void filterListOrArray(Object listOrArray, Predicate<Object> willKeep) {
 
@@ -86,6 +91,61 @@ public class CollectionUtil {
         }
 
         throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
+    }
+
+
+    /**
+     * Convert array or collection to List which support filter operation.
+     *
+     * @param listOrArray the object to be convert
+     * @return the List which can be filtered
+     */
+    public static List<Object> arrayToList(Object listOrArray) {
+        if (listOrArray == null) {
+            return null;
+        }
+
+        if (listOrArray instanceof List) {
+            return (List) listOrArray;
+        }
+
+        if (listOrArray.getClass().isArray()) {
+            Object[] array = (Object[]) listOrArray;
+            return Arrays.stream(array).collect(Collectors.toList());
+        }
+
+        if (listOrArray instanceof Collection) {
+            return new ArrayList<>((Collection<?>) listOrArray);
+        }
+
+        throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
+    }
+
+
+    /**
+     * Convert array or collection to List which support sort operation.
+     *
+     * @param collectionOrArray the object to be sorted
+     * @return the List which can be sorted
+     */
+    public static Object collectionToListOrArray(Object collectionOrArray) {
+        if (collectionOrArray == null) {
+            return null;
+        }
+
+        if (collectionOrArray.getClass().isArray()) {
+            return collectionOrArray;
+        }
+
+        if (collectionOrArray instanceof List) {
+            return collectionOrArray;
+        }
+
+        if (collectionOrArray instanceof Collection) {
+            return new ArrayList<>((List) collectionOrArray);
+        }
+
+        throw new IllegalArgumentException("Unsupported object type: " + collectionOrArray.getClass().getName());
     }
 
 }
