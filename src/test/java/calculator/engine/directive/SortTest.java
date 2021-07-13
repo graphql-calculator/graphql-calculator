@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class SortTest {
 
