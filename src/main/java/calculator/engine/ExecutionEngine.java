@@ -169,7 +169,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getCalMap(result))
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getScriptEnv(result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -479,15 +479,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             // new Map, do not alter original Map info.
             HashMap<String, Object> expEnv = new HashMap<>();
-            Object sourceInfo = getCalMap(environment.getSource());
-            if (sourceInfo instanceof Map) {
-                expEnv.putAll((Map) sourceInfo);
-            }else if (sourceInfo instanceof Collection){
-                // FIXME ignored
-                int a  = 1;
-            }
-
             expEnv.putAll(sourceEnv);
+            Map sourceInfo = (Map) getScriptEnv(environment.getSource());
+            if(sourceInfo!=null){
+                expEnv.putAll(sourceInfo);
+            }
 
             return scriptEvaluator.evaluate(mapper, expEnv);
         };
@@ -622,6 +618,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
         List<FetchSourceTask> topTaskList = topTaskNameList.stream().map(fetchSourceTaskByPath::get).collect(toList());
         FetchSourceTask valueTask = topTaskList.get(topTaskList.size() - 1);
 
+        if("bindingItemIds111".equals(sourceName)){
+            System.out.println(111);
+        }
+
         for (CompletableFuture<Object> queryTask : queryTaskList) {
             queryTask.whenComplete((result, ex) -> {
                 if (ex != null) {
@@ -661,7 +661,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         throw new RuntimeException("can not invoke here");
     }
 
-    private Object getCalMap(Object res) {
+    private Object getScriptEnv(Object res) {
         if (res == null) {
             return Collections.emptyMap();
         }
@@ -760,6 +760,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(SORT_BY.getName(), directive.getName())) {
+//                System.out.println("ExecutionEngine threadId "  + Thread.currentThread().getId());
                 String comparator = getArgumentFromDirective(directive, "comparator");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null
@@ -793,7 +794,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
 
         Predicate<Object> willKeep = ele -> {
-            Map<String, Object> fieldMap = (Map<String, Object>)getCalMap(ele);
+            Map<String, Object> fieldMap = (Map<String, Object>) getScriptEnv(ele);
             fieldMap.putAll(sourceEnv);
             return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
         };
@@ -803,11 +804,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
         Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = (Map<String, Object>)getCalMap(ele);
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
             if (calMap == null) {
                 return null;
             }
-            return (Comparable<Object>) ((Map<String, Object>)getCalMap(ele)).get(sortKey);
+            return (Comparable<Object>) ((Map<String, Object>) getScriptEnv(ele)).get(sortKey);
         });
 
         if (reversed) {
@@ -835,9 +836,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
 
         Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = (Map<String, Object>)getCalMap(ele);
-            calMap.putAll(sourceEnv);
-            return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, calMap);
+            Map<String, Object> scriptEnv = new LinkedHashMap<>();
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+            if (calMap != null) {
+                scriptEnv.putAll(calMap);
+            }
+            scriptEnv.putAll(sourceEnv);
+            return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
         });
 
         if (reversed) {

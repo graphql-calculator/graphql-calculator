@@ -64,17 +64,16 @@ public class CollectionUtil {
         } else if (listOrArray instanceof Collection) {
             List<Object> list = new ArrayList<>((Collection) listOrArray);
             Collections.sort(list, comparator);
-
             Collection<Object> collection = (Collection) listOrArray;
             collection.clear();
             collection.addAll(list);
-            return;
         } else if (listOrArray.getClass().isArray()) {
             Arrays.sort((Object[]) listOrArray, comparator);
-            return;
+        } else {
+            // todo 抛异常的话会导致线程block
+            throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
         }
-
-        throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
+        System.out.println(listOrArray);
     }
 
 
@@ -85,12 +84,12 @@ public class CollectionUtil {
      * @param willKeep    a predicate which returns {@code true} for elements to be keep
      */
     public static void filterListOrArray(Object listOrArray, Predicate<Object> willKeep) {
-
         if (listOrArray instanceof Collection) {
             ((Collection) listOrArray).removeIf(ele -> !willKeep.test(ele));
+        }else{
+            // todo 抛异常的话会导致线程block
+            throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
         }
-
-        throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
     }
 
 
@@ -103,22 +102,17 @@ public class CollectionUtil {
     public static List<Object> arrayToList(Object listOrArray) {
         if (listOrArray == null) {
             return null;
-        }
-
-        if (listOrArray instanceof List) {
+        } else if (listOrArray instanceof List) {
             return (List) listOrArray;
-        }
-
-        if (listOrArray.getClass().isArray()) {
+        } else if (listOrArray.getClass().isArray()) {
             Object[] array = (Object[]) listOrArray;
             return Arrays.stream(array).collect(Collectors.toList());
-        }
-
-        if (listOrArray instanceof Collection) {
+        } else if (listOrArray instanceof Collection) {
             return new ArrayList<>((Collection<?>) listOrArray);
+        } else {
+            // todo 抛异常的话会导致线程block
+            throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
         }
-
-        throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
     }
 
 

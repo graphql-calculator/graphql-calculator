@@ -194,7 +194,7 @@ public class SortTest {
                 "query sortByWithSource_case01{\n" +
                 "    commodity{\n" +
                 "        itemList(itemIds: [9,11,10,12])\n" +
-                "        @sortBy(comparator: \"listContain(bindingItemIds,itemId)\",dependencySources: \"bindingItemIds\")\n" +
+                "        @sortBy(comparator: \"listContain(bindingItemIds111,itemId)\",dependencySources: \"bindingItemIds111\")\n" +
                 "        {\n" +
                 "            itemId\n" +
                 "            name\n" +
@@ -204,7 +204,7 @@ public class SortTest {
                 "\n" +
                 "    marketing{\n" +
                 "        coupon(couponId: 1){\n" +
-                "            bindingItemIds @fetchSource(name: \"bindingItemIds\")\n" +
+                "            bindingItemIds @fetchSource(name: \"bindingItemIds111\")\n" +
                 "        }\n" +
                 "    }\n" +
                 "}";
