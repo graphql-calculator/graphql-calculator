@@ -94,6 +94,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         String query = parameters.getExecutionInput().getQuery();
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
                 .schema(parameters.getSchema())
+                // FIXME cache Document
                 .document(Parser.parse(query))
                 .variables(Collections.emptyMap()).build();
 
@@ -545,9 +546,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             Object sourceInfo = getCalMap(environment.getSource());
             if (sourceInfo instanceof Map) {
                 expEnv.putAll((Map) sourceInfo);
-            }else if (sourceInfo instanceof Collection){
+            } else {
                 // FIXME ignored
-                int a  = 1;
             }
 
             expEnv.putAll(sourceEnv);
@@ -726,7 +726,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private Object getCalMap(Object res) {
         if (res == null) {
-            return Collections.emptyMap();
+            return null;
         }
 
         if (res.getClass().isPrimitive()) {
