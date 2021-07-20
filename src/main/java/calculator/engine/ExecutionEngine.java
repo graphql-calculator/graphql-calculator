@@ -360,7 +360,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
-        return innerDataFetcher;
+        return wrappedDataFetcher;
     }
 
 
