@@ -71,10 +71,10 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@skipBy`
 
-`directive @skipBy(expression: String!, dependencySources: String) on FIELD`
+`directive @skipBy(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
-- `expression`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
+- `predicate`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
 - `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
 
 `@skipBy`是graphql内置指令`@skip`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
@@ -98,7 +98,7 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@sortBy`
 
-`directive @sortBy(expression: String!, reversed: Boolean = false, dependencySources: String) on FIELD`
+`directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySources: String) on FIELD`
 
 参数解释：
 - `expression`：按照该表达式计算结果、对列表元素进行排序；
@@ -111,9 +111,9 @@ query fetchSourceDemo($userIds: [Int]){
 **当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值**。
 
 
-#### `@mapper`
+#### `@map`
 
-`directive @mapper(expression:String!, dependencySources:String) on FIELD`
+`directive @map(mapper:String!, dependencySources:String) on FIELD`
 
 参数解释：
 - `expression`：计算字段值的表达式；
