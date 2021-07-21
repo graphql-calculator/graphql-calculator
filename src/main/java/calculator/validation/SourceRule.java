@@ -113,12 +113,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // source 必须存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
-                // source 必须被使用了
                 String predicate = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
@@ -143,12 +141,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // source 必须存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
-                // source 必须被使用了
                 String predicate = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
@@ -173,12 +169,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // source 必须存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
-                // source 必须被使用了
                 String mapper = (String) CommonUtil.parseValue(
                         directive.getArgument("mapper").getValue()
                 );
@@ -198,12 +192,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 依赖的节点是否存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
                 
-                // 依赖的source必须被使用了
                 String comparator = (String) CommonUtil.parseValue(
                         directive.getArgument("comparator").getValue()
                 );
@@ -224,12 +216,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 依赖的节点是否存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
-                // 依赖的source必须被使用了
                 String expression = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
@@ -250,12 +240,10 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 依赖的节点是否存在，存在这从unusedNode中删除
                 if (!validateExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
-                // source 必须被使用了
                 String expression = (String) CommonUtil.parseValue(
                         directive.getArgument("expression").getValue()
                 );
@@ -290,13 +278,13 @@ public class SourceRule extends AbstractRule {
     }
 
     /**
-     * 校验依赖的节点是否存在，存在这从unusedNode中删除。
+     * Determine whether the dependency sources exists, and delete it from unusedSource.
      *
-     * @param fieldFullPath 字段全路径
-     * @param directive 字段上的指令
-     * @param dependencySources 指令依赖的节点名称
+     * @param fieldFullPath fieldFullPath
+     * @param directive directive
+     * @param dependencySources dependencySources
      *
-     * @return 是否校验成功
+     * @return true if all dependency sources exist, otherwise false.
      */
     private boolean validateExist(String fieldFullPath, Directive directive, List<String> dependencySources) {
         // 依赖的source必须存在。
@@ -319,13 +307,13 @@ public class SourceRule extends AbstractRule {
 
 
     /**
-     * 校验指令依赖的节点是否在表达式中被使用了
+     * Determine whether all dependency sources are used by directive expression.
      *
-     * @param fieldFullPath 字段全路径
-     * @param directive 字段上的指令
-     * @param dependencySources 指令依赖的节点名称
-     * @param expression 指令表达式
-     * @return 校验结果
+     * @param fieldFullPath fieldFullPath
+     * @param directive directive
+     * @param dependencySources dependencySources
+     * @param expression expression
+     * @return true if all dependency sources is used by expression, otherwise false
      */
     private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, List<String> dependencySources, String expression) {
         List<String> arguments = scriptEvaluator.getScriptArgument(expression);
