@@ -41,6 +41,7 @@ import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.common.VisitorUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT_BY;
@@ -135,6 +136,36 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
                 
+            }else if (Objects.equals(directive.getName(), INCLUDE_BY.getName())) {
+
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                if (dependencySources == null || dependencySources.isEmpty()) {
+                    continue;
+                }
+
+                // source 必须存在，存在这从unusedNode中删除
+                if (!validateExist(fieldFullPath, directive, dependencySources)) {
+                    continue;
+                }
+
+                // source 必须被使用了
+                String predicate = (String) CommonUtil.parseValue(
+                        directive.getArgument("predicate").getValue()
+                );
+                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
+                    continue;
+                }
+
+                // 不和参数名称冲突
+                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
+                    continue;
+                }
+
+                // circular check
+                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
+                    continue;
+                }
+
             } else if (Objects.equals(directive.getName(), MAP.getName())) {
 
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
