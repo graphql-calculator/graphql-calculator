@@ -50,7 +50,7 @@ public class Directives {
     // directive @skipBy(expression: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
-            .description("filter the field by expression using argument and dependency source.")
+            .description("determine whether the field would be skipped by expression, taking argument and dependency source as expression arguments.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -66,7 +66,7 @@ public class Directives {
     // directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
     public final static GraphQLDirective INCLUDE_BY = GraphQLDirective.newDirective()
             .name("includeBy")
-            .description("include the field by expression using argument and dependency source.")
+            .description("determine whether the field would be queried by expression, taking argument and dependency source as expression arguments.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
