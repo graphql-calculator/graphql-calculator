@@ -48,6 +48,7 @@ import static calculator.common.VisitorUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FETCH_SOURCE;
 import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
@@ -130,6 +131,27 @@ public class BasicRule extends AbstractRule {
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
                 checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
                 fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
+
+            } else if (Objects.equals(directiveName, INCLUDE_BY.getName())) {
+                String predicate = (String) parseValue(
+                        directive.getArgument("predicate").getValue()
+                );
+
+                if (predicate == null || predicate.isEmpty()) {
+                    String errorMsg = String.format("the expression for @includeBy on {%s} can not be empty.", fieldFullPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+                if (!scriptEvaluator.isValidScript(predicate)) {
+                    String errorMsg = String.format("invalid expression '%s' for @includeBy on {%s}.", predicate, fieldFullPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+                checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
+                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, MOCK.getName())) {
                 //注意，value可以为空串、模拟返回结果为空的情况；

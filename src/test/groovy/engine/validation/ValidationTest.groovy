@@ -78,7 +78,54 @@ class ValidationTest extends Specification {
     }
 
 
-    def "invalid location for @skipBy"() {
+    def "empty expression for @includeBy"() {
+        given:
+        def query = """
+            query{
+                consumer{
+                    userInfo(userId: 1)
+                    @includeBy(predicate: "")
+                    {
+                        userId
+                        name
+                    }
+                }
+            }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "the expression for @includeBy on {consumer.userInfo} can not be empty."
+    }
+
+    def "invalid expression for @includeBy"() {
+        given:
+        def query = """
+            query{
+                consumer{
+                    userInfo(userId: 1)
+                    @includeBy(predicate: "12_ab")
+                    {
+                        userId
+                        name
+                    }
+                }
+            }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "invalid expression '12_ab' for @includeBy on {consumer.userInfo}."
+    }
+
+
+    def "invalid location for @filter"() {
         given:
         def query = """
             query{

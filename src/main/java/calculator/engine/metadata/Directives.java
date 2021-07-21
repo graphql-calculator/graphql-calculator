@@ -50,7 +50,23 @@ public class Directives {
     // directive @skipBy(expression: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
-            .description("filter the field by expression using argument and dependency source.")
+            .description("determine whether the field would be skipped by expression, taking argument and dependency source as expression arguments.")
+            .validLocation(FIELD)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("predicate")
+                    .type(GraphQLNonNull.nonNull(GraphQLString)))
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("dependencySources")
+                    .description("the fetched value which the annotated field dependency.")
+                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
+            .build();
+
+    // directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
+    public final static GraphQLDirective INCLUDE_BY = GraphQLDirective.newDirective()
+            .name("includeBy")
+            .description("determine whether the field would be queried by expression, taking argument and dependency source as expression arguments.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()
@@ -231,6 +247,7 @@ public class Directives {
     static {
         Map<String, GraphQLDirective> tmpMap = new HashMap<>();
         tmpMap.put(SKIP_BY.getName(), SKIP_BY);
+        tmpMap.put(INCLUDE_BY.getName(), INCLUDE_BY);
         tmpMap.put(MOCK.getName(), MOCK);
         tmpMap.put(FILTER.getName(), FILTER);
         tmpMap.put(SORT.getName(), SORT);

@@ -61,6 +61,7 @@ import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FILTER;
+import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
@@ -261,6 +262,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 continue;
             }
 
+            if (Objects.equals(INCLUDE_BY.getName(), directive.getName())) {
+                String predicate = getArgumentFromDirective(directive, "predicate");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                dataFetcher = wrapIncludeDataFetcher(dataFetcher, engineState, predicate, dependencySources);
+                continue;
+            }
+
             if (Objects.equals(MOCK.getName(), directive.getName())) {
                 dataFetcher = ignore -> getArgumentFromDirective(directive, "value");
                 continue;
@@ -347,6 +355,46 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             Boolean isSkip = (Boolean) scriptEvaluator.evaluate(predicate, env);
             if (isSkip) {
+                return null;
+            }
+
+            Object innerResult = innerDataFetcher.get(environment);
+            if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
+            }
+            return innerResult;
+        };
+
+        if (isAsyncFetcher || dependencySources != null) {
+            return async(wrappedDataFetcher, innerExecutor);
+        }
+        return wrappedDataFetcher;
+    }
+
+
+    private DataFetcher<?> wrapIncludeDataFetcher(DataFetcher<?> dataFetcher,
+                                                 ExecutionEngineState engineState,
+                                                 String predicate,
+                                                 List<String> dependencySources) {
+        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
+
+        DataFetcher<?> wrappedDataFetcher = environment -> {
+            Map<String, Object> env = new LinkedHashMap<>(environment.getArguments());
+            if (dependencySources != null && !dependencySources.isEmpty()) {
+                for (String dependencySource : dependencySources) {
+                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                        env.put(dependencySource, null);
+                    } else {
+                        env.put(dependencySource, sourceTask.getTaskFuture().join());
+                    }
+                }
+            }
+
+            Boolean isInclude = (Boolean) scriptEvaluator.evaluate(predicate, env);
+            if (!isInclude) {
                 return null;
             }
 
