@@ -303,7 +303,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(SORT.getName(), directive.getName())) {
-                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getArgumentDefaultValue().getValue();
+                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
                 String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
@@ -316,7 +316,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null
                         ? reversed
-                        : (Boolean) SORT_BY.getArgument("reversed").getArgumentDefaultValue().getValue();
+                        : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapSortByDataFetcher(
                         dataFetcher, comparator, reversed, dependencySources, engineState, valueUnboxer
