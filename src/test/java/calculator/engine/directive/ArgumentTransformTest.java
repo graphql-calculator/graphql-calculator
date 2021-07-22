@@ -19,18 +19,16 @@ package calculator.engine.directive;
 
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
-import calculator.engine.ExecutionEngine;
 import calculator.engine.service.ConsumerServiceClient;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
-import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ListContain;
 import calculator.engine.script.ListMapper;
 import calculator.validation.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
@@ -48,11 +46,9 @@ import static calculator.util.TestUtil.listsWithSameElements;
 
 public class ArgumentTransformTest {
 
-
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
-    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
+    private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
     static {
         AviatorScriptEvaluator.getDefaultInstance().addFunction(new ListContain());
         AviatorScriptEvaluator.getDefaultInstance().addFunction(new ListMapper());
@@ -82,14 +78,14 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
         ExecutionInput skipInput = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("couponId", 1L))
                 .build();
-        ExecutionResult executionResult = graphQL.execute(skipInput);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
 
         assert executionResult != null;
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
@@ -132,7 +128,7 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema ,wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema() ,wrapperConfig);
         assert !validateResult.isFailure();
 
         HashMap<String, Object> variables = new LinkedHashMap<>();
@@ -143,7 +139,7 @@ public class ArgumentTransformTest {
                 .newExecutionInput(query)
                 .variables(variables)
                 .build();
-        ExecutionResult executionResult = graphQL.execute(skipInput);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
 
         assert executionResult != null;
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
@@ -172,7 +168,7 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(),wrapperConfig);
         assert !validateResult.isFailure();
 
         HashMap<String, Object> variables = new LinkedHashMap<>();
@@ -182,7 +178,7 @@ public class ArgumentTransformTest {
                 .newExecutionInput(query)
                 .variables(variables)
                 .build();
-        ExecutionResult executionResult = graphQL.execute(input);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(input);
 
         assert executionResult != null;
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
@@ -225,7 +221,7 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(),wrapperConfig);
         assert !validateResult.isFailure();
 
 
@@ -238,7 +234,7 @@ public class ArgumentTransformTest {
                 .newExecutionInput(query)
                 .variables(variables)
                 .build();
-        ExecutionResult executionResult = graphQL.execute(skipInput);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
 
         assert executionResult != null;
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();

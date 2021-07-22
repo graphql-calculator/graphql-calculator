@@ -19,14 +19,13 @@ package calculator.engine.directive;
 
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
-import calculator.engine.ExecutionEngine;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
+import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
-import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
@@ -42,8 +41,7 @@ public class CommonTest {
 
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
-    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
+    private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
 
     @Test
     public void mockTest() {
@@ -56,10 +54,10 @@ public class CommonTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
-        ExecutionResult executionResult = graphQL.execute(query);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Map<String, Object>>> data = executionResult.getData();
         assert Objects.equals(data.get("consumer").get("userInfo").get("email"), "mockedValue@foxmail.com");
@@ -86,7 +84,7 @@ public class CommonTest {
                 "    }\n" +
                 "\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
         HashMap<String, Object> invalidVariable = new LinkedHashMap<>();
@@ -97,7 +95,7 @@ public class CommonTest {
                 .newExecutionInput(query)
                 .variables(invalidVariable)
                 .build();
-        ExecutionResult invalidResult = graphQL.execute(inValidInput);
+        ExecutionResult invalidResult = graphqlSource.getGraphQL().execute(inValidInput);
         assert invalidResult.getErrors().isEmpty();
         assert ((Map<String, Object>) invalidResult.getData()).get("marketing") == null;
 
@@ -110,7 +108,7 @@ public class CommonTest {
                 .newExecutionInput(query)
                 .variables(validVariable)
                 .build();
-        ExecutionResult validResult = graphQL.execute(validInput);
+        ExecutionResult validResult = graphqlSource.getGraphQL().execute(validInput);
         assert validResult.getErrors().isEmpty();
         assert Objects.equals(
                 ((Map<String, Map<String, Object>>) validResult.getData()).get("marketing").get("coupon").toString(),
@@ -147,14 +145,14 @@ public class CommonTest {
                 "}";
 
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema,wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
         ExecutionInput skipInput = ExecutionInput
                 .newExecutionInput(query)
                 .variables(Collections.singletonMap("couponId", 1L))
                 .build();
-        ExecutionResult executionResult = graphQL.execute(skipInput);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
 
         assert executionResult != null;
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();

@@ -20,6 +20,8 @@ package calculator.engine.directive;
 import calculator.config.Config;
 import calculator.config.ConfigImpl;
 import calculator.engine.ExecutionEngine;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
+import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
 import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
@@ -36,8 +38,7 @@ import java.util.Objects;
 public class FetchSourceTest {
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
     private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
-    private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
-    private static final GraphQL graphQL = GraphQL.newGraphQL(wrappedSchema).instrumentation(ExecutionEngine.newInstance(wrapperConfig)).build();
+    private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
 
     @Test
     public void sourceOnAncestorPath_case01() {
@@ -59,10 +60,10 @@ public class FetchSourceTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
-        ExecutionResult executionResult = graphQL.execute(query);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Object>> data = executionResult.getData();
         assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=2}");
@@ -89,10 +90,10 @@ public class FetchSourceTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig);
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
         assert !validateResult.isFailure();
 
-        ExecutionResult executionResult = graphQL.execute(query);
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Object>> data = executionResult.getData();
         assert Objects.equals(data.get("commodity").get("item").toString(), "{itemId=1, userId=null, userIdInUserInfo=null}");
