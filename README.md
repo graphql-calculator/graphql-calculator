@@ -74,15 +74,28 @@ query fetchSourceDemo($userIds: [Int]){
 `directive @skipBy(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
-- `predicate`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
+- `predicate`：判断是否跳过解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
 - `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
 
 `@skipBy`是graphql内置指令`@skip`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
 
 可在输入变量中依赖其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
 
-该指令可实现类似于`if(){}` 和 `switch(c): case 1: opx; case 2: opy;`的控制流。
+该指令可实现类似于`if(predicate){}` 和 `switch(c): case predicate1: opx; case predicate2: opy;`的控制流。
 
+#### `@includeBy`
+
+`directive @includeBy(predicate: String!, dependencySources: String) on FIELD`
+
+参数解释：
+- `predicate`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
+- `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
+
+`@includeBy`是graphql内置指令`@include`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
+
+可在输入变量中依赖其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
+
+该指令可实现类似于`if(!predicate){}` 和 `switch(c): case !predicate1: opx; case !predicate2: opy;`的控制流。
 
 #### `@filter`
 
