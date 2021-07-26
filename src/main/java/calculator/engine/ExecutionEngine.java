@@ -16,6 +16,7 @@
  */
 package calculator.engine;
 
+import calculator.common.CollectionUtil;
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
@@ -56,9 +57,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import static calculator.common.CommonUtil.arraySize;
 import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
@@ -183,7 +184,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getCalMap(result))
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getScriptEnv(result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -293,20 +294,15 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(FILTER.getName(), directive.getName())) {
-                String predicate = getArgumentFromDirective(directive, "predicate");
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapFilterDataFetcher(
-                        dataFetcher, engineState, predicate, dependencySources, valueUnboxer
+                        dataFetcher, dependencySources, valueUnboxer
                 );
                 continue;
             }
 
             if (Objects.equals(SORT.getName(), directive.getName())) {
-                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
-                String sortKey = getArgumentFromDirective(directive, "key");
-                Boolean reversed = getArgumentFromDirective(directive, "reversed");
-                reversed = reversed != null ? reversed : defaultReversed.get();
-                dataFetcher = wrapSortDataFetcher(dataFetcher, sortKey, reversed, valueUnboxer);
+                dataFetcher = wrapSortDataFetcher(dataFetcher, valueUnboxer);
                 continue;
             }
 
@@ -391,9 +387,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapIncludeDataFetcher(DataFetcher<?> dataFetcher,
-                                                 ExecutionEngineState engineState,
-                                                 String predicate,
-                                                 List<String> dependencySources) {
+                                                  ExecutionEngineState engineState,
+                                                  String predicate,
+                                                  List<String> dependencySources) {
         boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
@@ -431,8 +427,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF,
-                                                 ExecutionEngineState engineState,
-                                                 String predicate,
                                                  List<String> dependencySources,
                                                  ValueUnboxer valueUnboxer) {
 
@@ -445,42 +439,23 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
-            Object unWrapResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
-
-            if (unWrapResult == null) {
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (CollectionUtil.arraySize(unWrappedData) == 0) {
                 return originalResult;
             }
 
-            Map<String, Object> sourceEnv = new LinkedHashMap<>();
-            if (dependencySources != null && !dependencySources.isEmpty()) {
-                for (String dependencySource : dependencySources) {
-                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                        sourceEnv.put(dependencySource, null);
-                    } else {
-                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
-                    }
-                }
-            }
-
-            List<Object> filteredList = new ArrayList<>();
-            for (Object ele : (Collection<?>) unWrapResult) {
-                Map<String, Object> fieldMap = (Map<String, Object>) getCalMap(ele);
-                fieldMap.putAll(sourceEnv);
-                if ((Boolean) scriptEvaluator.evaluate(predicate, fieldMap)) {
-                    filteredList.add(ele);
-                }
-            }
-            return wrapResult(originalResult, filteredList);
+            List<Object> listResult = CollectionUtil.arrayToList(unWrappedData);
+            return wrapResult(originalResult, listResult);
         };
 
-        if (isAsyncFetcher || dependencySources != null) {
+        // todo 如果依赖其他字段、这里要不要异步
+        if (isAsyncFetcher || CollectionUtil.arraySize(dependencySources) != 0) {
             return async(wrappedFetcher, innerExecutor);
         }
         return wrappedFetcher;
     }
 
-    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, ValueUnboxer valueUnboxer) {
+    private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
         boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
         Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
@@ -490,26 +465,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
-            Object unWrapDataFetcherResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
 
-            if (unWrapDataFetcherResult == null) {
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (CollectionUtil.arraySize(unWrappedData) == 0) {
                 return originalResult;
             }
 
-            Collection<Object> collection = (Collection<Object>) originalResult;
-
-            List<Object> sortedCollection;
-            if (reversed) {
-                sortedCollection = collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable<Object>) ((Map<String, Object>) getCalMap(ele)).get(sortKey)).reversed()
-                ).collect(toList());
-            } else {
-                sortedCollection = collection.stream().sorted(
-                        Comparator.comparing(ele -> (Comparable<Object>) ((Map<String, Object>) getCalMap(ele)).get(sortKey))
-                ).collect(toList());
-            }
-
-            return wrapResult(originalResult, sortedCollection);
+            Object listOrArray = CollectionUtil.collectionToListOrArray(unWrappedData);
+            return wrapResult(originalResult, listOrArray);
         };
 
         if (isAsyncFetcher) {
@@ -532,48 +495,20 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
-            if(originalResult instanceof CompletionStage){
+            if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
-            Collection<Object> collectionData = (Collection<Object>) unWrapDataFetcherResult(originalResult, valueUnboxer);
-
-            if (arraySize(collectionData) == 0) {
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (CollectionUtil.arraySize(unWrappedData) == 0) {
                 return originalResult;
             }
 
-            Map<String, Object> sourceEnv = new LinkedHashMap<>();
-            if (dependencySources != null && !dependencySources.isEmpty()) {
-                for (String dependencySource : dependencySources) {
-                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                        sourceEnv.put(dependencySource, null);
-                    } else {
-                        sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
-                    }
-                }
-            }
-
-            List<Object> sortedList;
-            if (reversed) {
-                sortedList = collectionData.stream().sorted(Comparator.comparing(ele -> {
-                    Map<String, Object> env = (Map<String, Object>) getCalMap(ele);
-                    env.putAll(sourceEnv);
-                    return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
-                }).reversed()).collect(toList());
-            } else {
-                sortedList = collectionData.stream().sorted(
-                        Comparator.comparing(ele -> {
-                            Map<String, Object> env = (Map<String, Object>) getCalMap(ele);
-                            env.putAll(sourceEnv);
-                            return (Comparable<Object>) scriptEvaluator.evaluate(comparator, env);
-                        })
-                ).collect(toList());
-            }
-
-            return wrapResult(originalResult, sortedList);
+            Object listOrArray = CollectionUtil.collectionToListOrArray(unWrappedData);
+            return wrapResult(originalResult, listOrArray);
         };
 
-        if (isAsyncFetcher || dependencySources != null) {
+        // todo 确认是否需要参考 arraySize
+        if (isAsyncFetcher || CollectionUtil.arraySize(dependencySources) != 0) {
             return async(wrappedDataFetcher, innerExecutor);
         }
 
@@ -606,11 +541,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             // new Map, do not alter original Map info.
             HashMap<String, Object> expEnv = new HashMap<>();
-            Object sourceInfo = getCalMap(environment.getSource());
-            if (sourceInfo instanceof Map) {
+            Object sourceInfo = getScriptEnv(environment.getSource());
+            if (sourceInfo != null) {
                 expEnv.putAll((Map) sourceInfo);
-            } else {
-                // FIXME ignored
             }
 
             expEnv.putAll(sourceEnv);
@@ -618,15 +551,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return scriptEvaluator.evaluate(mapper, expEnv);
         };
 
-        if (isAsyncFetcher || dependencySources != null) {
+        if (isAsyncFetcher || (dependencySources != null && dependencySources.size() > 0)) {
             return async(wrappedDataFetcher, innerExecutor);
         }
 
         return wrappedDataFetcher;
     }
 
-    // TODO ele常量需要有说明
-    //  typeName: String -> Enum
     private DataFetcher<?> wrapArgumentTransformDataFetcher(String argumentName,
                                                             String operateType,
                                                             String expression,
@@ -787,7 +718,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         throw new RuntimeException("can not invoke here");
     }
 
-    private Object getCalMap(Object res) {
+    private Object getScriptEnv(Object res) {
         if (res == null) {
             return null;
         }
@@ -833,7 +764,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     @Override
     public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
-        return new InstrumentationContext<ExecutionResult>(){
+        return new InstrumentationContext<ExecutionResult>() {
 
             @Override
             public void onDispatched(CompletableFuture<ExecutionResult> result) {
@@ -841,7 +772,131 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             @Override
             public void onCompleted(ExecutionResult result, Throwable t) {
+                if (result == null || result.getData() == null) {
+                    return;
+                }
+
+                if (CollectionUtil.arraySize(result.getData()) == 0) {
+                    return;
+                }
+
+                List<Directive> directives = parameters.getExecutionStepInfo().getField().getSingleField().getDirectives();
+                if (directives != null && !directives.isEmpty()) {
+                    transformListResultByDirectives(result, directives, parameters);
+                }
             }
         };
+    }
+
+    // @filter @sort @sortBy
+    private void transformListResultByDirectives(ExecutionResult result, List<Directive> directives, InstrumentationFieldCompleteParameters parameters) {
+        // ExecutionResult中已经是解析后的结果了
+        Object listOrArray = result.getData();
+
+        for (Directive directive : directives) {
+            if (Objects.equals(FILTER.getName(), directive.getName())) {
+                String predicate = getArgumentFromDirective(directive, "predicate");
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                filterCollectionData(listOrArray, predicate, parameters.getInstrumentationState(), dependencySources);
+                continue;
+            }
+
+            if (Objects.equals(SORT.getName(), directive.getName())) {
+                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
+                String sortKey = getArgumentFromDirective(directive, "key");
+                Boolean reversed = getArgumentFromDirective(directive, "reversed");
+                reversed = reversed != null ? reversed : defaultReversed.get();
+                sortCollectionData(listOrArray, sortKey, reversed);
+                continue;
+            }
+
+            if (Objects.equals(SORT_BY.getName(), directive.getName())) {
+//                System.out.println("ExecutionEngine threadId "  + Thread.currentThread().getId());
+                String comparator = getArgumentFromDirective(directive, "comparator");
+                Boolean reversed = getArgumentFromDirective(directive, "reversed");
+                reversed = reversed != null
+                        ? reversed
+                        : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
+                List<String> dependencySources = getDependenceSourceFromDirective(directive);
+                sortByCollectionData( // kp step_a_3
+                        listOrArray,
+                        parameters.getInstrumentationState(),
+                        comparator, reversed, dependencySources
+                );
+                continue;
+            }
+        }
+    }
+
+    private void filterCollectionData(Object listOrArray, String predicate, ExecutionEngineState engineState, List<String> dependencySources) {
+        final Map<String, Object> sourceEnv = new LinkedHashMap<>();
+        if (CollectionUtil.arraySize(dependencySources) != 0) {
+            for (String dependencySource : dependencySources) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv.put(dependencySource, null);
+                } else {
+                    sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                }
+            }
+        }
+
+        Predicate<Object> willKeep = ele -> {
+            Map<String, Object> fieldMap = (Map<String, Object>) getScriptEnv(ele);
+            fieldMap.putAll(sourceEnv);
+            return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
+        };
+
+        CollectionUtil.filterListOrArray(listOrArray, willKeep);
+    }
+
+    private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
+        Comparator<Object> comparator = Comparator.comparing(ele -> {
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+            if (calMap == null) {
+                return null;
+            }
+            return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
+        });
+
+        if (reversed) {
+            comparator = comparator.reversed();
+        }
+
+        CollectionUtil.sortListOrArray(listOrArray, comparator);
+    }
+
+    private void sortByCollectionData(Object listOrArray,
+                                      ExecutionEngineState engineState,
+                                      String comparatorExpression,
+                                      Boolean reversed,
+                                      List<String> dependencySources) {
+        final Map<String, Object> sourceEnv = new LinkedHashMap<>();
+        if (dependencySources != null && !dependencySources.isEmpty()) {
+            for (String dependencySource : dependencySources) {
+                FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource); // kp step_a_4
+                if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
+                    sourceEnv.put(dependencySource, null);
+                } else {
+                    sourceEnv.put(dependencySource, sourceTask.getTaskFuture().join());
+                }
+            }
+        }
+
+        Comparator<Object> comparator = Comparator.comparing(ele -> {
+            Map<String, Object> scriptEnv = new LinkedHashMap<>();
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+            if (calMap != null) {
+                scriptEnv.putAll(calMap);
+            }
+            scriptEnv.putAll(sourceEnv);
+            return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
+        });
+
+        if (reversed) {
+            comparator = comparator.reversed();
+        }
+
+        CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
 }

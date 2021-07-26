@@ -70,7 +70,6 @@ public class DefaultObjectMapper implements ObjectMapper {
                 Object simpleCollection = toSimpleCollection(fieldValue);
                 result.put(declaredField.getName(), simpleCollection);
             } catch (IllegalAccessException e) {
-                // todo 如果抛异常
                 throw new RuntimeException(e);
             }
         }
