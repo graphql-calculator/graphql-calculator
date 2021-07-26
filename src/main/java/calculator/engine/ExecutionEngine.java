@@ -481,14 +481,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, String sortKey, Boolean reversed, ValueUnboxer valueUnboxer) {
-        AtomicBoolean isAsyncFetcher = new AtomicBoolean(defaultDF instanceof AsyncDataFetcherInterface);
-        Executor innerExecutor = isAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
-            if(originalResult instanceof CompletionStage){
-                isAsyncFetcher.set(true);
+            if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
             Object unWrapDataFetcherResult = unWrapDataFetcherResult(originalResult, valueUnboxer);
@@ -513,7 +512,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, sortedCollection);
         };
 
-        if (isAsyncFetcher.get()) {
+        if (isAsyncFetcher) {
             return async(wrappedDataFetcher, innerExecutor);
         }
         return wrappedDataFetcher;
@@ -527,15 +526,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                  ExecutionEngineState engineState,
                                                  ValueUnboxer valueUnboxer) {
 
-        AtomicBoolean isAsyncFetcher = new AtomicBoolean(defaultDF instanceof AsyncDataFetcherInterface);
-        Executor innerExecutor = isAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher.get() ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
             Object originalResult = innerDataFetcher.get(environment);
             if(originalResult instanceof CompletionStage){
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
-                isAsyncFetcher.set(true);
             }
             Collection<Object> collectionData = (Collection<Object>) unWrapDataFetcherResult(originalResult, valueUnboxer);
 
@@ -575,7 +573,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, sortedList);
         };
 
-        if (isAsyncFetcher.get() || dependencySources != null) {
+        if (isAsyncFetcher || dependencySources != null) {
             return async(wrappedDataFetcher, innerExecutor);
         }
 
