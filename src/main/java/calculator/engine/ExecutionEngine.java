@@ -34,7 +34,10 @@ import graphql.execution.instrumentation.parameters.InstrumentationCreateStatePa
 import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
+import graphql.execution.preparsed.PreparsedDocumentEntry;
 import graphql.language.Directive;
+import graphql.language.Document;
+import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -51,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
@@ -77,6 +81,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private final ScriptEvaluator scriptEvaluator;
 
+    private final ConcurrentHashMap<String, PreparsedDocumentEntry> documentCache = new ConcurrentHashMap<>();
+
     private ExecutionEngine(Executor executor, ObjectMapper objectMapper, ScriptEvaluator scriptEvaluator) {
         this.executor = Objects.requireNonNull(executor);
         this.objectMapper = Objects.requireNonNull(objectMapper);
@@ -90,12 +96,25 @@ public class ExecutionEngine extends SimpleInstrumentation {
     // ============================================== create InstrumentationState for engine  ==============================================
     @Override
     public InstrumentationState createState(InstrumentationCreateStateParameters parameters) {
+        PreparsedDocumentEntry documentEntry = documentCache.compute(parameters.getExecutionInput().getQuery(), (key, oldValue) -> {
+            if (oldValue != null) {
+                return oldValue;
+            }
+            try {
+                Document document = Parser.parse(key);
+                return new PreparsedDocumentEntry(document);
+            } catch (InvalidSyntaxException e) {
+                return new PreparsedDocumentEntry(e.toInvalidSyntaxError());
+            }
+        });
 
-        String query = parameters.getExecutionInput().getQuery();
+        if (documentEntry.hasErrors()) {
+            return ExecutionEngineState.newExecutionState().build();
+        }
+
         QueryTraverser traverser = QueryTraverser.newQueryTraverser()
                 .schema(parameters.getSchema())
-                // FIXME cache Document
-                .document(Parser.parse(query))
+                .document(documentEntry.getDocument())
                 .variables(Collections.emptyMap()).build();
 
         ExecutionEngineStateParser stateParser = new ExecutionEngineStateParser();
