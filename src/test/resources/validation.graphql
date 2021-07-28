@@ -1,5 +1,15 @@
 
 
+
+query filterPrimitiveType_case01{
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @sortBy(comparator: "nonExistKey%2 == 0")
+        }
+    }
+}
+
+
 query validationForNonExistArgumentForSortBy{
     consumer{
         userInfoList

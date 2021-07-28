@@ -181,9 +181,14 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
             }
             ExecutionResultImpl executionResult = new ExecutionResultImpl(completedResults, null);
             // onCompleted before 'overallResult.complete(executionResult)'
-            // todo 如果 onCompleted 抛异常的化，overallResult永远不会完成，这里需要注意一下
+            // if onCompleted throw Exception, then it will handed in whenComplete
             completeListCtx.onCompleted(executionResult, null);
             overallResult.complete(executionResult);
+        }).whenComplete((ignored, exception) -> {
+            if (exception != null) {
+                ExecutionResult executionResult = handleNonNullException(executionContext, overallResult, exception);
+                completeListCtx.onCompleted(executionResult, exception);
+            }
         });
 
         return FieldValueInfo.newFieldValueInfo(LIST)

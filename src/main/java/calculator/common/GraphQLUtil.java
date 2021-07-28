@@ -19,9 +19,13 @@ package calculator.common;
 
 import calculator.engine.annotation.Internal;
 import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
+import graphql.schema.GraphQLUnmodifiedType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +34,7 @@ import java.util.Set;
 
 
 @Internal
-public class VisitorUtil {
+public class GraphQLUtil {
 
     public static final String PATH_SEPARATOR = ".";
 
@@ -152,6 +156,12 @@ public class VisitorUtil {
         }
 
         return result;
+    }
+
+    public static boolean isLeafField(GraphQLFieldDefinition fieldDefinition) {
+        GraphQLOutputType type = fieldDefinition.getType();
+        GraphQLUnmodifiedType unwrapAllType = GraphQLTypeUtil.unwrapAll(type);
+        return unwrapAllType instanceof GraphQLScalarType;
     }
 
 }

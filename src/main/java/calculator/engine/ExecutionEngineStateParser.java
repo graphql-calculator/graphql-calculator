@@ -33,10 +33,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
-import static calculator.common.VisitorUtil.isInList;
-import static calculator.common.VisitorUtil.isListNode;
-import static calculator.common.VisitorUtil.parentPathList;
-import static calculator.common.VisitorUtil.pathForTraverse;
+import static calculator.common.GraphQLUtil.isInList;
+import static calculator.common.GraphQLUtil.isListNode;
+import static calculator.common.GraphQLUtil.parentPathList;
+import static calculator.common.GraphQLUtil.pathForTraverse;
 
 @Internal
 public class ExecutionEngineStateParser implements QueryVisitor {

@@ -17,6 +17,7 @@
 package calculator.engine;
 
 import calculator.common.CollectionUtil;
+import calculator.common.CommonUtil;
 import calculator.config.Config;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
@@ -702,7 +703,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return null;
         }
 
-        if (res.getClass().isPrimitive()) {
+        if (CommonUtil.isBasicType(res)) {
             return Collections.singletonMap("ele", res);
         } else {
             return objectMapper.toSimpleCollection(res);

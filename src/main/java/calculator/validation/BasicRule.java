@@ -25,7 +25,9 @@ import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.Field;
+import graphql.language.Node;
 import graphql.language.SourceLocation;
+import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
@@ -42,9 +44,10 @@ import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependencySources;
 import static calculator.common.CommonUtil.isValidEleName;
 import static calculator.common.CommonUtil.parseValue;
-import static calculator.common.VisitorUtil.getTopTaskEnv;
-import static calculator.common.VisitorUtil.parentPathSet;
-import static calculator.common.VisitorUtil.pathForTraverse;
+import static calculator.common.GraphQLUtil.getTopTaskEnv;
+import static calculator.common.GraphQLUtil.isLeafField;
+import static calculator.common.GraphQLUtil.parentPathSet;
+import static calculator.common.GraphQLUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.FETCH_SOURCE;
 import static calculator.engine.metadata.Directives.FILTER;
@@ -182,7 +185,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExpressionArgumentExist(environment.getField(), directive, predicate, fieldFullPath)) {
+                if (!validateExpressionArgumentExist(environment.getField(), directive, predicate, fieldFullPath,environment)) {
                     continue;
                 }
 
@@ -244,7 +247,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath)) {
+                if (!validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath,environment)) {
                     continue;
                 }
 
@@ -365,21 +368,32 @@ public class BasicRule extends AbstractRule {
         }
     }
 
-    private boolean validateExpressionArgumentExist(Field field, Directive directive, String expression, String fieldFullPath) {
-        List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
-        if (scriptArgument != null && !scriptArgument.isEmpty()) {
-            for (String key : scriptArgument) {
-                boolean validKey = field.getSelectionSet().getSelections().stream()
-                        .map(selection -> ((Field) selection).getResultKey())
-                        .anyMatch(key::equals);
+    private boolean validateExpressionArgumentExist(Field field, Directive directive, String expression, String fieldFullPath, QueryVisitorFieldEnvironment environment) {
 
-                if (!validKey) {
-                    String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", key, directive.getName(), fieldFullPath);
-                    addValidError(field.getSourceLocation(), errorMsg);
-                    return false;
+        if (isLeafField(environment.getFieldDefinition())) {
+            List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
+            if (scriptArgument == null || scriptArgument.size() != 1 || !Objects.equals(scriptArgument.get(0), "ele")) {
+                String errorMsg = String.format("only 'ele' can be used for @%s on leaf field {%s}.", directive.getName(), fieldFullPath);
+                addValidError(field.getSourceLocation(), errorMsg);
+                return false;
+            }
+        } else {
+            List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
+            if (scriptArgument != null && !scriptArgument.isEmpty()) {
+                for (String key : scriptArgument) {
+                    boolean validKey = field.getSelectionSet().getSelections().stream()
+                            .map(selection -> ((Field) selection).getResultKey())
+                            .anyMatch(key::equals);
+
+                    if (!validKey) {
+                        String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", key, directive.getName(), fieldFullPath);
+                        addValidError(field.getSourceLocation(), errorMsg);
+                        return false;
+                    }
                 }
             }
         }
+
         return true;
     }
 

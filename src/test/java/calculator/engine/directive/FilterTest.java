@@ -76,4 +76,34 @@ public class FilterTest {
         );
     }
 
+    @Test
+    public void filterPrimitiveType_case01() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        AviatorEvaluator.addFunction(new ListContain());
+
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                dataFetcherInfoMap,
+                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+        );
+
+        String query = "" +
+                "query filterPrimitiveType_case01{\n" +
+                "    marketing{\n" +
+                "        coupon(couponId: 1){\n" +
+                "            bindingItemIds @filter(predicate: \"ele%2 == 0\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(
+                data.get("marketing").get("coupon").toString(),
+                "{bindingItemIds=[2, 4, 6, 8, 10]}"
+        );
+    }
+
 }

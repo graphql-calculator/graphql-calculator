@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
-import static calculator.common.VisitorUtil.pathForTraverse;
+import static calculator.common.GraphQLUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
