@@ -17,7 +17,63 @@
 
 package calculator.engine.directive;
 
+import calculator.config.ConfigImpl;
+import calculator.engine.script.AviatorScriptEvaluator;
+import calculator.engine.script.ListContain;
+import calculator.graphql.GraphQLSource;
+import calculator.util.GraphQLSourceHolder;
+import calculator.validation.Validator;
+import com.googlecode.aviator.AviatorEvaluator;
+import graphql.ExecutionResult;
+import graphql.ParseAndValidateResult;
+import graphql.schema.DataFetcher;
+import org.junit.Test;
+
+import java.util.Map;
+import java.util.Objects;
+
 public class FilterTest {
 
+    @Test
+    public void filter_case01() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        AviatorEvaluator.addFunction(new ListContain());
+
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                dataFetcherInfoMap,
+                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+        );
+
+        String query = "" +
+                "query filter_case01{\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: [9,11,10,12])\n" +
+                "        @filter(predicate: \"isContainBindingItemIds\")\n" +
+                "        {\n" +
+                "            isContainBindingItemIds:onSale @map(mapper: \"listContain(bindingItemIds,itemId)\",dependencySources: \"bindingItemIds\")\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "            salePrice\n" +
+                "        }\n" +
+                "    }\n" +
+                "\n" +
+                "    marketing{\n" +
+                "        coupon(couponId: 1){\n" +
+                "            bindingItemIds @fetchSource(name: \"bindingItemIds\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        System.out.println(data.get("commodity").get("itemList").toString());
+        assert Objects.equals(
+                data.get("commodity").get("itemList").toString(),
+                "[{isContainBindingItemIds=true, itemId=9, name=item_name_9, salePrice=91}, {isContainBindingItemIds=true, itemId=10, name=item_name_10, salePrice=101}]"
+        );
+    }
 
 }

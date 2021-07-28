@@ -576,24 +576,18 @@ class ValidationTest extends Specification {
     }
 
 
-    def "dependencySources used by @sortBy dependency must exist"() {
+    def "validation for non-exist argument for @SortBy"() {
         given:
         def query = """
-             query {
+             query validationForNonExistArgumentForSortBy{
                 consumer{
-                    userInfoList(userIds: [1,2,3])
-                    @sortBy(comparator: "userId/sellerId",dependencySources: "sellerId")
+                    userInfoList
+                    @sortBy(comparator: "nonExistKey")
                     {
                         userId
                         name
                     }
                 }
-            
-            #    business{
-            #        sellerInfo(sellerId: 2){
-            #            sellerId @fetchSource(name: "sellerId")
-            #        }
-            #    }
             }
         """
 
@@ -602,27 +596,21 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource [sellerId] used by @sortBy on {consumer.userInfoList} do not exist."
+        validateResult.errors[0].description == "non-exist argument 'nonExistKey' for @sortBy on {consumer.userInfoList}."
     }
 
-    def "dependencySources used by @sortBy dependency has to be used"() {
+    def "validation for non-exist argument for @filter"() {
         given:
         def query = """
-            query {
+             query validationForNonExistArgumentForSortBy{
                 consumer{
-                    userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "3>userId",dependencySources: "sellerId")
+                    userInfoList
+                    @filter(predicate: "nonExistKey")
                     {
                         userId
                         name
                     }
                 }
-            
-                business{
-                    sellerInfo(sellerId: 2){
-                        sellerId @fetchSource(name: "sellerId")
-                    }
-                }
             }
         """
 
@@ -631,68 +619,7 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource [sellerId] do not used by @filter on {consumer.userInfoList}."
-    }
-
-
-    // @filter 依赖的fetchSource必须存在、不能没有被使用
-
-    def "dependencySources used by @filter dependency must exist"() {
-        given:
-        def query = """
-            query {
-                consumer{
-                    userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "sellerId>userId",dependencySources: "sellerId")
-                    {
-                        userId
-                        name 
-                    }
-                }
-                
-            #    business{
-            #        sellerInfo(sellerId: 2){
-            #            sellerId @fetchSource(name: "sellerId")
-            #        }
-            #    }
-            }
-        """
-
-        when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
-
-        then:
-        validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource [sellerId] used by @filter on {consumer.userInfoList} do not exist."
-    }
-
-    def "dependencySources used by @filter dependency has to be used"() {
-        given:
-        def query = """
-            query {
-                consumer{
-                    userInfoList(userIds: [1,2,3])
-                    @filter(predicate: "3>userId",dependencySources: "sellerId")
-                    {
-                        userId
-                        name
-                    }
-                }
-            
-                business{
-                    sellerInfo(sellerId: 2){
-                        sellerId @fetchSource(name: "sellerId")
-                    }
-                }
-            }
-        """
-
-        when:
-        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
-
-        then:
-        validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the fetchSource [sellerId] do not used by @filter on {consumer.userInfoList}."
+        validateResult.errors[0].description == "non-exist argument 'nonExistKey' for @filter on {consumer.userInfoList}."
     }
 
 
