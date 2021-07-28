@@ -217,4 +217,35 @@ public class SortTest {
         assert executionResult.getErrors().isEmpty();
     }
 
+    @Test
+    public void sortByPrimitiveType_case01() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        AviatorEvaluator.addFunction(new ListContain());
+
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                dataFetcherInfoMap,
+                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+        );
+
+        String query = "" +
+                "query filterPrimitiveType_case01{\n" +
+                "    marketing{\n" +
+                "        coupon(couponId: 1){\n" +
+                "            bindingItemIds @sortBy(comparator: \"ele%2 == 0\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        System.out.println(data.get("marketing").get("coupon").toString());
+        assert Objects.equals(
+                data.get("marketing").get("coupon").toString(),
+                "{bindingItemIds=[1, 3, 5, 7, 9, 2, 4, 6, 8, 10]}"
+        );
+    }
+
 }

@@ -22,14 +22,13 @@ import calculator.engine.annotation.Internal;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import static calculator.common.CommonUtil.isBasicType;
 
 
 @Internal
@@ -57,7 +56,7 @@ public class DefaultObjectMapper implements ObjectMapper {
     }
 
     private Object simpleObject(Object object) {
-        if (object.getClass().isPrimitive() || isWrapperType((object)) || object instanceof CharSequence) {
+        if (isBasicType(object)) {
             return object;
         }
 
@@ -132,25 +131,6 @@ public class DefaultObjectMapper implements ObjectMapper {
             result.put(fieldName, toSimpleCollection(entry.getValue()));
         }
         return result;
-    }
-
-    private static final Set<Class<?>> WRAPPER_TYPES = createWrapperTypes();
-
-    private static Set<Class<?>> createWrapperTypes() {
-        Set<Class<?>> wrapperTypes = new LinkedHashSet<>(8);
-        wrapperTypes.add(Boolean.class);
-        wrapperTypes.add(Byte.class);
-        wrapperTypes.add(Character.class);
-        wrapperTypes.add(Short.class);
-        wrapperTypes.add(Integer.class);
-        wrapperTypes.add(Long.class);
-        wrapperTypes.add(Float.class);
-        wrapperTypes.add(Double.class);
-        return Collections.unmodifiableSet(wrapperTypes);
-    }
-
-    private boolean isWrapperType(Object object) {
-        return WRAPPER_TYPES.contains(object.getClass());
     }
 
 }

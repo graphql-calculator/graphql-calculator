@@ -31,9 +31,11 @@ import graphql.language.Value;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
-import static calculator.common.VisitorUtil.PATH_SEPARATOR;
+import static calculator.common.GraphQLUtil.PATH_SEPARATOR;
 
 
 @Internal
@@ -157,6 +159,30 @@ public class CommonUtil {
         }
 
         return sb.toString();
+    }
+
+
+    private static final Set<Class<?>> WRAPPER_TYPES = createWrapperTypes();
+
+    private static Set<Class<?>> createWrapperTypes() {
+        Set<Class<?>> wrapperTypes = new LinkedHashSet<>(8);
+        wrapperTypes.add(Boolean.class);
+        wrapperTypes.add(Byte.class);
+        wrapperTypes.add(Character.class);
+        wrapperTypes.add(Short.class);
+        wrapperTypes.add(Integer.class);
+        wrapperTypes.add(Long.class);
+        wrapperTypes.add(Float.class);
+        wrapperTypes.add(Double.class);
+        return Collections.unmodifiableSet(wrapperTypes);
+    }
+
+    public static boolean isWrapperType(Object object) {
+        return WRAPPER_TYPES.contains(object.getClass());
+    }
+
+    public static boolean isBasicType(Object object) {
+        return object.getClass().isPrimitive() || isWrapperType((object)) || object instanceof CharSequence;
     }
 
 }

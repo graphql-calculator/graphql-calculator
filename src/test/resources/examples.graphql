@@ -17,6 +17,15 @@ enum ParamTransformType{
 
 
 
+query filterPrimitiveType_case01{
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @filter(predicate: "ele%2 == 0")
+        }
+    }
+}
+
+
 query filter_case01{
     commodity{
         itemList(itemIds: [9,11,10,12])

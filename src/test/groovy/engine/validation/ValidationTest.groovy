@@ -622,6 +622,47 @@ class ValidationTest extends Specification {
         validateResult.errors[0].description == "non-exist argument 'nonExistKey' for @filter on {consumer.userInfoList}."
     }
 
+    def "only 'ele' can be used for @filter on leaf field "() {
+        given:
+        def query = """
+            query filterPrimitiveType_case01{
+                marketing{
+                    coupon(couponId: 1){
+                        bindingItemIds @filter(predicate: "nonExistKey%2 == 0")
+                    }
+                }
+            }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "only 'ele' can be used for @filter on leaf field {marketing.coupon.bindingItemIds}."
+    }
+
+
+    def "only 'ele' can be used for @sortBy on leaf field "() {
+        given:
+        def query = """
+            query filterPrimitiveType_case01{
+                marketing{
+                    coupon(couponId: 1){
+                        bindingItemIds @sortBy(comparator: "nonExistKey%2 == 0")
+                    }
+                }
+            }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "only 'ele' can be used for @sortBy on leaf field {marketing.coupon.bindingItemIds}."
+    }
+
 
     def "dependencySources used by @argumentTransform dependency must exist"() {
         given:
