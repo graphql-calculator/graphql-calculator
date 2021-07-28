@@ -161,8 +161,9 @@ public class SortTest {
                 "query sortByWithSource_case01{\n" +
                 "    commodity{\n" +
                 "        itemList(itemIds: [9,11,10,12])\n" +
-                "        @sortBy(comparator: \"listContain(bindingItemIds,itemId)\",dependencySources: \"bindingItemIds\")\n" +
+                "        @sortBy(comparator: \"!isContainBindingItemIds\")\n" +
                 "        {\n" +
+                "            isContainBindingItemIds:onSale @map(mapper: \"listContain(bindingItemIds,itemId)\",dependencySources: \"bindingItemIds\")\n" +
                 "            itemId\n" +
                 "            name\n" +
                 "            salePrice\n" +
@@ -183,7 +184,7 @@ public class SortTest {
         Map<String, Map<String, Object>> data = executionResult.getData();
         assert Objects.equals(
                 data.get("commodity").get("itemList").toString(),
-                "[{itemId=11, name=item_name_11, salePrice=111}, {itemId=12, name=item_name_12, salePrice=121}, {itemId=9, name=item_name_9, salePrice=91}, {itemId=10, name=item_name_10, salePrice=101}]"
+                "[{isContainBindingItemIds=true, itemId=9, name=item_name_9, salePrice=91}, {isContainBindingItemIds=true, itemId=10, name=item_name_10, salePrice=101}, {isContainBindingItemIds=false, itemId=11, name=item_name_11, salePrice=111}, {isContainBindingItemIds=false, itemId=12, name=item_name_12, salePrice=121}]"
         );
     }
 

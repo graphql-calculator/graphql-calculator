@@ -1,5 +1,15 @@
 
 
+query validationForNonExistArgumentForSortBy{
+    consumer{
+        userInfoList
+        @sortBy(comparator: "nonExistKey")
+        {
+            userId
+            name
+        }
+    }
+}
 
 
 query dependencyMultiSources{

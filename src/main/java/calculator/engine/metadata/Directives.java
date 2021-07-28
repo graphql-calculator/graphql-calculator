@@ -99,11 +99,6 @@ public class Directives {
                     .newArgument()
                     .name("predicate")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("dependencySources")
-                    .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
 
@@ -124,7 +119,7 @@ public class Directives {
             .build();
 
 
-    // directive @sortBy(expression: String!, reversed: Boolean = false, dependencySource: String) on FIELD
+    // directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
     public final static GraphQLDirective SORT_BY = GraphQLDirective.newDirective()
             .name("sortBy")
             .description("sort the list by expression result.")
@@ -138,11 +133,6 @@ public class Directives {
                     .name("reversed")
                     .defaultValue(false)
                     .type(GraphQLBoolean))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("dependencySources")
-                    .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     // directive @map(mapper:String!, dependencySource:String) on FIELD

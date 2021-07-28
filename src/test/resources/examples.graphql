@@ -4,9 +4,9 @@ directive @fetchSource(name: String!, sourceConvert:String) on FIELD
 directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD
 directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
 directive @mock(value: String!) on FIELD
-directive @filter(predicate: String!, dependencySources: [String!]) on FIELD
+directive @filter(predicate: String!) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
-directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySources: [String!]) on FIELD
+directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
 directive @map(mapper:String!, dependencySources:[String!]) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:[String!]) on FIELD
 enum ParamTransformType{
@@ -17,6 +17,24 @@ enum ParamTransformType{
 
 
 
+query filter_case01{
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        @filter(predicate: "!isContainBindingItemIds")
+        {
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+            itemId
+            name
+            salePrice
+        }
+    }
+
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+}
 
 
 query skipBy_case01($userId:Int){
@@ -61,8 +79,9 @@ query sortResult_case01{
 query sortByWithSource_case01{
     commodity{
         itemList(itemIds: [9,11,10,12])
-        @sortBy(comparator: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+        @sortBy(comparator: "!isContainBindingItemIds")
         {
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
             itemId
             name
             salePrice

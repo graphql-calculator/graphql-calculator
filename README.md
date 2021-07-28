@@ -99,29 +99,23 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### `@filter`
 
-`directive @filter(predicate: String!, dependencySources: String) on FIELD`
+`directive @filter(predicate: String!) on FIELD`
 
 参数解释：
 - `predicate`：过滤判断表达式，结果为true的元素会保留；
-- `dependencySources`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
 
-对列表类型字段的结果进行过滤，可依赖其他source进行判断。
-
-**当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值**。
+对列表类型字段结果进行过滤，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
 
 #### `@sortBy`
 
-`directive @sortBy(comparator: String!, reversed: Boolean = false, dependencySources: String) on FIELD`
+`directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD`
 
 参数解释：
 - `expression`：按照该表达式计算结果、对列表元素进行排序；
-- `reversed`：是否进行逆序排序，默认为false；
-- `dependencySources`：表达式依赖的source，sourceName如果和结果变量中的key相同、则会覆盖结果变量中的数据。
+- `reversed`：是否进行逆序排序，默认为false。
 
 
-对列表类型字段的结果进行排序，可依赖其他source进行判断。
-
-**当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值**。
+对列表字段的结果进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
 
 
 #### `@map`
@@ -327,4 +321,64 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
     }
 }
 ```
+
+
+#### 列表排序
+
+对graphql查询列表字段进行排序。例如对商品进行排序：可使用指定券的商品排在前边，其他商品排在后边。
+1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
+2. 使用 `@sortBy`对列表进行排序；
+
+```graphql
+query sortByWithSource_case01{
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        @sortBy(comparator: "!isContainBindingItemIds")
+        {
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+            itemId
+            name
+            salePrice
+        }
+    }
+
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+}
+```
+
+#### 列表过滤
+
+对列表元素进行过滤：只返回可用指定券的商品。
+1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
+2. 使用 `@filter` 过滤出可使用券的商品。
+```graphql
+query filter_case01{
+
+    # 查询可使用指定券的商品id
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        # 通过 filter 过滤不可用券的商品
+        @filter(predicate: "!isContainBindingItemIds")
+        {
+            # 通过 @map 命令标识该商品是否可使用券
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+            itemId
+            name
+            salePrice
+        }
+    }
+}
+```
+
+
 

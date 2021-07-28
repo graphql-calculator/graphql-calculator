@@ -179,11 +179,16 @@ public class BasicRule extends AbstractRule {
                 if (!scriptEvaluator.isValidScript(predicate)) {
                     String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}.", predicate, fieldFullPath);
                     addValidError(location, errorMsg);
+                    continue;
+                }
+
+                if (!validateExpressionArgumentExist(environment.getField(), directive, predicate, fieldFullPath)) {
+                    continue;
                 }
 
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
-                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
+                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, SORT.getName())) {
 
@@ -236,6 +241,10 @@ public class BasicRule extends AbstractRule {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
                     String errorMsg = String.format("@sortBy must annotated on list type, instead of {%s}.", fieldFullPath);
                     addValidError(location, errorMsg);
+                    continue;
+                }
+
+                if (!validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath)) {
                     continue;
                 }
 
@@ -354,6 +363,24 @@ public class BasicRule extends AbstractRule {
                 sourceUsedByField.put(fieldFullPath, sourceNames);
             }
         }
+    }
+
+    private boolean validateExpressionArgumentExist(Field field, Directive directive, String expression, String fieldFullPath) {
+        List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
+        if (scriptArgument != null && !scriptArgument.isEmpty()) {
+            for (String key : scriptArgument) {
+                boolean validKey = field.getSelectionSet().getSelections().stream()
+                        .map(selection -> ((Field) selection).getResultKey())
+                        .anyMatch(key::equals);
+
+                if (!validKey) {
+                    String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", key, directive.getName(), fieldFullPath);
+                    addValidError(field.getSourceLocation(), errorMsg);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 

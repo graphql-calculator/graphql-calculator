@@ -36,15 +36,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.common.VisitorUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
-import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
-import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
@@ -113,14 +110,14 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
+                if (!validateSourceExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
                 String predicate = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
+                if (!validateSourceUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
                     continue;
                 }
 
@@ -141,14 +138,14 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
+                if (!validateSourceExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
                 String predicate = (String) CommonUtil.parseValue(
                         directive.getArgument("predicate").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
+                if (!validateSourceUsageOnExp(fieldFullPath, directive, dependencySources, predicate)) {
                     continue;
                 }
 
@@ -169,14 +166,14 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
+                if (!validateSourceExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
                 String mapper = (String) CommonUtil.parseValue(
                         directive.getArgument("mapper").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, mapper)) {
+                if (!validateSourceUsageOnExp(fieldFullPath, directive, dependencySources, mapper)) {
                     continue;
                 }
 
@@ -184,54 +181,6 @@ public class SourceRule extends AbstractRule {
                 if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
                     continue;
                 }
-
-            } else if (Objects.equals(directive.getName(), SORT_BY.getName())) {
-                List<String> dependencySources = getDependenceSourceFromDirective(directive);
-                // emptyMap.containsKey(null)结果为true
-                if (dependencySources == null || dependencySources.isEmpty()) {
-                    continue;
-                }
-
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
-                    continue;
-                }
-                
-                String comparator = (String) CommonUtil.parseValue(
-                        directive.getArgument("comparator").getValue()
-                );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, comparator)) {
-                    continue;
-                }
-
-                // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
-                    continue;
-                }
-
-            } else if (Objects.equals(directive.getName(), FILTER.getName())) {
-
-                List<String> dependencySources = getDependenceSourceFromDirective(directive);
-                // emptyMap.containsKey(null)结果为true
-                if (dependencySources == null || dependencySources.isEmpty()) {
-                    continue;
-                }
-
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
-                    continue;
-                }
-
-                String expression = (String) CommonUtil.parseValue(
-                        directive.getArgument("predicate").getValue()
-                );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, expression)) {
-                    continue;
-                }
-
-                // circular check
-                if (circularReferenceCheck(directive.getSourceLocation(), fieldFullPath, dependencySources)) {
-                    continue;
-                }
-
 
             } else if (Objects.equals(directive.getName(), ARGUMENT_TRANSFORM.getName())) {
 
@@ -240,14 +189,14 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExist(fieldFullPath, directive, dependencySources)) {
+                if (!validateSourceExist(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
                 String expression = (String) CommonUtil.parseValue(
                         directive.getArgument("expression").getValue()
                 );
-                if (!validateNodeUsageOnExp(fieldFullPath, directive, dependencySources, expression)) {
+                if (!validateSourceUsageOnExp(fieldFullPath, directive, dependencySources, expression)) {
                     continue;
                 }
 
@@ -286,7 +235,7 @@ public class SourceRule extends AbstractRule {
      *
      * @return true if all dependency sources exist, otherwise false.
      */
-    private boolean validateExist(String fieldFullPath, Directive directive, List<String> dependencySources) {
+    private boolean validateSourceExist(String fieldFullPath, Directive directive, List<String> dependencySources) {
         // 依赖的source必须存在。
         if (!sourceWithAnnotatedField.keySet().containsAll(dependencySources)) {
 
@@ -315,7 +264,7 @@ public class SourceRule extends AbstractRule {
      * @param expression expression
      * @return true if all dependency sources is used by expression, otherwise false
      */
-    private boolean validateNodeUsageOnExp(String fieldFullPath, Directive directive, List<String> dependencySources, String expression) {
+    private boolean validateSourceUsageOnExp(String fieldFullPath, Directive directive, List<String> dependencySources, String expression) {
         List<String> arguments = scriptEvaluator.getScriptArgument(expression);
         if (!arguments.containsAll(dependencySources)) {
 
