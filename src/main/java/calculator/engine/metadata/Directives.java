@@ -90,7 +90,7 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
-    // directive @filter(predicate: String!, dependencySource: String) on FIELD
+    // directive @filter(predicate: String!) on FIELD
     public final static GraphQLDirective FILTER = GraphQLDirective.newDirective()
             .name("filter")
             .description("filter the list by predicate.")
