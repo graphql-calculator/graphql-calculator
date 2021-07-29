@@ -32,8 +32,8 @@ import graphql.schema.GraphQLSchema;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
@@ -41,7 +41,7 @@ public class Example {
 
     static class DocumentParseAndValidationCache extends CalculatorDocumentCachedProvider {
 
-        private final Map<String, PreparsedDocumentEntry> cache = new LinkedHashMap<>();
+        private final Map<String, PreparsedDocumentEntry> cache = new ConcurrentHashMap<>();
 
         @Override
         public PreparsedDocumentEntry getDocumentFromCache(ExecutionInput executionInput,
@@ -63,28 +63,23 @@ public class Example {
          * Make async dataFetcher implements {@link AsyncDataFetcherInterface}
          *
          * step 2
-         * Create {@link GraphQLSource} by {@link Config}: including wrapped graphql schema and GraphQL object.
-         * create Config, and get wrapped schema with the ability of
-         * orchestrate and dynamic calculator and control flow, powered by directives,
-         * and create GraphQL with wrapped schema and ExecutionEngine.
+         * Create {@link GraphQLSource} by {@link Config}, which including wrapped graphql schema and GraphQL object.
          *
          * step 3:
-         * validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
-         * It is recommend to create `PreparsedDocumentProvider` by implementing {@link DocumentParseAndValidationCache}.
+         * Validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
+         * It is recommend to create `PreparsedDocumentProvider` by implementing {@link CalculatorDocumentCachedProvider}.
          */
 
-        GraphQLSchema schema = GraphQLSourceHolder.getDefaultSchema();
         Config wrapperConfig = ConfigImpl.newConfig()
                 .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
                 .objectMapper(new DefaultObjectMapper())
                 .threadPool(Executors.newCachedThreadPool())
                 .build();
 
-
         DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
         GraphQLSource graphqlSource = graphqlSourceBuilder
                 .wrapperConfig(wrapperConfig)
-                .originalSchema(schema)
+                .originalSchema(GraphQLSourceHolder.getDefaultSchema())
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
 
         String query = ""

@@ -1,5 +1,20 @@
 
+query validateNodeNameNotSameWithVariable($userId: Int){
+    consumer{
+        userInfo(userId: $userId)
+        @skipBy(predicate: "userId!=0",dependencySources: "userId")
+        {
+            userId
+            name
+        }
+    }
 
+    business{
+        sellerInfo(sellerId: 2){
+            sellerId @fetchSource(name: "userId")
+        }
+    }
+}
 
 query filterPrimitiveType_case01{
     marketing{
@@ -20,7 +35,6 @@ query validationForNonExistArgumentForSortBy{
         }
     }
 }
-
 
 query dependencyMultiSources{
     consumer{
