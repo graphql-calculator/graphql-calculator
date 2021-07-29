@@ -1,14 +1,15 @@
 # graphql-java-calculator
 
-基于[指令系统](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
+基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
 
 ![Build and Publish](https://github.com/dugenkui03/graphql-java-calculator/workflows/Build%20and%20Publish/badge.svg)
 
 # 特性
 
-- 数据编排：将指定字段的获取结果作为全局可获取的上下文，继而作为请求其他字段的参数；
-- 对查询结果进行排序、过滤、计算转换或者使用其他类型字段进行补全等，其他字段数据可作为这些操作的参数变量；
-- 控制流：将指定字段的获取结果设为全局上下文，继而作为控制流判断条件的参数变量、判断是否请求解析当前类型数据。
+- 数据编排：将指定字段的获取结果作为全局可获取的上下文，为获取其他字段提供可依赖数据；
+- 动态计算：对查询结果进行排序、过滤；通过全局可获取上下文和父字段获取结果计算生成新的字段；
+- 控制流：`@skip`和`@include`拓展版本，通过全局可获取上下文、字段请求参数，判断是否解析指定字段；
+- 参数转换：对字段请求参数进行转换、列表类型参数过滤、列表类型参数的元素进行转换，转换表达式可使用全局可获取上下文作为参数。
 
 计算指令的具体使用方式参考**详情文档**和**使用示例**。
 
@@ -97,27 +98,6 @@ query fetchSourceDemo($userIds: [Int]){
 
 该指令可实现类似于`if(!predicate){}` 和 `switch(c): case !predicate1: opx; case !predicate2: opy;`的控制流。
 
-#### `@filter`
-
-`directive @filter(predicate: String!) on FIELD`
-
-参数解释：
-- `predicate`：过滤判断表达式，结果为true的元素会保留；
-
-对列表进行过滤，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
-
-#### `@sortBy`
-
-`directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD`
-
-参数解释：
-- `expression`：按照该表达式计算结果、对列表进行排序；
-- `reversed`：是否进行逆序排序，默认为false。
-
-
-对列表进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
-
-
 #### `@map`
 
 `directive @map(mapper:String!, dependencySources:String) on FIELD`
@@ -139,11 +119,31 @@ query fetchSourceDemo($userIds: [Int]){
 - `expression`：计算新值、或者对参数进行过滤的表达式；
 - `dependencySources`：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
 
-
 对字段参数进行转换、过滤，具体操作有如下三种：
 1. 参数映射(`operateType = Map `)：将表达式结果赋给指定的字段参数，**该操作该字段上的所有变量作为表达式变量**；
 2. 列表参数过滤(`operateType = FILTER`)：过滤列表类型参数中的元素；
 3. 列表参数映射(`operateType = LIST_MAP`)：使用表达式对列表参数中的每个元素进行转换。
+
+#### `@filter`
+
+`directive @filter(predicate: String!) on FIELD`
+
+参数解释：
+- `predicate`：过滤判断表达式，结果为true的元素会保留；
+
+对列表进行过滤，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
+
+#### `@sortBy`
+
+`directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD`
+
+参数解释：
+- `expression`：按照该表达式计算结果、对列表进行排序；
+- `reversed`：是否进行逆序排序，默认为false。
+
+
+对列表进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
+
 
 # 使用示例
 
