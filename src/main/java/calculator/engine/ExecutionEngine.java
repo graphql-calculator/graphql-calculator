@@ -344,7 +344,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Map<String, Object> env = new LinkedHashMap<>(environment.getArguments());
+            Map<String, Object> env = new LinkedHashMap<>(environment.getVariables());
             if (dependencySources != null && !dependencySources.isEmpty()) {
                 for (String dependencySource : dependencySources) {
                     FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
@@ -384,7 +384,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Map<String, Object> env = new LinkedHashMap<>(environment.getArguments());
+            Map<String, Object> env = new LinkedHashMap<>(environment.getVariables());
             if (dependencySources != null && !dependencySources.isEmpty()) {
                 for (String dependencySource : dependencySources) {
                     FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
@@ -569,10 +569,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
 
                 argument = argument.stream().filter(ele -> {
-                            HashMap<String, Object> env = new HashMap<>();
+                            HashMap<String, Object> env = new HashMap<>(environment.getArguments());
                             env.put("ele", ele);
                             env.putAll(sourceEnv);
-
                             return (Boolean) scriptEvaluator.evaluate(expression, env);
                         }
                 ).collect(toList());
@@ -596,7 +595,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
 
                 argument = argument.stream().map(ele -> {
-                    Map<String, Object> transformEnv = new HashMap<>();
+                    Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
                     transformEnv.put("ele", ele);
                     transformEnv.putAll(sourceEnv);
                     return scriptEvaluator.evaluate(expression, transformEnv);

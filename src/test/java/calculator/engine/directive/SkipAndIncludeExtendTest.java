@@ -108,4 +108,39 @@ public class SkipAndIncludeExtendTest {
                 "{consumer={userInfo={userId=1001, name=1001_name}}}"
         );
     }
+
+
+    @Test
+    public void simpleIncludeBy_case01() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(dataFetcherInfoMap);
+
+        String query = "" +
+                "query simpleIncludeBy_case01($userId:Int){\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId){\n" +
+                "            userId\n" +
+                "            name @includeBy(predicate: \"userId!=2\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 1)).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+        assert Objects.equals(
+                executionResult.getData().toString(),
+                "{consumer={userInfo={userId=1, name=1_name}}}"
+        );
+
+        ExecutionInput skipInput = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 2)).build();
+        ExecutionResult skipResult = graphQLSource.getGraphQL().execute(skipInput);
+        assert skipResult.getErrors().isEmpty();
+        assert Objects.equals(
+                skipResult.getData().toString(),
+                "{consumer={userInfo={userId=2, name=null}}}"
+        );
+    }
 }

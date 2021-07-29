@@ -492,16 +492,16 @@ class ValidationTest extends Specification {
     def "dependencySources name used by @skipBy must be different to field argument name "() {
         given:
         def query = """
-            query {
+            query validateNodeNameNotSameWithVariable(\$userId: Int){
                 consumer{
-                    userInfo(userId: 1)
+                    userInfo(userId: \$userId)
                     @skipBy(predicate: "userId!=0",dependencySources: "userId")
                     {
                         userId
                         name
                     }
                 }
-        
+            
                 business{
                     sellerInfo(sellerId: 2){
                         sellerId @fetchSource(name: "userId")
@@ -514,8 +514,9 @@ class ValidationTest extends Specification {
         def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
+        println  validateResult.errors[0].description
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "the dependencySources [userId] on {consumer.userInfo} must be different to field argument name [userId]."
+        validateResult.errors[0].description == "the dependencySources [userId] on {consumer.userInfo} must be different to variable name [userId]."
     }
 
 

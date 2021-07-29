@@ -22,12 +22,17 @@ import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
+import graphql.language.Definition;
 import graphql.language.Document;
+import graphql.language.OperationDefinition;
+import graphql.language.VariableDefinition;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLSchema;
 import graphql.validation.ValidationError;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @PublicApi
 public class Validator {
@@ -53,7 +58,12 @@ public class Validator {
         }
 
 
+        OperationDefinition operationDefinition = (OperationDefinition) document.getDefinitions().get(0);
+        List<String> variableNames = operationDefinition.getVariableDefinitions().stream()
+                .map(VariableDefinition::getName).collect(Collectors.toList());
+
         SourceRule nodeRule = new SourceRule(
+                variableNames,
                 wrapperConfig.getScriptEvaluator(),
                 basicRule.getSourceWithAnnotatedField(),
                 basicRule.getFieldWithTopTask(),

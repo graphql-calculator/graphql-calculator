@@ -21,7 +21,6 @@ import calculator.engine.script.ScriptEvaluator;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
-import graphql.language.Argument;
 import graphql.language.Directive;
 import graphql.language.SourceLocation;
 import graphql.util.TraverserContext;
@@ -43,7 +42,6 @@ import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toSet;
 
 
 /**
@@ -51,6 +49,8 @@ import static java.util.stream.Collectors.toSet;
  *
  */
 public class SourceRule extends AbstractRule {
+
+    private final List<String> variableNames;
 
     private final ScriptEvaluator scriptEvaluator;
 
@@ -69,11 +69,14 @@ public class SourceRule extends AbstractRule {
     private final HashSet<String> unusedSource = new HashSet<>();
 
 
-    public SourceRule(ScriptEvaluator scriptEvaluator,
-                      Map<String, String> sourceWithAnnotatedField,
-                      Map<String, String> fieldWithTopTask,
-                      Map<String, List<String>> sourceUsedByField,
-                      Map<String, Set<String>> fieldWithAncestorPath) {
+    public SourceRule(
+            List<String> variableNames,
+            ScriptEvaluator scriptEvaluator,
+            Map<String, String> sourceWithAnnotatedField,
+            Map<String, String> fieldWithTopTask,
+            Map<String, List<String>> sourceUsedByField,
+            Map<String, Set<String>> fieldWithAncestorPath) {
+        this.variableNames = variableNames;
         this.scriptEvaluator = Objects.requireNonNull(scriptEvaluator);
         this.sourceWithAnnotatedField = sourceWithAnnotatedField;
         this.fieldWithTopTask = fieldWithTopTask;
@@ -99,7 +102,6 @@ public class SourceRule extends AbstractRule {
         }
 
         String fieldFullPath = pathForTraverse(environment);
-        Set<String> argumentsOnField = environment.getField().getArguments().stream().map(Argument::getName).collect(toSet());
 
         for (Directive directive : directives) {
 
@@ -121,8 +123,7 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 不和参数名称冲突
-                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
+                if (!validateNodeNameNotSameWithVariable(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -149,8 +150,7 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 不和参数名称冲突
-                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
+                if (!validateNodeNameNotSameWithVariable(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -200,8 +200,7 @@ public class SourceRule extends AbstractRule {
                     continue;
                 }
 
-                // 不和参数名称冲突
-                if (!validateNodeNameNotSameWithArgument(fieldFullPath, argumentsOnField, directive, dependencySources)) {
+                if (!validateNodeNameNotSameWithVariable(fieldFullPath, directive, dependencySources)) {
                     continue;
                 }
 
@@ -283,20 +282,18 @@ public class SourceRule extends AbstractRule {
     }
 
     /**
-     * 校验节点名称是否跟参数名称一样，因为参数和节点都会作表达式计算的key
-     *
-     * @param fieldFullPath 字段全路径
-     * @param argumentsOnField 请求字段上的参数
-     * @param directive 字段上的指令
-     * @param dependencySources 指令依赖的节点名称
-     * @return 校验结果
+     * Determine whether the source name is same as variable name.
+     * @param fieldFullPath fieldFullPath
+     * @param directive directive
+     * @param dependencySources dependency sources name list
+     * @return true if any error.
      */
-    private boolean validateNodeNameNotSameWithArgument(String fieldFullPath, Set<String> argumentsOnField, Directive directive, List<String> dependencySources) {
-        List<String> sourcesWithSameArgumentName = dependencySources.stream().filter(argumentsOnField::contains).collect(Collectors.toList());
+    private boolean validateNodeNameNotSameWithVariable(String fieldFullPath, Directive directive, List<String> dependencySources) {
+        List<String> sourcesWithSameArgumentName = dependencySources.stream().filter(variableNames::contains).collect(Collectors.toList());
         if (!sourcesWithSameArgumentName.isEmpty()) {
             String errorMsg = format(
-                    "the dependencySources %s on {%s} must be different to field argument name %s.",
-                    sourcesWithSameArgumentName, fieldFullPath, argumentsOnField
+                    "the dependencySources %s on {%s} must be different to variable name %s.",
+                    sourcesWithSameArgumentName, fieldFullPath, variableNames
             );
             addValidError(directive.getSourceLocation(), errorMsg);
             return false;

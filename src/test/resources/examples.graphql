@@ -16,6 +16,15 @@ enum ParamTransformType{
 }
 
 
+query simpleIncludeBy_case01($userId:Int){
+    consumer{
+        userInfo(userId: $userId){
+            userId
+            name @includeBy(predicate: "userId!=2")
+        }
+    }
+}
+
 
 query filterPrimitiveType_case01{
     marketing{

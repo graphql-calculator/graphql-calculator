@@ -11,7 +11,7 @@
 - 控制流：`@skip`和`@include`拓展版本，通过全局可获取上下文、字段请求参数，判断是否解析指定字段；
 - 参数转换：对字段请求参数进行转换、列表类型参数过滤、列表类型参数的元素进行转换，转换表达式可使用全局可获取上下文作为参数。
 
-计算指令的具体使用方式参考**详情文档**和**使用示例**。
+计算指令的具体使用方式参考**指令说明**和**使用示例**。
 
 # 快速开始
 
@@ -30,33 +30,37 @@
 ##### 2.1 继承`AsyncDataFetcherInterface`
 
 如果项目中使用了异步`DataFetcher`，则使其则继承`AsyncDataFetcherInterface`，
-并在方法实现中返回该`DataFetcher`包装的取数`DataFetcher`和使用的线程池。
+并在方法实现中返回被包装的`DataFetcher`和使用的线程池。
 
 ##### 2.2 创建`GraphQLSource`
 
-通过配置类`Config`创建`GraphQLSource`对象，该对象包含`GraphQLSchema`和`GraphQL`，
-配置类可指定脚本执行引擎、对象转换工具和调度引擎使用的线程池。
+使用配置类`Config`创建`GraphQLSource`对象，`GraphQLSource`包含`GraphQLSchema`和`GraphQL`，
+配置类可指定脚本执行引擎、计算指令引擎使用的线程池和对象转换工具。
+
+脚本语法使用了[`aviatorscript`](https://github.com/killme2008/aviatorscript)，aviator是graphql-java-calculator的默认表达行引擎，
+可通过`ScriptEvaluator`和`Config`自定义脚本执行引擎。
 
 ##### 2.3 执行前校验
 
-对使用了计算指令的查询使用`Validator`进行语法校验，建议实现`CalculatorDocumentCachedProvider`缓存校验结果，该类包含语法校验逻辑。
+使用`Validator`对计算指令的使用进行语法校验、该校验包含graphql原生语法校验，
+建议实现`CalculatorDocumentCachedProvider`缓存校验结果。
 
 完整示例参考[`Example`](/src/test/java/calculator/example/Example.java)
 
 
-# 详情文档
+# 指令说明
 
-#### ` @fetchSource`
+#### **@fetchSource**
 
 `directive @fetchSource(name: String!, sourceConvert:String) on FIELD`
 
 参数解释：
-- `name`：source的名称，一个查询语句中source名称必须是唯一的；
-- `sourceConvert`：对字段绑定`DataFetcher`的获取结果进行转换，所有依赖该source的指令获取的都是转换后的数据。
+- name：source的名称，一个查询语句中source名称必须是唯一的；
+- sourceConvert：对字段绑定DataFetcher的获取结果进行转换，所有依赖该source的指令获取的都是转换后的数据。
 
-`@fetchSource`指令是进行数据编排的基础，该指令注解的的字段的`DataFetcher`的获取结果可在其他字段上的计算指令中通过`dependencySources`获取。
+@fetchSource是进行数据编排的基础，该指令注解字段的DataFetcher的获取结果、可作为**全局可获取上下文**、在其他字段的计算指令上通过`dependencySources`获取。
 
-如果`@fetchSource`所注解的字段在列表路径中，则将该字段的集合作为source的值。如下使用方式，source结果为包含每个用户的`List<String>`。
+如果@fetchSource所注解的字段在列表路径中，则将该字段的集合将作为source的值。如下查询source类型为List<String>，元素值为用户的名称。
 
 ```graphql
 query fetchSourceDemo($userIds: [Int]){
@@ -70,88 +74,90 @@ query fetchSourceDemo($userIds: [Int]){
 }
 ```
 
-#### `@skipBy`
+#### **@skipBy**
 
 `directive @skipBy(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
-- `predicate`：判断是否跳过解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
-- `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
+- predicate：判断是否跳过解析该字段的表达式，表达式参数为查询变量和其他@fetchSource；
+- dependencySources：指令表达式依赖的source，sourceName不可和查询变量。
 
-`@skipBy`是graphql内置指令`@skip`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
+@skipBy是graphql内置指令@skip的扩展版本，可通过表达式判断是否请求该字段，表达式参数为查询变量和其他@fetchSource。
 
-可在输入变量中依赖其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
+若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。
 
 该指令可实现类似于`if(predicate){}` 和 `switch(c): case predicate1: opx; case predicate2: opy;`的控制流。
 
-#### `@includeBy`
+#### **@includeBy**
 
 `directive @includeBy(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
-- `predicate`：判断是否解析该字段的表达式，表达式变量为该字段上的参数和依赖的source；
-- `dependencySources`：表达式依赖的source，sourceName不可和变量名称同名。
+- predicate：判断是否解析该字段的表达式，表达式参数为查询变量和其他@fetchSource；
+- dependencySources：表达式依赖的source，sourceName不可和查询变量同名。
 
-`@includeBy`是graphql内置指令`@include`的加强版本，可通过表达式判断是否请求该字段，表达式默认变量为该字段上的入参。
+@includeBy是graphql内置指令`@include`的扩展版本，可通过表达式判断是否请求该字段，表达式参数为查询变量和其他@fetchSource。
 
-可在输入变量中依赖其他source，**输入变量中会加上一个key为`sourceName`、value为`source`的键值对**。
+若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。该指令能力同@skipBy。
 
-该指令可实现类似于`if(!predicate){}` 和 `switch(c): case !predicate1: opx; case !predicate2: opy;`的控制流。
-
-#### `@map`
+#### **@map**
 
 `directive @map(mapper:String!, dependencySources:String) on FIELD`
 
 参数解释：
-- `expression`：计算字段值的表达式；
-- `dependencySources`：表达式依赖的source，sourceName如果和父节点绑定`DataFetcher`的获取结果key相同，则会覆父节点中的数据。
+- expression：计算字段值的表达式；
+- dependencySources：表达式依赖的source，sourceName如果和父节点绑定DataFetcher的获取结果key相同，则计算表达式时会覆父节点中的数据。
 
-以父节点绑定的`DataFetcher`获取结果和`dependencySources`为参数变量，计算注解的字段的值。**被注解的字段的`DataFetcher`不会在执行。**。
+以父节点绑定的DataFetcher获取结果和`dependencySources`为参数，计算注解的字段的值。被注解字段绑定的DataFetcher不会在执行。
 
-
-#### `@argumentTransform`
+#### **@argumentTransform**
 
 `directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:String) on FIELD`
+```graphql
+enum ParamTransformType{
+    MAP
+    FILTER
+    LIST_MAP
+}
+```
 
 **参数解释**：
-- `argumentName`：该指令进行转换的参数名称；
-- `operateType`：操作类型，包括参数整体映射、列表参数过滤、列表参数映射三种；
-- `expression`：计算新值、或者对参数进行过滤的表达式；
-- `dependencySources`：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
+- argumentName：该指令进行转换的参数名称；
+- operateType：操作类型，包括参数整体转换MAP、列表参数过滤FILTER、列表参数元素转换LIST_MAP三种；
+- expression：计算新值、或者对参数进行过滤的表达式；
+- dependencySources：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
 
 对字段参数进行转换、过滤，具体操作有如下三种：
-1. 参数映射(`operateType = Map `)：将表达式结果赋给指定的字段参数，**该操作该字段上的所有变量作为表达式变量**；
-2. 列表参数过滤(`operateType = FILTER`)：过滤列表类型参数中的元素；
-3. 列表参数映射(`operateType = LIST_MAP`)：使用表达式对列表参数中的每个元素进行转换。
+1. 参数映射(`operateType = Map `)：将表达式结果赋给指定的字段参数，该操作将字段上的所有变量作为表达式参数；
+2. 列表参数过滤(`operateType = FILTER`)：过滤列表类型参数中的元素，该操作将字段上的所有变量和<"ele",元素值>作为表达式参数；
+3. 列表参数映射(`operateType = LIST_MAP`)：使用表达式对列表参数中的每个元素进行转换，该操作将字段上的所有变量和<"ele",元素值>作为表达式参数。
 
-#### `@filter`
+若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。
+
+#### **@filter**
 
 `directive @filter(predicate: String!) on FIELD`
 
 参数解释：
-- `predicate`：过滤判断表达式，结果为true的元素会保留；
+- predicate：过滤判断表达式，结果为true的元素会被保留；
 
 对列表进行过滤，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
 
-#### `@sortBy`
+#### **@sortBy**
 
 `directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD`
 
 参数解释：
-- `expression`：按照该表达式计算结果、对列表进行排序；
-- `reversed`：是否进行逆序排序，默认为false。
-
+- comparator：按照该表达式计算结果、对列表进行排序；
+- reversed：是否进行逆序排序，默认为false。
 
 对列表进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
-
 
 # 使用示例
 
 以[测试schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
-对计算指令实现的数据编排、结果处理转换和控制流等能力进行说明。
+对计算指令实现数据编排、结果处理转换和控制流等的能力进行说明。
 
-脚本语法使用了[`aviatorscript`](https://github.com/killme2008/aviatorscript)，`aviator`当前是`graphql-java-calculator`的默认表达行引擎，
-可通过`ScriptEvaluator`和`Config`自定义脚本执行引擎。
 
 #### 数据编排
 
