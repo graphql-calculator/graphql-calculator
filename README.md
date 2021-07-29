@@ -21,7 +21,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
 </dependency>
 ```
 
@@ -161,7 +161,7 @@ enum ParamTransformType{
 
 #### 数据编排
 
-数据编排的主要形式为请求A类型数据时其输入参数为B类型的结果，或者需要B类型结果对A类型输入参数进行过滤、转换处理。
+数据编排的主要形式为请求a字段时、其请求参数为b字段的结果，或者需要b字段结果对a字段请求参数进行过滤、转换处理。
 
 - 变量只有券id、查询该券绑定的商品详情。
 ```graphql
@@ -188,7 +188,7 @@ query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
 }
 ```
 
-#### 参数拼接
+#### 参数转换
 
 入参为`userId`，按照指定的格式拼接为 redis 的key。
 ```graphql
@@ -219,33 +219,6 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
             name
             salePrice
             onSale
-        }
-    }
-
-    marketing{
-        coupon(couponId: $couponId){
-            bindingItemIds
-            @fetchSource(name: "itemIdList")
-        }
-    }
-}
-```
-
-#### 结果过滤
-
-- 查询逻辑同`数据编排`，但过滤掉没有在售的商品。
-```graphql
-query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
-    commodity{
-        itemList(itemIds: 1)
-        @argumentTransform(argumentName: "itemIds", operateType: MAP,dependencySources: "itemIdList",expression: "itemIdList")
-        @filter(predicate: "onSale")
-        {
-            itemId
-            name
-            salePrice
-            onSale
-            # sellerId
         }
     }
 
@@ -328,7 +301,6 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 }
 ```
 
-
 #### 列表排序
 
 对列表字段进行排序。例如对商品进行排序：将可用券的商品放在列表前边。
@@ -385,6 +357,3 @@ query filter_case01{
     }
 }
 ```
-
-
-
