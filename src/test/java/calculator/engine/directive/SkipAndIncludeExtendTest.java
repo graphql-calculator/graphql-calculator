@@ -89,6 +89,7 @@ public class SkipAndIncludeExtendTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
+        System.out.println(query);
         ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
         assert !validateResult.isFailure();
 
@@ -120,6 +121,7 @@ public class SkipAndIncludeExtendTest {
                 "    consumer{\n" +
                 "        userInfo(userId: $userId){\n" +
                 "            userId\n" +
+                // the userId used by includeBy is '$userId', instead of userId in userInfo.
                 "            name @includeBy(predicate: \"userId!=2\")\n" +
                 "        }\n" +
                 "    }\n" +

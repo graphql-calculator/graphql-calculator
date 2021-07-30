@@ -82,6 +82,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private final ScriptEvaluator scriptEvaluator;
 
+    // FIXME
     private final ConcurrentHashMap<String, PreparsedDocumentEntry> documentCache = new ConcurrentHashMap<>();
 
     private ExecutionEngine(Executor executor, ObjectMapper objectMapper, ScriptEvaluator scriptEvaluator) {
@@ -120,6 +121,9 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
         ExecutionEngineStateParser stateParser = new ExecutionEngineStateParser();
         traverser.visitDepthFirst(stateParser);
+
+        Map<String, Object> variables = parameters.getExecutionInput().getVariables();
+
         return stateParser.getExecutionEngineState();
     }
 

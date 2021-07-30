@@ -1,4 +1,17 @@
 
+
+
+
+query inValidateSourceName_case01{
+    consumer{
+        userInfo(userId: 1){
+            userId @fetchSource(name: "$userId")
+            age @map(mapper: "$userId",dependencySources: "$userId")
+        }
+    }
+}
+
+
 query validateNodeNameNotSameWithVariable($userId: Int){
     consumer{
         userInfo(userId: $userId)

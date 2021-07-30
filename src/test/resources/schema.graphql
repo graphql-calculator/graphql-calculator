@@ -60,7 +60,7 @@ type SellerInfo{
 
 type Commodity{
     item(itemId: Int): ItemBaseInfo
-    itemList(itemIds:[Int]): [ItemBaseInfo]
+    itemList(itemIds:[Int],ignored:Boolean): [ItemBaseInfo]
 }
 
 type ItemBaseInfo{

@@ -310,6 +310,14 @@ public class BasicRule extends AbstractRule {
                         directive.getArgument("name").getValue()
                 );
 
+                if (sourceName.contains("$")) {
+                    String errorMsg = String.format("the source name '%s' of @%s on {%s} could not contain '$'.",
+                            sourceName, directive.getName(), fieldFullPath
+                    );
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
                 // 验证节点名称是否已经被其他字段使用
                 if (sourceWithAnnotatedField.containsKey(sourceName)) {
                     String errorMsg = String.format("duplicate source name '%s' for {%s} and {%s}.",

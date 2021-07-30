@@ -269,6 +269,21 @@ query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
 }
 ```
 
+只有userId大于0的时候才进行获取解析：
+```graphql
+query includeBy_case01($userId:Int){
+    consumer{
+        userInfo(userId: $userId)
+        @includeBy(predicate: "userId>0")
+        {
+            userId
+            name
+        }
+    }
+}
+```
+注意：@includeBy 和 @skipBy 表达式参数只有查询变量和依赖的source。
+
 ####  数据补全/动态计算
 
 - 分别查找券信息和列表商品信息；

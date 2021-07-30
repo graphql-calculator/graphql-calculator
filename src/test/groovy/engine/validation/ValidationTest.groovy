@@ -386,6 +386,28 @@ class ValidationTest extends Specification {
         validateResult.errors[0].description == "FILTER operation for @argumentTransform can not used on basic field {consumer.userInfo}."
     }
 
+    def "inValidateSourceName_case01"() {
+        given:
+        def query = """
+                query inValidateSourceName_case01{
+                    consumer{
+                        userInfo(userId: 1){
+                            userId @fetchSource(name: "\$userId")
+                            age @map(mapper: "\$userId",dependencySources: "\$userId")
+                        }
+                    }
+                }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "the source name '\$userId' of @fetchSource on {consumer.userInfo.userId} could not contain '\$'."
+    }
+
+
     def "duplicate source name for @fetchSource"() {
         given:
         def query = """
@@ -520,7 +542,6 @@ class ValidationTest extends Specification {
     }
 
 
-    // map 依赖的字段必须存在、必须被使用
 
     def "dependencySources used by @map dependency must exist"() {
         given:
