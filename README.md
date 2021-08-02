@@ -21,9 +21,10 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.0.11</version>
+    <version>1.1</version>
 </dependency>
 ```
+最新版本见 [Maven仓库](https://mvnrepository.com/artifact/com.graphql-java-calculator/graphql-java-calculator)。
 
 #### 2. 包装执行引擎
 
@@ -385,3 +386,11 @@ query filter_case01{
     }
 }
 ```
+
+# 联系反馈
+
+欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对使用中遇到的bug、设计问题或者期待的新特性进行讨论。
+
+也可通过以下方式联系作者：
+- qq群: 302490951
+- 作者邮箱：dugk@foxmail.com

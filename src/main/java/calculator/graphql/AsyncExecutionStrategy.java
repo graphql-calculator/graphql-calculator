@@ -17,6 +17,7 @@
 
 package calculator.graphql;
 
+import calculator.engine.annotation.Internal;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
 import graphql.execution.AbstractAsyncExecutionStrategy;
@@ -50,7 +51,7 @@ import java.util.function.BiConsumer;
 import static graphql.collect.ImmutableKit.map;
 import static graphql.execution.FieldValueInfo.CompleteValueType.LIST;
 
-
+@Internal
 public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
 
     /**

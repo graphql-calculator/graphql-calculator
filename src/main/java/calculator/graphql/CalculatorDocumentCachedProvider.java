@@ -18,6 +18,7 @@
 package calculator.graphql;
 
 import calculator.config.Config;
+import calculator.engine.annotation.PublicApi;
 import calculator.validation.Validator;
 import graphql.ExecutionInput;
 import graphql.ParseAndValidateResult;
@@ -27,6 +28,7 @@ import graphql.schema.GraphQLSchema;
 
 import java.util.function.Function;
 
+@PublicApi
 public abstract class CalculatorDocumentCachedProvider implements PreparsedDocumentProvider {
 
     private Config wrapperConfig;

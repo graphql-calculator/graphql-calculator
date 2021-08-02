@@ -18,6 +18,7 @@ package calculator.config;
 
 import calculator.engine.ObjectMapper;
 import calculator.engine.DefaultObjectMapper;
+import calculator.engine.annotation.PublicApi;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ScriptEvaluator;
 
@@ -28,6 +29,7 @@ import java.util.concurrent.ForkJoinPool;
 /**
  * The default implementation of {@link Config}.
  */
+@PublicApi
 public class ConfigImpl implements Config {
 
     private final Executor threadPool;

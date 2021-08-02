@@ -17,6 +17,7 @@
 
 package calculator.graphql;
 
+import calculator.engine.annotation.Internal;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
@@ -26,6 +27,7 @@ import java.util.concurrent.ForkJoinPool;
 
 import static graphql.Assert.assertNotNull;
 
+@Internal
 public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>>, AsyncDataFetcherInterface<T> {
 
     public static <T> AsyncDataFetcher<T> async(DataFetcher<T> wrappedDataFetcher) {

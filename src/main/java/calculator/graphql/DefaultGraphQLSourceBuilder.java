@@ -20,6 +20,7 @@ package calculator.graphql;
 import calculator.config.Config;
 import calculator.engine.ExecutionEngine;
 import calculator.engine.SchemaWrapper;
+import calculator.engine.annotation.PublicApi;
 import graphql.GraphQL;
 import graphql.execution.instrumentation.ChainedInstrumentation;
 import graphql.execution.instrumentation.Instrumentation;
@@ -32,6 +33,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 
+@PublicApi
 public class DefaultGraphQLSourceBuilder implements GraphQLSource.Builder {
 
     private Config wrapperConfig;

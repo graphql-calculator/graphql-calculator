@@ -17,6 +17,7 @@
 package calculator.engine;
 
 
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.FetchSourceTask;
 import graphql.execution.instrumentation.InstrumentationState;
 
@@ -28,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 
+@Internal
 public class ExecutionEngineState implements InstrumentationState {
 
     private final Map<String, FetchSourceTask> fetchSourceTaskByPath;

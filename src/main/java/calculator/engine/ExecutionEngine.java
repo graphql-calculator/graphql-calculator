@@ -19,6 +19,7 @@ package calculator.engine;
 import calculator.common.CollectionUtil;
 import calculator.common.CommonUtil;
 import calculator.config.Config;
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
 import calculator.engine.script.ScriptEvaluator;
@@ -28,12 +29,10 @@ import graphql.analysis.QueryTraverser;
 import graphql.execution.DataFetcherResult;
 import graphql.execution.ResultPath;
 import graphql.execution.ValueUnboxer;
-import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
-import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
 import graphql.execution.preparsed.PreparsedDocumentEntry;
@@ -74,6 +73,7 @@ import static calculator.engine.metadata.Directives.SORT_BY;
 import static calculator.graphql.AsyncDataFetcher.async;
 import static java.util.stream.Collectors.toList;
 
+@Internal
 public class ExecutionEngine extends SimpleInstrumentation {
 
     private final Executor executor;
@@ -126,7 +126,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
     // ============================================== alter InstrumentationState for engine  ================================================
     @Override
     public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
-        // FIXME save the parsed value
         return saveFetchedValueContext(
                 parameters.getInstrumentationState(),
                 parameters.getExecutionStepInfo().getPath(),

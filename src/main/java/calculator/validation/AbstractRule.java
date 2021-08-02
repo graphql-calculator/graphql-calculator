@@ -16,6 +16,7 @@
  */
 package calculator.validation;
 
+import calculator.engine.annotation.Internal;
 import graphql.analysis.QueryVisitor;
 import graphql.language.SourceLocation;
 import graphql.validation.ValidationError;
@@ -24,6 +25,7 @@ import graphql.validation.ValidationErrorType;
 import java.util.ArrayList;
 import java.util.List;
 
+@Internal
 public abstract class AbstractRule implements QueryVisitor {
 
     /**
