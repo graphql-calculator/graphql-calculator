@@ -18,16 +18,13 @@
 package calculator.engine.directive;
 
 import calculator.config.Config;
-import calculator.config.ConfigImpl;
-import calculator.engine.ExecutionEngine;
+import calculator.config.DefaultConfig;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
-import calculator.engine.SchemaWrapper;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.validation.Validator;
 import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
 import org.junit.Test;
@@ -37,7 +34,7 @@ import java.util.Objects;
 
 public class FetchSourceTest {
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
-    private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
+    private static final Config wrapperConfig = DefaultConfig.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
 
     @Test

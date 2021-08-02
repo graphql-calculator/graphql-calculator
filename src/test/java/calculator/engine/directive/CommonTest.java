@@ -18,7 +18,7 @@ package calculator.engine.directive;
 
 
 import calculator.config.Config;
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
@@ -40,7 +40,7 @@ import java.util.Objects;
 public class CommonTest {
 
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
-    private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
+    private static final Config wrapperConfig = DefaultConfig.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
 
     @Test

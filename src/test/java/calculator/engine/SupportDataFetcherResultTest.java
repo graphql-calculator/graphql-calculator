@@ -17,7 +17,7 @@
 
 package calculator.engine;
 
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.service.CommodityServiceClient;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
@@ -76,7 +76,7 @@ public class SupportDataFetcherResultTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionInput skipInput = ExecutionInput
@@ -144,7 +144,7 @@ public class SupportDataFetcherResultTest {
                     "    }\n" +
                     "}";
 
-            ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+            ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), DefaultConfig.newConfig().build());
             assert !validateResult.isFailure();
 
             ExecutionInput skipInput = ExecutionInput

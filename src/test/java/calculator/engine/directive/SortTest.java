@@ -18,7 +18,7 @@
 package calculator.engine.directive;
 
 
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ListContain;
 import calculator.graphql.GraphQLSource;
@@ -52,7 +52,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -80,7 +80,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -107,7 +107,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -135,7 +135,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -154,7 +154,7 @@ public class SortTest {
 
         GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
                 dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
         );
 
         String query = "" +
@@ -176,7 +176,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -195,7 +195,7 @@ public class SortTest {
 
         GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
                 dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
         );
 
         String query = "" +
@@ -210,7 +210,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -224,7 +224,7 @@ public class SortTest {
 
         GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
                 dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
         );
 
         String query = "" +
@@ -235,7 +235,7 @@ public class SortTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);

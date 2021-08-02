@@ -21,7 +21,7 @@ import static calculator.engine.service.BusinessServiceClient.getSellerInfoById;
 import static calculator.engine.service.ConsumerServiceClient.batchUserInfoByIds;
 import static calculator.graphql.AsyncDataFetcher.async;
 
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.service.CommodityServiceClient;
 import calculator.engine.service.ConsumerServiceClient;
 import calculator.engine.service.MarketingServiceClient;
@@ -101,10 +101,10 @@ public class GraphQLSourceHolder {
     }
 
     public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
-        return getGraphQLByDataFetcherMap(dataFetcherInfoMap,ConfigImpl.newConfig().build());
+        return getGraphQLByDataFetcherMap(dataFetcherInfoMap, DefaultConfig.newConfig().build());
     }
 
-    public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap,ConfigImpl config) {
+    public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap, DefaultConfig config) {
         GraphQLSchema schema = getSchemaByDataFetcherMap(dataFetcherInfoMap);
         DefaultGraphQLSourceBuilder sourceBuilder = new DefaultGraphQLSourceBuilder();
         sourceBuilder.wrapperConfig(config).originalSchema(schema)

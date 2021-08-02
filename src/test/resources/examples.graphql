@@ -16,6 +16,20 @@ enum ParamTransformType{
 }
 
 
+query filterUnSaleCommodity($ItemIds:[Int]){
+    commodity{
+        filteredItemList: itemList(itemIds: $ItemIds)
+        @filter(predicate: "onSale")
+        {
+            itemId
+            onSale
+            name
+            salePrice
+        }
+    }
+}
+
+
 query sourceInList_case01($itemIds:[Int]){
     commodity{
         itemList(itemIds: $itemIds){

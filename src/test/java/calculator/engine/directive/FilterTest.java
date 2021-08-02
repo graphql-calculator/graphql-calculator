@@ -17,22 +17,81 @@
 
 package calculator.engine.directive;
 
-import calculator.config.ConfigImpl;
+import calculator.config.Config;
+import calculator.config.DefaultConfig;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.engine.script.ListContain;
+import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
 import calculator.validation.Validator;
 import com.googlecode.aviator.AviatorEvaluator;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ParseAndValidateResult;
 import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLSchema;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
 public class FilterTest {
+
+    private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
+    private static final Config wrapperConfig = DefaultConfig.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
+    private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
+
+    @Test
+    public void simpleTest_case01() {
+        String query = "" +
+                "query filterUnSaleCommodity($ItemIds:[Int]){\n" +
+                "    commodity{\n" +
+                "        filteredItemList: itemList(itemIds: $ItemIds)\n" +
+                "        @filter(predicate: \"onSale\")\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            onSale\n" +
+                "            name\n" +
+                "            salePrice\n" +
+                "        }\n" +
+                "        \n" +
+                "        allItemList : itemList(itemIds: $ItemIds)\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            onSale\n" +
+                "            name\n" +
+                "            salePrice\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(
+                query, graphqlSource.getWrappedSchema(), DefaultConfig.newConfig().build()
+        );
+        assert !validateResult.isFailure();
+
+        ExecutionInput input = ExecutionInput.newExecutionInput(query)
+                .variables(Collections.singletonMap("ItemIds", Arrays.asList(1, 2, 3)))
+                .build();
+
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(
+                data.get("commodity").get("filteredItemList").toString(),
+                "[{itemId=1, onSale=true, name=item_name_1, salePrice=11}, {itemId=2, onSale=true, name=item_name_2, salePrice=21}]"
+        );
+
+        assert Objects.equals(
+                data.get("commodity").get("allItemList").toString(),
+                "[{itemId=1, onSale=true, name=item_name_1, salePrice=11}, " +
+                        "{itemId=2, onSale=true, name=item_name_2, salePrice=21}, " +
+                        "{itemId=3, onSale=false, name=item_name_3, salePrice=31}]"
+        );
+    }
 
     @Test
     public void filter_case01() {
@@ -41,7 +100,7 @@ public class FilterTest {
 
         GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
                 dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
         );
 
         String query = "" +
@@ -63,7 +122,7 @@ public class FilterTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
@@ -83,7 +142,7 @@ public class FilterTest {
 
         GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
                 dataFetcherInfoMap,
-                ConfigImpl.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
         );
 
         String query = "" +
@@ -94,7 +153,7 @@ public class FilterTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);

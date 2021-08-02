@@ -17,7 +17,7 @@
 
 package engine.validation
 
-import calculator.config.ConfigImpl
+import calculator.config.DefaultConfig
 import calculator.engine.SchemaWrapper
 import calculator.validation.Validator
 import spock.lang.Specification
@@ -26,7 +26,7 @@ import static calculator.util.GraphQLSourceHolder.getDefaultSchema
 
 class MultiDependencySourcesValidationTest extends Specification {
 
-    def wrapperConfig = ConfigImpl.newConfig().build()
+    def wrapperConfig = DefaultConfig.newConfig().build()
     def wrappedSchema = SchemaWrapper.wrap(wrapperConfig, getDefaultSchema())
 
     def "dependencyMultiSources"() {
