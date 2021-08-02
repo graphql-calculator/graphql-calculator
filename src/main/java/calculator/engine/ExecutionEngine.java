@@ -126,6 +126,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
     // ============================================== alter InstrumentationState for engine  ================================================
     @Override
     public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+        // FIXME save the parsed value
         return saveFetchedValueContext(
                 parameters.getInstrumentationState(),
                 parameters.getExecutionStepInfo().getPath(),
@@ -133,31 +134,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
         );
     }
 
-
-    @Override
-    public ExecutionStrategyInstrumentationContext beginExecutionStrategy(InstrumentationExecutionStrategyParameters parameters) {
-        return new ExecutionStrategyInstrumentationContext() {
-            @Override
-            public void onDispatched(CompletableFuture<ExecutionResult> result) {
-                String fieldFullPath = fieldPath(parameters.getExecutionStrategyParameters().getPath());
-                FetchSourceTask fetchSourceTask = parseFetchSourceTask(
-                        parameters.getInstrumentationState(), fieldFullPath
-                );
-                if (fetchSourceTask == null) {
-                    return;
-                }
-
-                if (fetchSourceTask.isTopTask()) {
-                    completeChildrenTask(fetchSourceTask);
-                }
-            }
-
-            @Override
-            public void onCompleted(ExecutionResult result, Throwable t) {
-
-            }
-        };
-    }
 
     private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
         return new InstrumentationContext<Object>() {
@@ -747,6 +723,18 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             @Override
             public void onDispatched(CompletableFuture<ExecutionResult> result) {
+                String fieldFullPath = fieldPath(parameters.getExecutionStrategyParameters().getPath());
+                FetchSourceTask fetchSourceTask = parseFetchSourceTask(
+                        parameters.getInstrumentationState(), fieldFullPath
+                );
+                if (fetchSourceTask == null) {
+                    return;
+                }
+
+                if (fetchSourceTask.isTopTask()) {
+                    completeChildrenTask(fetchSourceTask);
+                }
+
             }
 
             @Override

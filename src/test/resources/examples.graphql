@@ -16,6 +16,25 @@ enum ParamTransformType{
 }
 
 
+query sourceInList_case01{
+    commodity{
+        itemList(itemIds: [1,2,3]){
+            sellerId @fetchSource(name: "sellerIdList")
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "sellerIdList",dependencySources: ["sellerIdList"])
+        {
+            userId
+            name
+            age
+        }
+    }
+}
+
+
 query simpleIncludeBy_case01($userId:Int){
     consumer{
         userInfo(userId: $userId){
