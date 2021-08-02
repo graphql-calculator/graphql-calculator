@@ -17,7 +17,7 @@
 
 package calculator.engine.directive;
 
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
 import calculator.validation.Validator;
@@ -51,7 +51,7 @@ public class SkipAndIncludeExtendTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 3)).build();
@@ -89,7 +89,7 @@ public class SkipAndIncludeExtendTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 3)).build();
@@ -124,7 +124,7 @@ public class SkipAndIncludeExtendTest {
                 "        }\n" +
                 "    }\n" +
                 "}";
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 1)).build();

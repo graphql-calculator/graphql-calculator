@@ -17,24 +17,20 @@
 package calculator.example;
 
 import calculator.config.Config;
-import calculator.config.ConfigImpl;
-import calculator.engine.DefaultObjectMapper;
+import calculator.config.DefaultConfig;
 import calculator.graphql.AsyncDataFetcherInterface;
 import calculator.graphql.CalculatorDocumentCachedProvider;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
-import calculator.engine.script.AviatorScriptEvaluator;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.execution.preparsed.PreparsedDocumentEntry;
-import graphql.schema.GraphQLSchema;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class Example {
@@ -70,11 +66,7 @@ public class Example {
          * It is recommend to create `PreparsedDocumentProvider` by implementing {@link CalculatorDocumentCachedProvider}.
          */
 
-        Config wrapperConfig = ConfigImpl.newConfig()
-                .scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance())
-                .objectMapper(new DefaultObjectMapper())
-                .threadPool(Executors.newCachedThreadPool())
-                .build();
+        Config wrapperConfig = DefaultConfig.newConfig().build();
 
         DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
         GraphQLSource graphqlSource = graphqlSourceBuilder

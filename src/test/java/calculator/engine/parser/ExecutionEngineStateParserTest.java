@@ -19,7 +19,7 @@ package calculator.engine.parser;
 
 
 import calculator.config.Config;
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.ExecutionEngineState;
 import calculator.engine.ExecutionEngineStateParser;
 import calculator.util.GraphQLSourceHolder;
@@ -38,7 +38,7 @@ import java.util.Collections;
 public class ExecutionEngineStateParserTest {
 
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
-    private static final Config wrapperConfig = ConfigImpl.newConfig().build();
+    private static final Config wrapperConfig = DefaultConfig.newConfig().build();
     private static final GraphQLSchema wrappedSchema = SchemaWrapper.wrap(wrapperConfig, originalSchema);
 
     @Test

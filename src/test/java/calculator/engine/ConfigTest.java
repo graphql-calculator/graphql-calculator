@@ -17,7 +17,7 @@
 
 package calculator.engine;
 
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.script.AviatorScriptEvaluator;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
@@ -38,7 +38,7 @@ public class ConfigTest {
         DefaultObjectMapper objectMapper = new DefaultObjectMapper();
         AviatorScriptEvaluator scriptEvaluator = new AviatorScriptEvaluator();
 
-        ConfigImpl config = ConfigImpl.newConfig()
+        DefaultConfig config = DefaultConfig.newConfig()
                 .threadPool(executorService)
                 .objectMapper(objectMapper)
                 .scriptEvaluator(scriptEvaluator)

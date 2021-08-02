@@ -18,7 +18,7 @@
 package calculator.engine.directive;
 
 import calculator.config.Config;
-import calculator.config.ConfigImpl;
+import calculator.config.DefaultConfig;
 import calculator.engine.service.ConsumerServiceClient;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
@@ -47,7 +47,7 @@ import static calculator.util.TestUtil.listsWithSameElements;
 public class ArgumentTransformTest {
 
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
-    private static final Config wrapperConfig = ConfigImpl.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
+    private static final Config wrapperConfig = DefaultConfig.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
     static {
         AviatorScriptEvaluator.getDefaultInstance().addFunction(new ListContain());
@@ -282,7 +282,7 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), ConfigImpl.newConfig().build());
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), DefaultConfig.newConfig().build());
         assert !validateResult.isFailure();
 
         HashMap<String, Object> variables = new LinkedHashMap<>();

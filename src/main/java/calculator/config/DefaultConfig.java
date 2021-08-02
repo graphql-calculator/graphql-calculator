@@ -30,7 +30,7 @@ import java.util.concurrent.ForkJoinPool;
  * The default implementation of {@link Config}.
  */
 @PublicApi
-public class ConfigImpl implements Config {
+public class DefaultConfig implements Config {
 
     private final Executor threadPool;
 
@@ -44,9 +44,9 @@ public class ConfigImpl implements Config {
 
     private static final AviatorScriptEvaluator DEFAULT_EVALUATOR = new AviatorScriptEvaluator();
 
-    private ConfigImpl(Executor threadPool,
-                       ObjectMapper objectMapper,
-                       ScriptEvaluator scriptEvaluator) {
+    private DefaultConfig(Executor threadPool,
+                          ObjectMapper objectMapper,
+                          ScriptEvaluator scriptEvaluator) {
         this.threadPool = threadPool != null ? threadPool : DEFAULT_EXECUTOR;
         this.objectMapper = objectMapper != null ? objectMapper : DEFAULT_MAPPER;
         this.scriptEvaluator = scriptEvaluator != null ? scriptEvaluator : DEFAULT_EVALUATOR;
@@ -97,8 +97,8 @@ public class ConfigImpl implements Config {
             return this;
         }
 
-        public ConfigImpl build() {
-            return new ConfigImpl(threadPool, objectMapper, scriptEvaluator);
+        public DefaultConfig build() {
+            return new DefaultConfig(threadPool, objectMapper, scriptEvaluator);
         }
     }
 }
