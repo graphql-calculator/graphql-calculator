@@ -158,6 +158,12 @@ public class GraphQLUtil {
         return result;
     }
 
+    /**
+     * Determine whether the field is leaf field.
+     *
+     * @param fieldDefinition fieldDefinition
+     * @return true if the field is leaf field
+     */
     public static boolean isLeafField(GraphQLFieldDefinition fieldDefinition) {
         GraphQLOutputType type = fieldDefinition.getType();
         GraphQLUnmodifiedType unwrapAllType = GraphQLTypeUtil.unwrapAll(type);

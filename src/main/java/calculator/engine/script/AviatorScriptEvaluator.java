@@ -16,12 +16,15 @@
  */
 package calculator.engine.script;
 
+import calculator.engine.annotation.PublicApi;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
 
 import java.util.List;
 import java.util.Map;
 
+
+@PublicApi
 public class AviatorScriptEvaluator implements ScriptEvaluator {
 
     private static final AviatorScriptEvaluator DEFAULT_INSTANCE = new AviatorScriptEvaluator();

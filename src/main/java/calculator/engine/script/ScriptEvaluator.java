@@ -17,15 +17,37 @@
 
 package calculator.engine.script;
 
+import calculator.engine.annotation.PublicApi;
+
 import java.util.List;
 import java.util.Map;
 
+@PublicApi
 public interface ScriptEvaluator {
 
+    /**
+     * Execute script with arguments.
+     *
+     * @param script    the expression
+     * @param arguments expression execution arguments
+     * @return the result of execution
+     */
     Object evaluate(String script, Map<String, Object> arguments);
 
+    /**
+     * Determine whether the script is valid.
+     *
+     * @param script script
+     * @return true if the script is valid
+     */
     boolean isValidScript(String script);
 
+    /**
+     * Return the variable names which the script used.
+     *
+     * @param script script
+     * @return variable names
+     */
     List<String> getScriptArgument(String script);
 
 }

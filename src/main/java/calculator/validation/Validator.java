@@ -76,7 +76,7 @@ public class Validator {
             return ParseAndValidateResult.newResult().validationErrors(nodeRule.getErrors()).build();
         }
 
-        // 是否有未使用的node节点
+        // 是否有未使用的source节点
         if (!nodeRule.getUnusedSource().isEmpty()) {
             String errorMsg = String.format(" unused fetch source: %s.", nodeRule.getUnusedSource().toString());
             ValidationError error = ValidationError.newValidationError().description(errorMsg).build();

@@ -82,7 +82,6 @@ public class ExecutionEngineStateParser implements QueryVisitor {
      * @param visitorEnv 请求变量
      * @param topTaskPathList  @fetchSource 注解的节点完成所依赖的顶层节点。
      * @param queryTaskPathList 顶层节点的父亲节点。这部分节点如果解析失败，则获取@fetchSource值的异步任务不会执行。
-     *                          todo 但是获取这些异步任务有不依赖这些顶层节点完成——开始就可以，注意怎么判断。
      */
     private void parseFetchSourceInfo(String sourceName,
                                       boolean isAnnotatedNode,

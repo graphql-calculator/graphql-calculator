@@ -18,10 +18,12 @@ package calculator.config;
 
 
 import calculator.engine.ObjectMapper;
+import calculator.engine.annotation.PublicApi;
 import calculator.engine.script.ScriptEvaluator;
 
 import java.util.concurrent.Executor;
 
+@PublicApi
 public interface Config {
 
     /**

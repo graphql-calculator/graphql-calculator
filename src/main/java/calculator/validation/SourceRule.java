@@ -17,6 +17,7 @@
 package calculator.validation;
 
 import calculator.common.CommonUtil;
+import calculator.engine.annotation.Internal;
 import calculator.engine.script.ScriptEvaluator;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
@@ -48,6 +49,7 @@ import static java.lang.String.format;
  * Check whether the usage of @fetchSource on field is correct.
  *
  */
+@Internal
 public class SourceRule extends AbstractRule {
 
     private final List<String> variableNames;

@@ -41,7 +41,12 @@ import static calculator.common.GraphQLUtil.PATH_SEPARATOR;
 @Internal
 public class CommonUtil {
 
-
+    /**
+     * Get the dependency source name list.
+     *
+     * @param directive the directive which may use dependency source
+     * @return the dependency source name list
+     */
     public static List<String> getDependenceSourceFromDirective(Directive directive) {
         Object dependencySources = getArgumentFromDirective(directive, "dependencySources");
         if (dependencySources instanceof String) {
@@ -52,6 +57,12 @@ public class CommonUtil {
     }
 
 
+    /**
+     * Get the dependency source name list.
+     *
+     * @param value the argument value
+     * @return the dependency source name list
+     */
     public static List<String> getDependencySources(Value value) {
         if (value instanceof StringValue) {
             return Collections.singletonList(((StringValue) value).getValue());
