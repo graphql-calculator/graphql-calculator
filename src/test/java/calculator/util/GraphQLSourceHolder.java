@@ -160,7 +160,7 @@ public class GraphQLSourceHolder {
 
         Map<String, DataFetcher> couponFieldFetchers = new HashMap<>();
         couponFieldFetchers.put("coupon", async(couponDataFetcher));
-        commodityFieldFetchers.put("couponList", async(couponListDataFetcher));
+        couponFieldFetchers.put("couponList", async(couponListDataFetcher));
         dataFetcherInfo.put("Marketing", couponFieldFetchers);
 
         Map<String, DataFetcher> toolInfoFieldFetchers = new HashMap<>();

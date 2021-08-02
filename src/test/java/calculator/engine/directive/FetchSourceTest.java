@@ -98,4 +98,36 @@ public class FetchSourceTest {
         Map<String, Map<String, Object>> data = executionResult.getData();
         assert Objects.equals(data.get("commodity").get("item").toString(), "{itemId=1, userId=null, userIdInUserInfo=null}");
     }
+
+    @Test
+    public void sourceInList_case01() {
+        String query = "" +
+                "query sourceInList_case01{\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: [1,2,3]){\n" +
+                "            sellerId @fetchSource(name: \"sellerIdList\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "    \n" +
+                "    consumer{\n" +
+                "        userInfoList(userIds: 1)\n" +
+                "        @argumentTransform(argumentName: \"userIds\",operateType: MAP,expression: \"sellerIdList\",dependencySources: [\"sellerIdList\"])\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            name\n" +
+                "            age\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(
+                data.get("consumer").get("userInfoList").toString(),
+                "[{userId=2, name=2_name, age=20}, {userId=3, name=3_name, age=30}, {userId=4, name=4_name, age=40}]"
+        );
+    }
 }

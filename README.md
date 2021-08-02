@@ -21,7 +21,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.0.10</version>
+    <version>1.0.11</version>
 </dependency>
 ```
 
@@ -162,6 +162,34 @@ enum ParamTransformType{
 #### 数据编排
 
 数据编排的主要形式为请求a字段时、其请求参数为b字段的结果，或者需要b字段结果对a字段请求参数进行过滤、转换处理。
+
+- 获取商品信息，并通过商品列表中的sellerId获取卖家信息
+```graphql
+query sourceInList_case01($itemIds:[Int]){
+    commodity{
+        itemList(itemIds: $itemIds){
+            # 保存商品的卖家id，结果为 List<Integer>
+            sellerId @fetchSource(name: "sellerIdList")
+            name
+            saleAmount
+            salePrice
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds", # 对参数 userIds 进行转换
+                            operateType: MAP, # 操作类型为参数整体转换
+                            expression: "sellerIdList", # 表达式表示使用表达式变量 sellerIdList 对参数作整体替换
+                            dependencySources: ["sellerIdList"] # 依赖了全局变量 sellerIdList
+        ){
+            userId
+            name
+            age
+        }
+    }
+}
+```
 
 - 变量只有券id、查询该券绑定的商品详情。
 ```graphql

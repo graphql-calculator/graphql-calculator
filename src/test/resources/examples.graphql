@@ -16,6 +16,32 @@ enum ParamTransformType{
 }
 
 
+query sourceInList_case01($itemIds:[Int]){
+    commodity{
+        itemList(itemIds: $itemIds){
+            # 保存商品的卖家id，结果为 List<Integer>
+            sellerId @fetchSource(name: "sellerIdList")
+            name
+            saleAmount
+            salePrice
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds", # 对参数 userIds 进行转换
+            operateType: MAP, # 操作类型为参数整体转换
+            expression: "sellerIdList", # 表达式表示使用表达式变量 sellerIdList 对参数作整体替换
+            dependencySources: ["sellerIdList"] # 依赖了全局变量 sellerIdList
+        ){
+            userId
+            name
+            age
+        }
+    }
+}
+
+
 query simpleIncludeBy_case01($userId:Int){
     consumer{
         userInfo(userId: $userId){
