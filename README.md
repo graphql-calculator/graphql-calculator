@@ -12,7 +12,7 @@ Based on [directive](https://spec.graphql.org/draft/#sec-Language.Directives), g
 
 # Features
 
-- data orchestration: mark field fetched value with @fetchSource,then you could acquire the fetchedValue by argument `dependencySources` in directives.
+- data orchestration: mark field fetched value with @fetchSource,then you could acquire the fetchedValue by argument `dependencySources` in directives;
 - script calculation: according script, 
 filter list result, sort list field result；generate new field value by script with parent source and fetchSource;
 - control flow, `@skipBy` and `@includeBy`: the extended version of `@skip`和`@include`, skip/include field fetch by script with taking query variable as script argument;
@@ -20,6 +20,7 @@ filter list result, sort list field result；generate new field value by script 
 
 
 # Getting Started
+
 
 #### 1. Adding Dependency
 
@@ -48,6 +49,7 @@ Validate the query with calculator directive by `Validator`, which including gra
 
 It is recommend to create `PreparsedDocumentProvider` by implementing {@link CalculatorDocumentCachedProvider}
 
+*More details in [`Example.java`](/src/test/java/calculator/example/Example.java) and [examples.graphql](/src/test/resources/examples.graphql)*
 
 ## License
 
