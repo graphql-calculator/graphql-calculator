@@ -71,6 +71,9 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static calculator.graphql.AsyncDataFetcher.async;
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.nullsFirst;
+import static java.util.Comparator.nullsLast;
 import static java.util.stream.Collectors.toList;
 
 @Internal
@@ -799,13 +802,15 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
-        Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
-            if (calMap == null) {
-                return null;
-            }
-            return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
-        });
+        Comparator<Object> comparator = Comparator.comparing(
+                ele -> {
+                    Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+                    if (calMap == null) {
+                        return null;
+                    }
+                    return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
+                }, nullsLast(naturalOrder())
+        );
 
         if (reversed) {
             comparator = comparator.reversed();
@@ -817,14 +822,17 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private void sortByCollectionData(Object listOrArray,
                                       String comparatorExpression,
                                       Boolean reversed) {
-        Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> scriptEnv = new LinkedHashMap<>();
-            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
-            if (calMap != null) {
-                scriptEnv.putAll(calMap);
-            }
-            return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
-        });
+
+        Comparator<Object> comparator = Comparator.comparing(
+                ele -> {
+                    Map<String, Object> scriptEnv = new LinkedHashMap<>();
+                    Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+                    if (calMap != null) {
+                        scriptEnv.putAll(calMap);
+                    }
+                    return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
+                }, nullsLast(naturalOrder())
+        );
 
         if (reversed) {
             comparator = comparator.reversed();

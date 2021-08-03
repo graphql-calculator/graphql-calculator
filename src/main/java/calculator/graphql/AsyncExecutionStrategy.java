@@ -20,6 +20,9 @@ package calculator.graphql;
 import calculator.engine.annotation.Internal;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
+import graphql.GraphQLError;
+import graphql.GraphQLException;
+import graphql.execution.AbortExecutionException;
 import graphql.execution.AbstractAsyncExecutionStrategy;
 import graphql.execution.Async;
 import graphql.execution.DataFetcherExceptionHandler;
@@ -42,6 +45,7 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldComplete
 import graphql.util.FpKit;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -187,8 +191,9 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
             overallResult.complete(executionResult);
         }).whenComplete((ignored, exception) -> {
             if (exception != null) {
-                ExecutionResult executionResult = handleNonNullException(executionContext, overallResult, exception);
-                completeListCtx.onCompleted(executionResult, exception);
+                AbortExecutionException graphQLException = new AbortExecutionException(exception.getMessage());
+                ExecutionResultImpl resultx = new ExecutionResultImpl(null, Collections.singletonList(graphQLException));
+                overallResult.complete(resultx);
             }
         });
 
