@@ -71,6 +71,7 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static calculator.graphql.AsyncDataFetcher.async;
+import static java.util.Comparator.nullsLast;
 import static java.util.stream.Collectors.toList;
 
 @Internal
@@ -799,17 +800,24 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {
-        Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
-            if (calMap == null) {
-                return null;
-            }
-            return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
-        });
-
-        if (reversed) {
-            comparator = comparator.reversed();
-        }
+        Comparator<Object> comparator = Comparator.comparing(
+                ele -> {
+                    Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+                    if (calMap == null) {
+                        return null;
+                    }
+                    return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
+                },
+                // always nullLast
+                nullsLast((v1, v2) -> {
+                            if (reversed) {
+                                return v2.compareTo(v1);
+                            } else {
+                                return v1.compareTo(v2);
+                            }
+                        }
+                )
+        );
 
         CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
@@ -817,18 +825,26 @@ public class ExecutionEngine extends SimpleInstrumentation {
     private void sortByCollectionData(Object listOrArray,
                                       String comparatorExpression,
                                       Boolean reversed) {
-        Comparator<Object> comparator = Comparator.comparing(ele -> {
-            Map<String, Object> scriptEnv = new LinkedHashMap<>();
-            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
-            if (calMap != null) {
-                scriptEnv.putAll(calMap);
-            }
-            return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
-        });
 
-        if (reversed) {
-            comparator = comparator.reversed();
-        }
+        Comparator<Object> comparator = Comparator.comparing(
+                ele -> {
+                    Map<String, Object> scriptEnv = new LinkedHashMap<>();
+                    Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+                    if (calMap != null) {
+                        scriptEnv.putAll(calMap);
+                    }
+                    return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
+                },
+                // always nullLast
+                nullsLast((v1, v2) -> {
+                            if (reversed) {
+                                return v2.compareTo(v1);
+                            } else {
+                                return v1.compareTo(v2);
+                            }
+                        }
+                )
+        );
 
         CollectionUtil.sortListOrArray(listOrArray, comparator);
     }

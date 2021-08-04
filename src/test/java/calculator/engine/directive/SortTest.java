@@ -25,11 +25,14 @@ import calculator.graphql.GraphQLSource;
 import calculator.util.GraphQLSourceHolder;
 import calculator.validation.Validator;
 import com.googlecode.aviator.AviatorEvaluator;
+import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ParseAndValidateResult;
 import graphql.schema.DataFetcher;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -245,6 +248,120 @@ public class SortTest {
         assert Objects.equals(
                 data.get("marketing").get("coupon").toString(),
                 "{bindingItemIds=[1, 3, 5, 7, 9, 2, 4, 6, 8, 10]}"
+        );
+    }
+
+    @Test
+    public void sortItemBySaleAmount() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        AviatorEvaluator.addFunction(new ListContain());
+
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                dataFetcherInfoMap,
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+        );
+
+        String query = "" +
+                "query sortItemListBySaleAmount($itemIdList:[Int]){\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIdList)\n" +
+                "        @sortBy(comparator: \"saleAmount\",reversed: true)\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "            saleAmount\n" +
+                "        }\n" +
+                "        \n" +
+                "        originalItemList: itemList(itemIds: $itemIdList){\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "            saleAmount\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        ExecutionInput input = ExecutionInput.newExecutionInput(query)
+                .variables(Collections.singletonMap("itemIdList", Arrays.asList(2, 1, 3, 4, 5)))
+                .build();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("commodity").get("itemList").toString(),
+                "[{itemId=5, name=item_name_5, saleAmount=53}, {itemId=4, name=item_name_4, saleAmount=43}," +
+                        " {itemId=3, name=item_name_3, saleAmount=33}, {itemId=2, name=item_name_2, saleAmount=23}, " +
+                        "{itemId=1, name=item_name_1, saleAmount=13}]"
+        );
+
+        assert Objects.equals(data.get("commodity").get("originalItemList").toString(),
+                "[{itemId=2, name=item_name_2, saleAmount=23}, {itemId=1, name=item_name_1, saleAmount=13}, " +
+                        "{itemId=3, name=item_name_3, saleAmount=33}, {itemId=4, name=item_name_4, saleAmount=43}, " +
+                        "{itemId=5, name=item_name_5, saleAmount=53}]"
+        );
+    }
+
+    @Test
+    public void sortItemBySaleAmountWithNullComparator() {
+        Map<String, Map<String, DataFetcher>> dataFetcherInfoMap = GraphQLSourceHolder.defaultDataFetcherInfo();
+        AviatorEvaluator.addFunction(new ListContain());
+
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                dataFetcherInfoMap,
+                DefaultConfig.newConfig().scriptEvaluator(new AviatorScriptEvaluator()).build()
+        );
+
+        String query = "" +
+                "query sortItemListBySaleAmount($itemIdList:[Int]){\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIdList)\n" +
+                "        @sortBy(comparator: \"saleAmount==33?nil:saleAmount\",reversed: true)\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "            saleAmount\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+        ExecutionInput input = ExecutionInput.newExecutionInput(query)
+                .variables(Collections.singletonMap("itemIdList", Arrays.asList(2, 1, 3)))
+                .build();
+
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(data.get("commodity").get("itemList").toString(),
+                "[{itemId=2, name=item_name_2, saleAmount=23}, {itemId=1, name=item_name_1, saleAmount=13}, {itemId=3, name=item_name_3, saleAmount=33}]"
+        );
+
+        String notReversedQuery = "" +
+                "query sortItemListBySaleAmount($itemIdList:[Int]){\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIdList)\n" +
+                "        @sortBy(comparator: \"saleAmount==33?nil:saleAmount\")\n" +
+                "        {\n" +
+                "            itemId\n" +
+                "            name\n" +
+                "            saleAmount\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult notReversedValidateResult = Validator.validateQuery(notReversedQuery, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !notReversedValidateResult.isFailure();
+
+        ExecutionInput notReversedInput = ExecutionInput.newExecutionInput(notReversedQuery)
+                .variables(Collections.singletonMap("itemIdList", Arrays.asList(2, 1, 3)))
+                .build();
+        ExecutionResult notReversedResult = graphQLSource.getGraphQL().execute(notReversedInput);
+        Map<String, Map<String, Object>> notReversedData = notReversedResult.getData();
+
+        System.out.println(notReversedData.get("commodity").get("itemList").toString());
+        assert Objects.equals(notReversedData.get("commodity").get("itemList").toString(),
+                "[{itemId=1, name=item_name_1, saleAmount=13}, {itemId=2, name=item_name_2, saleAmount=23}, {itemId=3, name=item_name_3, saleAmount=33}]"
         );
     }
 

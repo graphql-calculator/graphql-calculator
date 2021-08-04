@@ -28,15 +28,6 @@ public class CommodityServiceClient {
 
         private int sellerId;
 
-        public ItemBaseInfo(int itemId, int sellerId, String name, int salePrice, int stockAmount, boolean onSale) {
-            this.itemId = itemId;
-            this.sellerId = sellerId;
-            this.name = name;
-            this.salePrice = salePrice;
-            this.stockAmount = stockAmount;
-            this.onSale = onSale;
-        }
-
         private String name;
 
         private int salePrice;
@@ -45,6 +36,25 @@ public class CommodityServiceClient {
 
         private boolean onSale;
 
+        private int saleAmount;
+
+        public ItemBaseInfo(int itemId, int sellerId, String name, int salePrice, int stockAmount, boolean onSale, int saleAmount) {
+            this.itemId = itemId;
+            this.sellerId = sellerId;
+            this.name = name;
+            this.salePrice = salePrice;
+            this.stockAmount = stockAmount;
+            this.onSale = onSale;
+            this.saleAmount = saleAmount;
+        }
+
+        public int getSaleAmount() {
+            return saleAmount;
+        }
+
+        public void setSaleAmount(int saleAmount) {
+            this.saleAmount = saleAmount;
+        }
 
         public int getItemId() {
             return itemId;
@@ -103,7 +113,8 @@ public class CommodityServiceClient {
                 "item_name_" + itemId.intValue(),
                 itemId.intValue() * 10 + 1,
                 itemId.intValue() * 5 + 1,
-                itemId.intValue() % 3 != 0
+                itemId.intValue() % 3 != 0,
+                itemId.intValue() * 10 + 3
         );
     }
 

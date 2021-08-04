@@ -16,6 +16,25 @@ enum ParamTransformType{
 }
 
 
+query sortItemListBySaleAmount($itemIdList:[Int]){
+    commodity{
+        itemList(itemIds: $itemIdList)
+        @sortBy(comparator: "saleAmount",reversed: true)
+        {
+            itemId
+            name
+            saleAmount
+        }
+
+        originalItemList: itemList(itemIds: $itemIdList){
+            itemId
+            name
+            saleAmount
+        }
+    }
+}
+
+
 query filterUnSaleCommodity($ItemIds:[Int]){
     commodity{
         filteredItemList: itemList(itemIds: $ItemIds)
