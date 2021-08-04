@@ -72,7 +72,6 @@ public class CollectionUtil {
         } else {
             throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
         }
-        System.out.println(listOrArray);
     }
 
 

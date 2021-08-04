@@ -158,6 +158,7 @@ enum ParamTransformType{
 - reversed：是否进行逆序排序，默认为false。
 
 对列表进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
+不管reversed是否为true，表达式结果为null的元素总是排在列表最后。
 
 # 使用示例
 

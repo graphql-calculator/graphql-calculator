@@ -71,8 +71,6 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static calculator.graphql.AsyncDataFetcher.async;
-import static java.util.Comparator.naturalOrder;
-import static java.util.Comparator.nullsFirst;
 import static java.util.Comparator.nullsLast;
 import static java.util.stream.Collectors.toList;
 
@@ -809,12 +807,17 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         return null;
                     }
                     return ((Map<String, Comparable<Object>>) getScriptEnv(ele)).get(sortKey);
-                }, nullsLast(naturalOrder())
+                },
+                // always nullLast
+                nullsLast((v1, v2) -> {
+                            if (reversed) {
+                                return v2.compareTo(v1);
+                            } else {
+                                return v1.compareTo(v2);
+                            }
+                        }
+                )
         );
-
-        if (reversed) {
-            comparator = comparator.reversed();
-        }
 
         CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
@@ -831,12 +834,17 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         scriptEnv.putAll(calMap);
                     }
                     return (Comparable<Object>) scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
-                }, nullsLast(naturalOrder())
+                },
+                // always nullLast
+                nullsLast((v1, v2) -> {
+                            if (reversed) {
+                                return v2.compareTo(v1);
+                            } else {
+                                return v1.compareTo(v2);
+                            }
+                        }
+                )
         );
-
-        if (reversed) {
-            comparator = comparator.reversed();
-        }
 
         CollectionUtil.sortListOrArray(listOrArray, comparator);
     }
