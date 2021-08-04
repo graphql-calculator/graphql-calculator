@@ -22,7 +22,7 @@ type Query {
 # ---------------------------------------------------- c端用户 ------------------------------------------------------------------
 
 type Consumer{
-    userInfo(userId: Int):User
+    userInfo(userId: Int,clientVersion:String):User
     userInfoList(userIds: [Int]): [User]
     #  用户对于各种业务的新老客，参数格式为： redisKey_{userId}
     isNewUser(redisKey: String, userId: Int): NewUserInfo

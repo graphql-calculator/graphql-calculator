@@ -28,6 +28,8 @@ import graphql.schema.DataFetcher;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -141,6 +143,52 @@ public class SkipAndIncludeExtendTest {
         assert Objects.equals(
                 skipResult.getData().toString(),
                 "{consumer={userInfo={userId=2, name=null}}}"
+        );
+    }
+
+    @Test
+    public void queryMoreDetail_case01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query queryMoreDetail_case01($userId:Int,$clientVersion:String){\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId,clientVersion: $clientVersion){\n" +
+                "            userId\n" +
+                "            age\n" +
+                "            name\n" +
+                "            email @includeBy(predicate: \"clientVersion == 'v2'\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String,Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 1);
+        variable.put("clientVersion","v2");
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+        assert Objects.equals(
+                executionResult.getData().toString(),
+                "{consumer={userInfo={userId=1, age=10, name=1_name, email=1dugk@foxmail.com}}}"
+        );
+
+
+        ExecutionInput transform = input.transform(inputBuilder -> {
+            variable.put("clientVersion", "v1");
+            inputBuilder.variables(variable);
+        });
+
+        ExecutionResult skipResult = graphQLSource.getGraphQL().execute(transform);
+        assert skipResult.getErrors().isEmpty();
+        assert Objects.equals(
+                skipResult.getData().toString(),
+                "{consumer={userInfo={userId=1, age=10, name=1_name, email=null}}}"
         );
     }
 }
