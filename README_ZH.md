@@ -26,7 +26,7 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.1</version>
+    <version>${version}</version>
 </dependency>
 ```
 最新版本见 [Maven仓库](https://mvnrepository.com/artifact/com.graphql-java-calculator/graphql-java-calculator)。

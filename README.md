@@ -27,7 +27,7 @@ filter list result, sort list field result；generate new field value by script 
 latest version [Maven repository](https://mvnrepository.com/artifact/com.graphql-java-calculator/graphql-java-calculator)。
 
 ```
-implementation group: 'com.graphql-java-calculator', name: 'graphql-java-calculator', version: '1.1'
+implementation group: 'com.graphql-java-calculator', name: 'graphql-java-calculator', version: ${version}
 ```
 
 #### 2. Wrap GraphQL Engine
