@@ -16,6 +16,22 @@ enum ParamTransformType{
 }
 
 
+query queryMoreDetail_case01($userId:Int,$clientVersion:String){
+    consumer{
+        userInfo(
+            userId: $userId,
+            # 受限于graphql原生语法校验，变量必须被明确的作为参数使用
+            clientVersion: $clientVersion){
+            userId
+            age
+            name
+            # 只在v2版本的客户端中展示
+            email @includeBy(predicate: "clientVersion == 'v2'")
+        }
+    }
+}
+
+
 query sortItemListBySaleAmount($itemIdList:[Int]){
     commodity{
         itemList(itemIds: $itemIdList)
