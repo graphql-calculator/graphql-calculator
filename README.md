@@ -393,10 +393,8 @@ query filter_case01{
 }
 ```
 
-# 联系反馈
+# 交流反馈
 
-欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对使用中遇到的bug、设计问题或者期待的新特性进行讨论。
+欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对组件问题或期待的新特性进行讨论。
 
-也可通过以下方式联系作者：
-- qq群: 302490951
-- 作者邮箱：dugk@foxmail.com
+作者介绍：开源组件graphql-java活跃contributor，主要参与了 15、16 版本的指令能力升级和语法校验，GraphQL 协议 contributor。
