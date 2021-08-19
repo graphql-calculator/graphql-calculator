@@ -47,7 +47,6 @@ import graphql.schema.DataFetchingEnvironmentImpl;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -496,7 +495,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             // new Map, do not alter original Map info.
-            HashMap<String, Object> expEnv = new HashMap<>();
+            Map<String, Object> expEnv = new LinkedHashMap<>();
             Object sourceInfo = getScriptEnv(environment.getSource());
             if (sourceInfo != null) {
                 expEnv.putAll((Map) sourceInfo);
@@ -545,14 +544,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
 
                 argument = argument.stream().filter(ele -> {
-                            HashMap<String, Object> env = new HashMap<>(environment.getArguments());
-                            env.put("ele", ele);
-                            env.putAll(sourceEnv);
-                            return (Boolean) scriptEvaluator.evaluate(expression, env);
+                            Map<String, Object> filterEnv = new LinkedHashMap<>(environment.getVariables());
+                            filterEnv.put("ele", ele);
+                            filterEnv.putAll(sourceEnv);
+                            return (Boolean) scriptEvaluator.evaluate(expression, filterEnv);
                         }
                 ).collect(toList());
 
-                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                Map<String, Object> newArguments = new LinkedHashMap<>(environment.getArguments());
                 newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
@@ -571,13 +570,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 }
 
                 argument = argument.stream().map(ele -> {
-                    Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
+                    Map<String, Object> transformEnv = new LinkedHashMap<>(environment.getVariables());
                     transformEnv.put("ele", ele);
                     transformEnv.putAll(sourceEnv);
                     return scriptEvaluator.evaluate(expression, transformEnv);
                 }).collect(toList());
 
-                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                Map<String, Object> newArguments = new LinkedHashMap<>(environment.getArguments());
                 newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
@@ -592,11 +591,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
             // map argument by expression
             if (Objects.equals(operateType, Directives.ParamTransformType.MAP.name())) {
 
-                Map<String, Object> transformEnv = new HashMap<>(environment.getArguments());
+                Map<String, Object> transformEnv = new LinkedHashMap<>(environment.getVariables());
                 transformEnv.putAll(sourceEnv);
                 Object newParam = scriptEvaluator.evaluate(expression, transformEnv);
 
-                Map<String, Object> newArguments = new HashMap<>(environment.getArguments());
+                Map<String, Object> newArguments = new LinkedHashMap<>(environment.getArguments());
                 newArguments.put(argumentName, newParam);
 
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl

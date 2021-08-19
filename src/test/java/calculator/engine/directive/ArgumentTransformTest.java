@@ -271,9 +271,9 @@ public class ArgumentTransformTest {
         String query = "" +
                 "query userNewInfo($userId: Int){\n" +
                 "    consumer{\n" +
-                "        isNewUser(redisKey: \"fashion:shoes:\",userId: $userId)\n" +
+                "        isNewUser(redisKey: \"\",userId: $userId)\n" +
                 "        # 将参数拼接为 redis 的key，fashion:shoes:{userId}\n" +
-                "        @argumentTransform(argumentName: \"redisKey\",operateType: MAP ,expression: \"redisKey + str(userId)\")\n" +
+                "        @argumentTransform(argumentName: \"redisKey\",operateType: MAP ,expression: \"'fashion:shoes:' + str(userId)\")\n" +
                 "        {\n" +
                 "            userId\n" +
                 "            isNewUser\n" +
@@ -297,6 +297,49 @@ public class ArgumentTransformTest {
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
         Map<String, Map<String, Map<String, Object>>> data = executionResult.getData();
         assert Objects.equals(data.get("consumer").get("isNewUser").toString(), "{userId=2, isNewUser=true, sceneKey=fashion_shoes}");
+    }
+
+
+    @Test
+    public void parseArgumentFromVariableSimpleCase_01() {
+        String query = "" +
+                "query parseArgumentFromVariableSimpleCase_01($userIds:[Int]){\n" +
+                "    consumer{\n" +
+                "        userInfoList(userIds: $userIds){\n" +
+                "            userId\n" +
+                "            age\n" +
+                "            name\n" +
+                "        }\n" +
+                "        \n" +
+                "        # get argument from variable, 'testUserInfoList' haven't use any variable\n" +
+                "        testUserInfoList: userInfoList(userIds: 1)\n" +
+                "        @argumentTransform(argumentName: \"userIds\",operateType: MAP,expression: \"userIds\")\n" +
+                "        {\n" +
+                "            userId   \n" +
+                "            age\n" +
+                "            name\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("userIds", Arrays.asList(1, 2, 3));
+        ExecutionInput skipInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(skipInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfoList").toString().toString(),
+                data.get("consumer").get("testUserInfoList").toString()
+        );
     }
 
 }

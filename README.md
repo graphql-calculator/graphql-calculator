@@ -130,7 +130,7 @@ enum ParamTransformType{
 参数解释：
 - argumentName：该指令进行转换的参数名称；
 - operateType：操作类型，包括参数整体转换MAP、列表参数过滤FILTER、列表参数元素转换LIST_MAP三种；
-- expression：计算新值、或者对参数进行过滤的表达式；
+- expression：计算新值、或者对参数进行过滤的表达式，表达式参数为请求变量和source，如果存在同名key则source覆盖请求变量；
 - dependencySources：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
 
 对字段参数进行转换、过滤，具体操作有如下三种：
