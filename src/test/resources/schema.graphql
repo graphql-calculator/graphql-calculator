@@ -1,4 +1,6 @@
-# https://www.zhihu.com/question/26679255/answer/1187193899
+## like Any in protobuf
+#scalar Any
+
 type Query {
     # c端 用户
     consumer: Consumer
@@ -16,6 +18,8 @@ type Query {
     # management: Management
 
     toolInfo: ToolInfo
+
+#    variableBlackhole(anyArgument: Any, anyArrayArgument: [Any]): Blackhole
 }
 
 
@@ -118,4 +122,9 @@ type ToolInfo{
     # 用户进行ab实验 abKey 时命中的实验落点
     abInfo(userId: Int, abKey: String): Int
 }
+
+
+#type Blackhole {
+#    ignored: String
+#}
 

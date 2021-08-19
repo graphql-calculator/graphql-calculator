@@ -1,5 +1,5 @@
-# 指令定义
 
+# 指令定义
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
 directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD
 directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
@@ -9,12 +9,55 @@ directive @sort(key: String!,reversed: Boolean = false) on FIELD
 directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
 directive @map(mapper:String!, dependencySources:[String!]) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:[String!]) on FIELD
+
+#directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) repeatable on FIELD
 enum ParamTransformType{
     MAP
     FILTER
     LIST_MAP
 }
 
+
+query parseArgumentFromVariableSimpleCase_01($userIds:[Int]){
+    consumer{
+        userInfoList(userIds: $userIds){
+            userId
+            age
+            name
+        }
+
+        # get argument from variable, 'testUserInfoList' haven't use any variable
+        testUserInfoList: userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "userIds")
+        {
+            userId
+            age
+            name
+        }
+    }
+}
+
+
+#
+# 假设存在如下查询：刚开始只查询了 someInfo 字段，后续查询commodity字段的时候，
+#               希望从之前的请求变量userIdAnditemIdPair解析参数，而非调用方在硬编码添加参数
+#
+#query parseArgumentFromVariable_case01($userIdAnditemIdPair:Any){
+#
+#    someInfo: variableBlackhole(anyArgument: $userIdAnditemIdPair){
+#        ignored
+#    }
+#
+#    commodity{
+#        itemList(itemIds: 1)
+#        @argumentTransform(argumentName: "itemIds",operateType: MAP,expression: "mapValues(userIdAnditemIdPair)")
+#        {
+#            itemId
+#            name
+#            salePrice
+#        }
+#    }
+#}
 
 query queryMoreDetail_case01($userId:Int,$clientVersion:String){
     consumer{
@@ -217,9 +260,9 @@ query sortCase_01{
 # 参数拼接
 query userNewInfo($userId: Int){
     consumer{
-        isNewUser(redisKey: "fashion:shoes:",userId: $userId)
+        isNewUser(redisKey: "",userId: $userId)
         # 将参数拼接为 redis 的key，fashion:shoes:{userId}
-        @argumentTransform(argumentName: "redisKey",operateType: MAP ,expression: "concat(redisKey,userId)")
+        @argumentTransform(argumentName: "redisKey",operateType: MAP ,expression: "'fashion:shoes:' + str(userId)")
         {
             userId
             isNewUser

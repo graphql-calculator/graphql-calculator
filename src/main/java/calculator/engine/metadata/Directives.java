@@ -208,7 +208,7 @@ public class Directives {
                             .description("filter the argument element by expression.").build()
             ).build();
 
-    // directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) on FIELD
+    // directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) repeatable on FIELD
     public final static GraphQLDirective ARGUMENT_TRANSFORM = GraphQLDirective.newDirective()
             .name("argumentTransform")
             .description("transform the argument by expression.")
