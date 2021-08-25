@@ -6,15 +6,51 @@ directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
 directive @mock(value: String!) on FIELD
 directive @filter(predicate: String!) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
+directive @distinct(comparator:String) on FIELD
 directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
 directive @map(mapper:String!, dependencySources:[String!]) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:[String!]) on FIELD
-
 #directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) repeatable on FIELD
 enum ParamTransformType{
     MAP
     FILTER
     LIST_MAP
+}
+
+
+query distinctSimpleCase_notSetComparator($userIds:[Int]){
+    consumer{
+        distinctUserInfoList: userInfoList(userIds: $userIds)
+        @distinct
+        {
+            userId
+            age
+        }
+
+        userInfoList(userIds: $userIds)
+        {
+            userId
+            age
+        }
+    }
+}
+
+
+query distinctSimpleCase_01($userIds:[Int]){
+    consumer{
+        distinctUserInfoList: userInfoList(userIds: $userIds)
+        @distinct(comparator: "age")
+        {
+            userId
+            age
+        }
+
+        userInfoList(userIds: $userIds)
+        {
+            userId
+            age
+        }
+    }
 }
 
 
