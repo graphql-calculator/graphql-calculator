@@ -1,4 +1,47 @@
 
+
+
+
+query validateDistinct_notdefineOnList{
+    consumer{
+        userInfo
+        @distinct(comparator: "userId")
+        {
+            userId
+        }
+    }
+}
+
+query validateDistinct_argumentNotExist{
+    consumer{
+        userInfoList
+        @distinct(comparator: "age")
+        {
+            userId
+        }
+    }
+}
+
+query validateDistinct_determineByEqual{
+    consumer{
+        userInfoList
+        @distinct
+        {
+            userId
+        }
+    }
+}
+
+query validateDistinct_defineOnLeaftField{
+    marketing{
+        coupon{
+            couponId
+            bindingItemIds @distinct
+        }
+    }
+}
+
+
 query validateNodeNameNotSameWithVariable($userId: Int){
     consumer{
         userInfo(userId: $userId)

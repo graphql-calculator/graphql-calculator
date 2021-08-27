@@ -23,7 +23,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -78,15 +81,36 @@ public class CollectionUtil {
     /**
      * Just keep the element that satisfy the given predicate.
      *
-     * @param listOrArray the list to be filtered
+     * @param collection the list to be filtered
      * @param willKeep    a predicate which returns {@code true} for elements to be keep
      */
-    public static void filterListOrArray(Object listOrArray, Predicate<Object> willKeep) {
-        if (listOrArray instanceof Collection) {
-            ((Collection) listOrArray).removeIf(ele -> !willKeep.test(ele));
+    public static void filterCollection(Collection collection, Predicate<Object> willKeep) {
+        if (collection instanceof Collection) {
+            collection.removeIf(ele -> !willKeep.test(ele));
         } else {
-            throw new IllegalArgumentException("Unsupported object type: " + listOrArray.getClass().getName());
+            throw new IllegalArgumentException("Unsupported object type: " + collection.getClass().getName());
         }
+    }
+
+    /**
+     * Distinct the list by comparator.
+     *
+     * @param collection        the list will be handled
+     * @param comparator        the function to determine whether the element is equal
+     */
+    public static void distinctCollection(Collection collection, Function<Object, Integer> comparator) {
+        if (collection == null) {
+            return;
+        }
+
+        Map<Integer, Object> resultValue = new LinkedHashMap(collection.size());
+        for (Object element : collection) {
+            Integer comparatorValue = comparator.apply(element);
+            resultValue.putIfAbsent(comparatorValue, element);
+        }
+
+        collection.clear();
+        collection.addAll(resultValue.values());
     }
 
 

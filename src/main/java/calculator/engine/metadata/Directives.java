@@ -101,6 +101,17 @@ public class Directives {
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
             .build();
 
+    public final static GraphQLDirective DISTINCT = GraphQLDirective.newDirective()
+            .name("distinct")
+            .description("returns a list consisting of the distinct elements of the annotated list.")
+            .validLocation(FIELD)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("comparator")
+                    .description("determine whether the elements are equal, invoking 'Objects.equal' if comparator not set.")
+                    .type(GraphQLString))
+            .build();
+
 
     // directive @sort(key: String!,reversed: Boolean = false) on FIELD
     public final static GraphQLDirective SORT = GraphQLDirective.newDirective()
@@ -240,6 +251,7 @@ public class Directives {
         tmpMap.put(INCLUDE_BY.getName(), INCLUDE_BY);
         tmpMap.put(MOCK.getName(), MOCK);
         tmpMap.put(FILTER.getName(), FILTER);
+        tmpMap.put(DISTINCT.getName(), DISTINCT);
         tmpMap.put(SORT.getName(), SORT);
         tmpMap.put(SORT_BY.getName(), SORT_BY);
         tmpMap.put(MAP.getName(), MAP);

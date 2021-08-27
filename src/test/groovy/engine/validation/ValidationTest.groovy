@@ -789,6 +789,86 @@ class ValidationTest extends Specification {
     }
 
 
+    def "validateDistinct_notDefineOnList"() {
+        given:
+        def query = """
+                query validateDistinct_notdefineOnList{
+                    consumer{
+                        userInfo
+                        @distinct(comparator: "userId")
+                        {
+                            userId
+                        }
+                    }
+                }
+        """
 
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "@distinct must annotated on list type, instead of {consumer.userInfo}."
+    }
+
+    def "validateDistinct_argumentNotExist"() {
+        given:
+        def query = """
+                 query validateDistinct_argumentNotExist{
+                    consumer{
+                        userInfoList
+                        @distinct(comparator: "age")
+                        {
+                            userId
+                        }
+                    }
+                }
+        """
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        validateResult.errors[0].description == "non-exist argument 'age' for @distinct on {consumer.userInfoList}."
+    }
+
+    def "validateDistinct_defineOnLeafField"() {
+        given:
+        def query = """
+            query validateDistinct_defineOnLeafField{
+                marketing{
+                    coupon{
+                        couponId
+                        bindingItemIds @distinct
+                    }
+                }
+            }
+        """
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 0
+    }
+
+    def "validateDistinct_determineByEqual"() {
+        given:
+        def query = """
+            query validateDistinct_determineByEqual{
+                consumer{
+                    userInfoList
+                    @distinct
+                    {
+                        userId
+                    }
+                }
+            }
+        """
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 0
+    }
 
 }

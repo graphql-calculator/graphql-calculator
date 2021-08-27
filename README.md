@@ -8,6 +8,7 @@
 ----------------------------------------
 
 基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
+指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用。
 
 # 特性
 
@@ -148,6 +149,18 @@ enum ParamTransformType{
 - predicate：过滤判断表达式，结果为true的元素会被保留；
 
 对列表进行过滤，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
+
+
+#### **@distinct**
+
+`directive @distinct(comparator:String) on FIELD`
+
+参数解释：
+- comparator：使用该表达式计算元素的唯一key，唯一key相同的元素会被去重，对于有序列表保留第一个元素。
+comparator为可选参数，当未设置该参数时使用`System.identityHashCode(object)`判断元素是否为相同对象。
+
+对列表元素进行去重，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
+
 
 #### **@sortBy**
 
@@ -393,8 +406,28 @@ query filter_case01{
 }
 ```
 
+
+#### 列表去重
+
+根据年龄对用户列表进行去重，每个年龄只保留一个用户。
+```graphql
+query distinctUserInfoListByAge($userIds:[Int]){
+    consumer{
+        distinctUserInfoList: userInfoList(userIds: $userIds)
+        # 未设置comparator则使用`System.identityHashCode(userInfo)`判断元素是否为相同对象进行去重
+        @distinct(comparator: "age")
+        {
+            userId
+            name
+            age
+            email
+        }
+    }
+}
+```
+
 # 交流反馈
 
-欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对组件问题或期待的新特性进行讨论。
+欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对组件问题或期待的新特性进行讨论，欢迎参与项目的建设。
 
 作者介绍：开源组件graphql-java活跃contributor，主要参与了 15、16 版本的指令能力升级和语法校验，GraphQL 协议 contributor。
