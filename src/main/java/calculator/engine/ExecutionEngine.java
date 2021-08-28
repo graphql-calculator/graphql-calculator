@@ -27,12 +27,14 @@ import calculator.graphql.AsyncDataFetcherInterface;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
 import graphql.execution.DataFetcherResult;
+import graphql.execution.ExecutionContext;
 import graphql.execution.ResultPath;
 import graphql.execution.ValueUnboxer;
 import graphql.execution.instrumentation.InstrumentationContext;
 import graphql.execution.instrumentation.InstrumentationState;
 import graphql.execution.instrumentation.SimpleInstrumentation;
 import graphql.execution.instrumentation.parameters.InstrumentationCreateStateParameters;
+import graphql.execution.instrumentation.parameters.InstrumentationExecutionParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchParameters;
 import graphql.execution.preparsed.PreparsedDocumentEntry;
@@ -45,6 +47,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -55,6 +58,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -62,6 +66,7 @@ import static calculator.common.CommonUtil.fieldPath;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
+import static calculator.engine.metadata.Directives.DISTINCT;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
@@ -133,6 +138,19 @@ public class ExecutionEngine extends SimpleInstrumentation {
         );
     }
 
+
+    @Override
+    public ExecutionContext instrumentExecutionContext(ExecutionContext executionContext, InstrumentationExecutionParameters parameters) {
+
+        Document document = executionContext.getDocument();
+
+
+        ExecutionContext transform = executionContext.transform(executionContextBuilder -> {
+            executionContextBuilder.document(document);
+        });
+
+        return transform;
+    }
 
     private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
         return new InstrumentationContext<Object>() {
@@ -280,6 +298,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
             if (Objects.equals(SORT_BY.getName(), directive.getName())) {
                 dataFetcher = wrapSortByDataFetcher(dataFetcher, valueUnboxer);
+                continue;
+            }
+
+            if (Objects.equals(DISTINCT.getName(), directive.getName())) {
+                dataFetcher = wrapDistinctDataFetcher(dataFetcher, valueUnboxer);
                 continue;
             }
 
@@ -470,6 +493,31 @@ public class ExecutionEngine extends SimpleInstrumentation {
         return wrappedDataFetcher;
     }
 
+
+    private DataFetcher<?> wrapDistinctDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
+        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
+        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+        DataFetcher<?> wrappedFetcher = environment -> {
+            Object originalResult = innerDataFetcher.get(environment);
+            if (originalResult instanceof CompletionStage) {
+                originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
+            }
+            Object unWrappedData = unWrapDataFetcherResult(originalResult, valueUnboxer);
+            if (CollectionUtil.arraySize(unWrappedData) == 0) {
+                return originalResult;
+            }
+
+            List<Object> listResult = CollectionUtil.arrayToList(unWrappedData);
+            return wrapResult(originalResult, listResult);
+        };
+
+        if (isAsyncFetcher) {
+            return async(wrappedFetcher, innerExecutor);
+        }
+        return wrappedFetcher;
+    }
 
     // directive @map(mapper:String!, dependencySources:String) on FIELD
     private DataFetcher<?> wrapMapDataFetcher(DataFetcher<?> defaultDF,
@@ -762,7 +810,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
         for (Directive directive : directives) {
             if (Objects.equals(FILTER.getName(), directive.getName())) {
                 String predicate = getArgumentFromDirective(directive, "predicate");
-                filterCollectionData(listOrArray, predicate);
+                filterCollectionData((Collection) listOrArray, predicate);
+                continue;
+            }
+
+            if (Objects.equals(DISTINCT.getName(), directive.getName())) {
+                String comparator = getArgumentFromDirective(directive, "comparator");
+                distinctCollectionData((Collection)listOrArray, comparator);
                 continue;
             }
 
@@ -787,7 +841,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         }
     }
 
-    private void filterCollectionData(Object listOrArray, String predicate) {
+    private void filterCollectionData(Collection collection, String predicate) {
         Predicate<Object> willKeep = ele -> {
             Map<String, Object> fieldMap = (Map<String, Object>) getScriptEnv(ele);
             Map<String, Object> sourceEnv = new LinkedHashMap<>();
@@ -795,7 +849,32 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
         };
 
-        CollectionUtil.filterListOrArray(listOrArray, willKeep);
+        CollectionUtil.filterCollection(collection, willKeep);
+    }
+
+
+    private void distinctCollectionData(Collection collection, String comparatorExpression) {
+        boolean emptyComparator = comparatorExpression == null;
+
+        Function<Object, Integer> comparator = ele -> {
+            if (ele == null) {
+                return 0;
+            }
+
+            if (emptyComparator) {
+                return System.identityHashCode(ele);
+            }
+
+            Map<String, Object> scriptEnv = new LinkedHashMap<>();
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(ele);
+            if (calMap != null) {
+                scriptEnv.putAll(calMap);
+            }
+            Object evaluate = scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
+            return Objects.hashCode(evaluate);
+        };
+
+        CollectionUtil.distinctCollection(collection, comparator);
     }
 
     private void sortCollectionData(Object listOrArray, String sortKey, Boolean reversed) {

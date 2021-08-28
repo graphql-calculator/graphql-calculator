@@ -47,6 +47,7 @@ import static calculator.common.GraphQLUtil.isLeafField;
 import static calculator.common.GraphQLUtil.parentPathSet;
 import static calculator.common.GraphQLUtil.pathForTraverse;
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
+import static calculator.engine.metadata.Directives.DISTINCT;
 import static calculator.engine.metadata.Directives.FETCH_SOURCE;
 import static calculator.engine.metadata.Directives.FILTER;
 import static calculator.engine.metadata.Directives.INCLUDE_BY;
@@ -253,6 +254,36 @@ public class BasicRule extends AbstractRule {
                 checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
                 fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
+            } else if (Objects.equals(directiveName, DISTINCT.getName())) {
+
+                String comparator = directive.getArgument("comparator") == null ?
+                        null : (String) parseValue(directive.getArgument("comparator").getValue());
+
+
+                if (comparator != null && !scriptEvaluator.isValidScript(comparator)) {
+                    String errorMsg = String.format("invalid comparator '%s' for @distinct on {%s}.", comparator, fieldFullPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+                GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
+                        environment.getFieldDefinition().getType()
+                );
+
+                if (!GraphQLTypeUtil.isList(innerType)) {
+                    // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
+                    String errorMsg = String.format("@distinct must annotated on list type, instead of {%s}.", fieldFullPath);
+                    addValidError(location, errorMsg);
+                    continue;
+                }
+
+                if (comparator != null &&
+                        !validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath, environment)) {
+                    continue;
+                }
+
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
+
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
                 String mapper = getArgumentFromDirective(directive, "mapper");
@@ -348,7 +379,7 @@ public class BasicRule extends AbstractRule {
         }
     }
 
-    //    // <fieldFullPath, List<sourceName>>
+    //    <fieldFullPath, List<sourceName>>
     //    private final Map<String, List<String>> sourceUsedByField = new LinkedHashMap<>();
     private void checkAndSetSourceUsedByFieldInfo(String fieldFullPath,Directive directive) {
         Argument sourceArgument = directive.getArgument("dependencySources");
@@ -378,13 +409,13 @@ public class BasicRule extends AbstractRule {
         } else {
             List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
             if (scriptArgument != null && !scriptArgument.isEmpty()) {
-                for (String key : scriptArgument) {
+                for (String argument : scriptArgument) {
                     boolean validKey = field.getSelectionSet().getSelections().stream()
                             .map(selection -> ((Field) selection).getResultKey())
-                            .anyMatch(key::equals);
+                            .anyMatch(argument::equals);
 
                     if (!validKey) {
-                        String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", key, directive.getName(), fieldFullPath);
+                        String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", argument, directive.getName(), fieldFullPath);
                         addValidError(field.getSourceLocation(), errorMsg);
                         return false;
                     }

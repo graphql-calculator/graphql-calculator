@@ -70,6 +70,10 @@ public class ConsumerServiceClient {
     }
 
     public static UserInfo getUserInfoById(int userId) {
+        if (userId == 0L) {
+            return null;
+        }
+
         return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com");
     }
 
