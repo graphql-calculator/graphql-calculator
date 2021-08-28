@@ -8,16 +8,18 @@
 ----------------------------------------
 
 基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
-指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用。
+
 
 # 特性
 
-- 数据编排：将指定字段的获取结果作为全局可获取的上下文，为获取其他字段提供可依赖数据；
-- 动态计算：对查询结果进行排序、过滤；通过全局可获取上下文和父字段获取结果计算生成新的字段；
-- 控制流：`@skip`和`@include`拓展版本，通过全局可获取上下文、字段请求参数，判断是否解析指定字段；
-- 参数转换：对字段请求参数进行转换、列表类型参数过滤、列表类型参数的元素进行转换，转换表达式可使用全局可获取上下文作为参数。
+指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用，具体使用方式参考**指令说明**和**使用示例**。
 
-计算指令的具体使用方式参考**指令说明**和**使用示例**。
+- 字段加工：通过表达式对结果字段进行加工处理，可通过多个字段计算出一个字段；
+- 列表处理：通过列表指令可便捷的对结果中的列表字段进行过滤、排序、去重；
+- 参数转换：对请求参数进行转换，包括参数整体转换、列表类型参数过滤、列表类型参数的元素转换；
+- 控制流：提供了`@skip`和`@include`拓展版本，通过表达式判断是否解析注解的字段；
+- 数据编排：将指定字段的获取结果作为全局可获取的上下文，为获取其他字段提供可依赖数据，该能力可用于字段加工、列表处理和参数转换中。
+
 
 # 快速开始
 
@@ -27,10 +29,9 @@
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
     <artifactId>graphql-java-calculator</artifactId>
-    <version>1.1</version>
+    <version>${version}</version>
 </dependency>
 ```
-最新版本见 [Maven仓库](https://mvnrepository.com/artifact/com.graphql-java-calculator/graphql-java-calculator)。
 
 #### 2. 包装执行引擎
 
