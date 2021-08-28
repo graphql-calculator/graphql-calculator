@@ -31,6 +31,7 @@ import java.util.Map;
 import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
+import static graphql.introspection.Introspection.DirectiveLocation.INLINE_FRAGMENT;
 
 /**
  * The customized directives which to be provided to describe runtime operation, including query execution, type validation.
@@ -51,7 +52,7 @@ public class Directives {
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
             .description("determine whether the field would be skipped by expression, taking argument and dependency source as expression arguments.")
-            .validLocation(FIELD)
+            .validLocations(FIELD, INLINE_FRAGMENT)
             .argument(GraphQLArgument
                     .newArgument()
                     .name("predicate")

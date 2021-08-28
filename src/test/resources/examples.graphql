@@ -1,7 +1,7 @@
 
 # 指令定义
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
-directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD
+directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD | INLINE_FRAGMENT
 directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
 directive @mock(value: String!) on FIELD
 directive @filter(predicate: String!) on FIELD
@@ -15,6 +15,21 @@ enum ParamTransformType{
     MAP
     FILTER
     LIST_MAP
+}
+
+
+query skipByTest_inlineFragmentTest01($userId: Int) {
+    consumer{
+        userInfo(userId: $userId) {
+            userId
+            #... @skipBy(predicate: "userId>18") {
+            ... {
+                age
+                name
+                email
+            }
+        }
+    }
 }
 
 

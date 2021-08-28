@@ -191,4 +191,45 @@ public class SkipAndIncludeExtendTest {
                 "{consumer={userInfo={userId=1, age=10, name=1_name, email=null}}}"
         );
     }
+
+    @Test
+    public void skipByTest_inlineFragmentTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_inlineFragmentTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @skipBy(predicate: \"userId>18\") {\n" +
+//                "            ... {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 1);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String,Map<String,Object>> data = executionResult.getData();
+        System.out.println(data.get("consumer").get("userInfo"));
+
+        assert Objects.equals(
+                executionResult.getData().toString(),
+                "{consumer={userInfo={userId=1, age=10, name=1_name, email=1dugk@foxmail.com}}}"
+        );
+    }
+
+
 }
