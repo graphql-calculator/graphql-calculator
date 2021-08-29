@@ -20,6 +20,7 @@ package engine.validation
 import calculator.config.DefaultConfig
 import calculator.engine.SchemaWrapper
 import calculator.validation.Validator
+import spock.lang.Ignore
 import spock.lang.Specification
 
 import static calculator.util.GraphQLSourceHolder.getDefaultSchema
@@ -429,6 +430,7 @@ class ValidationTest extends Specification {
     }
 
 
+    @Ignore
     def "dependencySources which @skipBy dependency must exist"() {
         given:
         def query = """
@@ -459,6 +461,7 @@ class ValidationTest extends Specification {
     }
 
 
+    @Ignore
     def "dependencySources which @skipBy dependency has to be used"() {
         given:
         def query = """
@@ -489,6 +492,7 @@ class ValidationTest extends Specification {
     }
 
 
+    @Ignore
     def "dependencySources name used by @skipBy must be different to field argument name "() {
         given:
         def query = """

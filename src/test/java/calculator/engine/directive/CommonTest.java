@@ -28,6 +28,7 @@ import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.ParseAndValidateResult;
 import graphql.schema.GraphQLSchema;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -64,7 +65,7 @@ public class CommonTest {
     }
 
 
-    @Test
+    @Ignore
     public void abUserForCouponAcquire() {
         String query = "" +
                 "query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){\n" +

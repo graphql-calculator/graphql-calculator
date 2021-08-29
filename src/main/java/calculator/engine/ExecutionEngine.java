@@ -26,6 +26,8 @@ import calculator.engine.script.ScriptEvaluator;
 import calculator.graphql.AsyncDataFetcherInterface;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
+import graphql.com.google.common.collect.ImmutableList;
+import graphql.com.google.common.collect.ImmutableMap;
 import graphql.execution.DataFetcherResult;
 import graphql.execution.ExecutionContext;
 import graphql.execution.ResultPath;
@@ -40,6 +42,13 @@ import graphql.execution.instrumentation.parameters.InstrumentationFieldFetchPar
 import graphql.execution.preparsed.PreparsedDocumentEntry;
 import graphql.language.Directive;
 import graphql.language.Document;
+import graphql.language.Field;
+import graphql.language.FragmentDefinition;
+import graphql.language.FragmentSpread;
+import graphql.language.InlineFragment;
+import graphql.language.OperationDefinition;
+import graphql.language.Selection;
+import graphql.language.SelectionSet;
 import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
@@ -141,15 +150,100 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     @Override
     public ExecutionContext instrumentExecutionContext(ExecutionContext executionContext, InstrumentationExecutionParameters parameters) {
-
+        // TODO 提前以很小的成本判断查询是否包含 @skipBy 或者 @includeBy
         Document document = executionContext.getDocument();
+        OperationDefinition operationDefinition = (OperationDefinition)document.getDefinitions().get(0);
 
+        Map<String, FragmentDefinition> transformedFragmentByName = transformFragmentByName(executionContext.getFragmentsByName(),executionContext.getVariables());
+        SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(
+                operationDefinition.getSelectionSet(), executionContext.getFragmentsByName(), executionContext.getVariables()
+        );
 
-        ExecutionContext transform = executionContext.transform(executionContextBuilder -> {
-            executionContextBuilder.document(document);
+        OperationDefinition newOperationDefinition = operationDefinition.transform(builder -> builder.selectionSet(transformedSelectionSet));
+
+        ExecutionContext newExecutionContext = executionContext.transform(executionContextBuilder -> {
+            executionContextBuilder.operationDefinition(newOperationDefinition);
+            executionContextBuilder.fragmentsByName(transformedFragmentByName);
+            Document newDocument = document.transform(builder -> {
+                builder.definitions(Collections.singletonList(newOperationDefinition));
+            });
+            executionContextBuilder.document(newDocument);
         });
 
-        return transform;
+        return newExecutionContext;
+    }
+
+    private Map<String, FragmentDefinition> transformFragmentByName(Map<String, FragmentDefinition> fragmentsByName, Map<String, Object> variables) {
+        ImmutableMap.Builder<String, FragmentDefinition> fragmentsByNameBuilder = ImmutableMap.builder();
+        for (Map.Entry<String, FragmentDefinition> entry : fragmentsByName.entrySet()) {
+            SelectionSet selectionSet = entry.getValue().getSelectionSet();
+            SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(selectionSet, fragmentsByName, variables);
+            FragmentDefinition transformedFragmentDef = entry.getValue().transform(builder -> builder.selectionSet(transformedSelectionSet));
+            fragmentsByNameBuilder.put(entry.getKey(), transformedFragmentDef);
+        }
+        return fragmentsByNameBuilder.build();
+    }
+
+    private SelectionSet transformSelectionForSkipAndInclude(SelectionSet selectionSet,
+                                                             Map<String, FragmentDefinition> fragmentsByName,
+                                                             Map<String, Object> variables) {
+        if (selectionSet == null || selectionSet.getSelections() == null) {
+            return selectionSet;
+        }
+
+        ImmutableList.Builder<Selection> selectionBuilder = ImmutableList.builder();
+        for (Selection selection : selectionSet.getSelections()) {
+            if (selection instanceof Field) {
+                Field field = (Field)selection;
+                if (shouldIncludeBy(field.getDirectives(), variables)) {
+                    SelectionSet subSelectionSet = field.getSelectionSet();
+                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, fragmentsByName, variables);
+                    Field transformedField = field.transform(builder -> builder.selectionSet(newSubSelectionSet));
+                    selectionBuilder.add(transformedField);
+                }
+            } else if (selection instanceof InlineFragment) {
+                InlineFragment inlineFragment = (InlineFragment)selection;
+                if (shouldIncludeBy(inlineFragment.getDirectives(),variables)) {
+                    SelectionSet subSelectionSet = inlineFragment.getSelectionSet();
+                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, fragmentsByName, variables);
+                    InlineFragment transformedField = inlineFragment.transform(builder -> builder.selectionSet(newSubSelectionSet));
+                    selectionBuilder.add(transformedField);
+                }
+            }
+            // todo FragmentSpread 中的数据需要提前处理：去掉不必要的字段；如果全部字段去掉了，则用到该片断的地方也是空
+            else if (selection instanceof FragmentSpread) {
+                FragmentSpread fragmentSpread = (FragmentSpread)selection;
+                if (shouldIncludeBy(fragmentSpread.getDirectives(),variables)) {
+                    selectionBuilder.add(fragmentSpread);
+                }
+            }
+        }
+
+        return selectionSet.transform(builder -> builder.selections(selectionBuilder.build()));
+    }
+
+
+    // todo 如果抛异常会怎样则整个查询都会失败，应该按照规范返回指令注解的字段错误信息
+    private boolean shouldIncludeBy(List<Directive> directives, Map<String, Object> variables) {
+        boolean skipBy = false;
+        Directive skipByDirective = CommonUtil.findNodeByName(directives, SKIP_BY.getName());
+        if (skipByDirective != null) {
+            String predicate = getArgumentFromDirective(skipByDirective, "predicate");
+            Map<String, Object> scriptEvn = new LinkedHashMap<>(variables);
+            skipBy = (Boolean) scriptEvaluator.evaluate(predicate, scriptEvn);
+        }
+        if (skipBy) {
+            return false;
+        }
+
+        boolean includeBy = true;
+        Directive includeByDirective = CommonUtil.findNodeByName(directives, INCLUDE_BY.getName());
+        if (includeByDirective != null) {
+            String predicate = getArgumentFromDirective(includeByDirective, "predicate");
+            Map<String, Object> scriptEvn = new LinkedHashMap<>(variables);
+            includeBy = (Boolean) scriptEvaluator.evaluate(predicate, scriptEvn);
+        }
+        return includeBy;
     }
 
     private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
@@ -267,20 +361,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                               ValueUnboxer valueUnboxer) {
 
         for (Directive directive : dirOnField) {
-            if (Objects.equals(SKIP_BY.getName(), directive.getName())) {
-                String predicate = getArgumentFromDirective(directive, "predicate");
-                List<String> dependencySources = getDependenceSourceFromDirective(directive);
-                dataFetcher = wrapSkipDataFetcher(dataFetcher, engineState, predicate, dependencySources);
-                continue;
-            }
-
-            if (Objects.equals(INCLUDE_BY.getName(), directive.getName())) {
-                String predicate = getArgumentFromDirective(directive, "predicate");
-                List<String> dependencySources = getDependenceSourceFromDirective(directive);
-                dataFetcher = wrapIncludeDataFetcher(dataFetcher, engineState, predicate, dependencySources);
-                continue;
-            }
-
             if (Objects.equals(MOCK.getName(), directive.getName())) {
                 dataFetcher = ignore -> getArgumentFromDirective(directive, "value");
                 continue;
@@ -331,86 +411,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
         return dataFetcher;
     }
 
-
-    private DataFetcher<?> wrapSkipDataFetcher(DataFetcher<?> dataFetcher,
-                                               ExecutionEngineState engineState,
-                                               String predicate,
-                                               List<String> dependencySources) {
-        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
-
-
-        DataFetcher<?> wrappedDataFetcher = environment -> {
-            Map<String, Object> env = new LinkedHashMap<>(environment.getVariables());
-            if (dependencySources != null && !dependencySources.isEmpty()) {
-                for (String dependencySource : dependencySources) {
-                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                        env.put(dependencySource, null);
-                    } else {
-                        env.put(dependencySource, sourceTask.getTaskFuture().join());
-                    }
-                }
-            }
-
-            Boolean isSkip = (Boolean) scriptEvaluator.evaluate(predicate, env);
-            if (isSkip) {
-                return null;
-            }
-
-            Object innerResult = innerDataFetcher.get(environment);
-            if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
-                return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
-            }
-            return innerResult;
-        };
-
-        if (isAsyncFetcher || dependencySources != null) {
-            return async(wrappedDataFetcher, innerExecutor);
-        }
-        return wrappedDataFetcher;
-    }
-
-
-    private DataFetcher<?> wrapIncludeDataFetcher(DataFetcher<?> dataFetcher,
-                                                  ExecutionEngineState engineState,
-                                                  String predicate,
-                                                  List<String> dependencySources) {
-        boolean isAsyncFetcher = dataFetcher instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher() : dataFetcher;
-
-        DataFetcher<?> wrappedDataFetcher = environment -> {
-            Map<String, Object> env = new LinkedHashMap<>(environment.getVariables());
-            if (dependencySources != null && !dependencySources.isEmpty()) {
-                for (String dependencySource : dependencySources) {
-                    FetchSourceTask sourceTask = getFetchSourceFromState(engineState, dependencySource);
-                    if (sourceTask.getTaskFuture().isCompletedExceptionally()) {
-                        env.put(dependencySource, null);
-                    } else {
-                        env.put(dependencySource, sourceTask.getTaskFuture().join());
-                    }
-                }
-            }
-
-            Boolean isInclude = (Boolean) scriptEvaluator.evaluate(predicate, env);
-            if (!isInclude) {
-                return null;
-            }
-
-            Object innerResult = innerDataFetcher.get(environment);
-            if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
-                return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
-            }
-            return innerResult;
-        };
-
-        if (isAsyncFetcher || dependencySources != null) {
-            return async(wrappedDataFetcher, innerExecutor);
-        }
-        return wrappedDataFetcher;
-    }
 
 
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
