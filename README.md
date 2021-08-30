@@ -93,7 +93,7 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### **@includeBy**
 
-`directive @includeBy(predicate: String!, dependencySources: String) on FIELD`
+`directive @includeBy(predicate: String!) on FIELD`
 
 参数解释：
 - predicate：判断是否解析该字段的表达式，表达式参数为查询变量；
