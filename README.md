@@ -84,29 +84,21 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### **@skipBy**
 
-`directive @skipBy(predicate: String!, dependencySources: String) on FIELD`
+`directive @skipBy(predicate: String!) on FIELD`
 
 参数解释：
-- predicate：判断是否跳过解析该字段的表达式，表达式参数为查询变量和其他@fetchSource；
-- dependencySources：指令表达式依赖的source，sourceName不可和查询变量。
+- predicate：判断是否跳过解析该字段的表达式，表达式参数为查询变量；
 
-@skipBy是graphql内置指令@skip的扩展版本，可通过表达式判断是否请求该字段，表达式参数为查询变量和其他@fetchSource。
-
-若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。
-
-该指令可实现类似于`if(predicate){}` 和 `switch(c): case predicate1: opx; case predicate2: opy;`的控制流。
+@skipBy是graphql内置指令@skip的扩展版本，可通过表达式判断是否请求该字段。
 
 #### **@includeBy**
 
 `directive @includeBy(predicate: String!, dependencySources: String) on FIELD`
 
 参数解释：
-- predicate：判断是否解析该字段的表达式，表达式参数为查询变量和其他@fetchSource；
-- dependencySources：表达式依赖的source，sourceName不可和查询变量同名。
+- predicate：判断是否解析该字段的表达式，表达式参数为查询变量；
 
-@includeBy是graphql内置指令`@include`的扩展版本，可通过表达式判断是否请求该字段，表达式参数为查询变量和其他@fetchSource。
-
-若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。该指令能力同@skipBy。
+@includeBy是graphql内置指令`@include`的扩展版本，可通过表达式判断是否请求该字段。
 
 #### **@map**
 
@@ -284,7 +276,7 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
 
 控制流主要为根据条件，判断是否请求某个类型数据、或者请求哪个类型数据。
 
-控制流通过 **@skipBy**进行控制 `directive @skipBy(expression: String!, dependencySources: String) on FIELD`。
+控制流通过 **@skipBy**进行控制 `directive @skipBy(predicate: String!) on FIELD`。
 
 通过 **@skipBy** 可实现类似 `switch-case`的控制流，
 ```
@@ -296,24 +288,17 @@ switch(value):
     case(judgeFunction_2(value)): opration_2;
 
 ``` 
-和if控制流 `if(conditioin){...add return value...}`。
 
 ```graphql
-# 如果用户不在 ab实验实验组区间[0,3]内，则对其查看的页面不展示优惠券、即不请求券数据
-query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
-
-    marketing
-    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
-    {
-        coupon(couponId: $couponId){
-            couponId
-            couponText
-            price
+query skipBy_case01($userId:Int){
+    consumer{
+        userInfo(userId: $userId)
+        # the userInfo field would not be queried if 'userId>100' is true
+        @skipBy(predicate: "userId>100")
+        {
+            userId
+            name
         }
-    }
-
-    toolInfo{
-        abInfo(userId: $userId,abKey:$abKey) @fetchSource(name: "abValue")
     }
 }
 ```
