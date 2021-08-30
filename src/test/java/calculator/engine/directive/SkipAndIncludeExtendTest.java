@@ -282,6 +282,94 @@ public class SkipAndIncludeExtendTest {
     }
 
 
-    // todo include
+    @Test
+    public void includeByTest_inlineFragmentTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_inlineFragmentTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @includeBy(predicate: \"userId>18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "\n" +
+                "        notIncludeUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @includeBy(predicate: \"userId<18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}");
+        assert Objects.equals(data.get("consumer").get("notIncludeUserInfo").toString(), "{userId=19}");
+    }
+
+
+    @Test
+    public void includeByTest_fragmentSpreadTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_fragmentSpreadTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @includeBy(predicate: \"userId<18\")\n" +
+                "        }\n" +
+                "\n" +
+                "        includeUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @includeBy(predicate: \"userId>18\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n" +
+                "\n" +
+                "fragment userinfo on User{\n" +
+                "    age\n" +
+                "    name\n" +
+                "    email\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19}");
+        assert Objects.equals(
+                data.get("consumer").get("includeUserInfo").toString(),
+                "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}"
+        );
+    }
 
 }
