@@ -190,14 +190,23 @@ public class CommonUtil {
         return Collections.unmodifiableSet(wrapperTypes);
     }
 
+    /**
+     * Determines if the class of specified object represents a wrapper type.
+     */
     public static boolean isWrapperType(Object object) {
         return WRAPPER_TYPES.contains(object.getClass());
     }
 
+    /**
+     * Determines if the class of specified object represents a basic type: primitive type, wrapper type or CharSequence.
+     */
     public static boolean isBasicType(Object object) {
         return object.getClass().isPrimitive() || isWrapperType((object)) || object instanceof CharSequence;
     }
 
+    /**
+     * Return the first NamedNode which match the provided name.
+     */
     public static <T extends NamedNode<T>> T findNodeByName(List<T> namedNodes, String name) {
         for (T namedNode : namedNodes) {
             if (Objects.equals(namedNode.getName(), name)) {

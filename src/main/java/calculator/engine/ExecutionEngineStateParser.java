@@ -24,6 +24,7 @@ import graphql.analysis.QueryVisitor;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
+import graphql.com.google.common.base.Objects;
 import graphql.language.Directive;
 import graphql.util.TraverserContext;
 
@@ -37,6 +38,8 @@ import static calculator.common.GraphQLUtil.isInList;
 import static calculator.common.GraphQLUtil.isListNode;
 import static calculator.common.GraphQLUtil.parentPathList;
 import static calculator.common.GraphQLUtil.pathForTraverse;
+import static calculator.engine.metadata.Directives.INCLUDE_BY;
+import static calculator.engine.metadata.Directives.SKIP_BY;
 
 @Internal
 public class ExecutionEngineStateParser implements QueryVisitor {
@@ -53,6 +56,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
         if (environment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
             return;
         }
+        determineContainSkipByOrIncludeBy(environment.getField().getDirectives());
 
         List<Directive> directives = environment.getField().getDirectives(Directives.FETCH_SOURCE.getName());
         if (directives != null && !directives.isEmpty()) {
@@ -67,7 +71,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
             // traverserContext is shared in a visitor-operation.
             environment.getTraverserContext().setAccumulate(null);
             engineStateBuilder.topTaskList(sourceName, topTaskPathList);
-            engineStateBuilder.queryTaskList(sourceName,queryTaskPathList);
+            engineStateBuilder.queryTaskList(sourceName, queryTaskPathList);
         }
     }
 
@@ -77,10 +81,10 @@ public class ExecutionEngineStateParser implements QueryVisitor {
      * 2. 该节点所代表的异步任务结束所依赖的父节点列表 topTaskPathList ；
      * 3. topTask节点的父亲节点列表——这些节点失败则topTaskPathList中所有的异步任务都不会执行。
      *
-     * @param isAnnotatedNode 是否是递归调用该方法，kp 是否是被 @fetchSource 注解的节点
-     * @param sourceConvert 获取 fetchSource 后进行数据转换的表达式
-     * @param visitorEnv 请求变量
-     * @param topTaskPathList  @fetchSource 注解的节点完成所依赖的顶层节点。
+     * @param isAnnotatedNode   是否是递归调用该方法，kp 是否是被 @fetchSource 注解的节点
+     * @param sourceConvert     获取 fetchSource 后进行数据转换的表达式
+     * @param visitorEnv        请求变量
+     * @param topTaskPathList   @fetchSource 注解的节点完成所依赖的顶层节点。
      * @param queryTaskPathList 顶层节点的父亲节点。这部分节点如果解析失败，则获取@fetchSource值的异步任务不会执行。
      */
     private void parseFetchSourceInfo(String sourceName,
@@ -162,13 +166,37 @@ public class ExecutionEngineStateParser implements QueryVisitor {
 
 
     @Override
-    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment queryVisitorInlineFragmentEnvironment) {
+    public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment visitorEnvironment) {
+        if (visitorEnvironment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
 
+        determineContainSkipByOrIncludeBy(visitorEnvironment.getInlineFragment().getDirectives());
     }
 
     @Override
-    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment queryVisitorFragmentSpreadEnvironment) {
+    public void visitFragmentSpread(QueryVisitorFragmentSpreadEnvironment visitorEnvironment) {
+        if (visitorEnvironment.getTraverserContext().getPhase() != TraverserContext.Phase.ENTER) {
+            return;
+        }
 
+        determineContainSkipByOrIncludeBy(visitorEnvironment.getFragmentSpread().getDirectives());
+    }
+
+    /**
+     * Determine whether the directives contain skipBy or includeBy.
+     */
+    private void determineContainSkipByOrIncludeBy(List<Directive> directives) {
+        if (engineStateBuilder.isContainSkipByOrIncludeBy()) {
+            return;
+        }
+
+        boolean containSkipByOrIncludeBy = directives.stream().anyMatch(
+                directive -> Objects.equal(SKIP_BY.getName(), directive.getName()) || Objects.equal(INCLUDE_BY.getName(), directive.getName())
+        );
+        if (containSkipByOrIncludeBy) {
+            engineStateBuilder.containSkipByOrIncludeBy();
+        }
     }
 
 }

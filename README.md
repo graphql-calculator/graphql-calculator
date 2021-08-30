@@ -84,21 +84,23 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### **@skipBy**
 
-`directive @skipBy(predicate: String!) on FIELD`
+`directive @skipBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD`
 
 参数解释：
 - predicate：判断是否跳过解析该字段的表达式，表达式参数为查询变量；
 
 @skipBy是graphql内置指令@skip的扩展版本，可通过表达式判断是否请求该字段。
+同@skip一样，@skipBy也可定义在片断上，如果predicate计算结果不为bool类型或抛异常，则查询将抛异常，且不会真正执行每个字段的请求、解析。
 
 #### **@includeBy**
 
-`directive @includeBy(predicate: String!) on FIELD`
+`directive @includeBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD`
 
 参数解释：
 - predicate：判断是否解析该字段的表达式，表达式参数为查询变量；
 
 @includeBy是graphql内置指令`@include`的扩展版本，可通过表达式判断是否请求该字段。
+同@include一样，@includeBy也可定义在片断上，如果predicate计算结果不为bool类型或抛异常，则查询将抛异常，且不会真正执行每个字段的请求、解析。
 
 #### **@map**
 

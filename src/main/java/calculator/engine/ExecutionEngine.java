@@ -150,43 +150,46 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     @Override
     public ExecutionContext instrumentExecutionContext(ExecutionContext executionContext, InstrumentationExecutionParameters parameters) {
-        // TODO 提前以很小的成本判断查询是否包含 @skipBy 或者 @includeBy
-        Document document = executionContext.getDocument();
-        OperationDefinition operationDefinition = (OperationDefinition)document.getDefinitions().get(0);
+        ExecutionEngineState engineState = parameters.getInstrumentationState();
+        if (!engineState.isContainSkipByOrIncludeBy()) {
+            return super.instrumentExecutionContext(executionContext, parameters);
+        }
 
-        Map<String, FragmentDefinition> transformedFragmentByName = transformFragmentByName(executionContext.getFragmentsByName(),executionContext.getVariables());
+        Document document = executionContext.getDocument();
+        OperationDefinition operationDefinition = (OperationDefinition) document.getDefinitions().get(0);
+
+        Map<String, FragmentDefinition> transformedFragmentByName = transformFragmentByName(executionContext.getFragmentsByName(), executionContext.getVariables());
         SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(
-                operationDefinition.getSelectionSet(), executionContext.getFragmentsByName(), executionContext.getVariables()
+                operationDefinition.getSelectionSet(), executionContext.getVariables()
         );
 
-        OperationDefinition newOperationDefinition = operationDefinition.transform(builder -> builder.selectionSet(transformedSelectionSet));
-
-        ExecutionContext newExecutionContext = executionContext.transform(executionContextBuilder -> {
-            executionContextBuilder.operationDefinition(newOperationDefinition);
+        return executionContext.transform(executionContextBuilder -> {
             executionContextBuilder.fragmentsByName(transformedFragmentByName);
+
+            OperationDefinition newOperationDefinition = operationDefinition.transform(
+                    builder -> builder.selectionSet(transformedSelectionSet)
+            );
+
+            executionContextBuilder.operationDefinition(newOperationDefinition);
             Document newDocument = document.transform(builder -> {
                 builder.definitions(Collections.singletonList(newOperationDefinition));
             });
             executionContextBuilder.document(newDocument);
         });
-
-        return newExecutionContext;
     }
 
     private Map<String, FragmentDefinition> transformFragmentByName(Map<String, FragmentDefinition> fragmentsByName, Map<String, Object> variables) {
         ImmutableMap.Builder<String, FragmentDefinition> fragmentsByNameBuilder = ImmutableMap.builder();
         for (Map.Entry<String, FragmentDefinition> entry : fragmentsByName.entrySet()) {
             SelectionSet selectionSet = entry.getValue().getSelectionSet();
-            SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(selectionSet, fragmentsByName, variables);
+            SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(selectionSet, variables);
             FragmentDefinition transformedFragmentDef = entry.getValue().transform(builder -> builder.selectionSet(transformedSelectionSet));
             fragmentsByNameBuilder.put(entry.getKey(), transformedFragmentDef);
         }
         return fragmentsByNameBuilder.build();
     }
 
-    private SelectionSet transformSelectionForSkipAndInclude(SelectionSet selectionSet,
-                                                             Map<String, FragmentDefinition> fragmentsByName,
-                                                             Map<String, Object> variables) {
+    private SelectionSet transformSelectionForSkipAndInclude(SelectionSet selectionSet, Map<String, Object> variables) {
         if (selectionSet == null || selectionSet.getSelections() == null) {
             return selectionSet;
         }
@@ -194,26 +197,24 @@ public class ExecutionEngine extends SimpleInstrumentation {
         ImmutableList.Builder<Selection> selectionBuilder = ImmutableList.builder();
         for (Selection selection : selectionSet.getSelections()) {
             if (selection instanceof Field) {
-                Field field = (Field)selection;
+                Field field = (Field) selection;
                 if (shouldIncludeBy(field.getDirectives(), variables)) {
                     SelectionSet subSelectionSet = field.getSelectionSet();
-                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, fragmentsByName, variables);
+                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, variables);
                     Field transformedField = field.transform(builder -> builder.selectionSet(newSubSelectionSet));
                     selectionBuilder.add(transformedField);
                 }
             } else if (selection instanceof InlineFragment) {
-                InlineFragment inlineFragment = (InlineFragment)selection;
-                if (shouldIncludeBy(inlineFragment.getDirectives(),variables)) {
+                InlineFragment inlineFragment = (InlineFragment) selection;
+                if (shouldIncludeBy(inlineFragment.getDirectives(), variables)) {
                     SelectionSet subSelectionSet = inlineFragment.getSelectionSet();
-                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, fragmentsByName, variables);
+                    SelectionSet newSubSelectionSet = transformSelectionForSkipAndInclude(subSelectionSet, variables);
                     InlineFragment transformedField = inlineFragment.transform(builder -> builder.selectionSet(newSubSelectionSet));
                     selectionBuilder.add(transformedField);
                 }
-            }
-            // todo FragmentSpread 中的数据需要提前处理：去掉不必要的字段；如果全部字段去掉了，则用到该片断的地方也是空
-            else if (selection instanceof FragmentSpread) {
-                FragmentSpread fragmentSpread = (FragmentSpread)selection;
-                if (shouldIncludeBy(fragmentSpread.getDirectives(),variables)) {
+            } else if (selection instanceof FragmentSpread) {
+                FragmentSpread fragmentSpread = (FragmentSpread) selection;
+                if (shouldIncludeBy(fragmentSpread.getDirectives(), variables)) {
                     selectionBuilder.add(fragmentSpread);
                 }
             }
@@ -223,14 +224,26 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-    // todo 如果抛异常会怎样则整个查询都会失败，应该按照规范返回指令注解的字段错误信息
+    // If an exception is thrown, the query will be failed and throw this exception.
+    //
+    // If @skip use wrong argument, the query will throw graphql.AssertException.
+    // query skipByTest_exceptionQueryTest01x($userId: Int) {
+    //    consumer{
+    //        userInfo(userId: $userId)
+    //        @skip(if: $userId)
+    //        {
+    //            userId
+    //        }
+    //    }
+    //}
+    //
+    // TODO custom exception for Instrumentation.
     private boolean shouldIncludeBy(List<Directive> directives, Map<String, Object> variables) {
         boolean skipBy = false;
         Directive skipByDirective = CommonUtil.findNodeByName(directives, SKIP_BY.getName());
         if (skipByDirective != null) {
             String predicate = getArgumentFromDirective(skipByDirective, "predicate");
-            Map<String, Object> scriptEvn = new LinkedHashMap<>(variables);
-            skipBy = (Boolean) scriptEvaluator.evaluate(predicate, scriptEvn);
+            skipBy = (Boolean) scriptEvaluator.evaluate(predicate, variables);
         }
         if (skipBy) {
             return false;
@@ -240,8 +253,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
         Directive includeByDirective = CommonUtil.findNodeByName(directives, INCLUDE_BY.getName());
         if (includeByDirective != null) {
             String predicate = getArgumentFromDirective(includeByDirective, "predicate");
-            Map<String, Object> scriptEvn = new LinkedHashMap<>(variables);
-            includeBy = (Boolean) scriptEvaluator.evaluate(predicate, scriptEvn);
+            includeBy = (Boolean) scriptEvaluator.evaluate(predicate, variables);
         }
         return includeBy;
     }

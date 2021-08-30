@@ -32,6 +32,8 @@ import java.util.function.Supplier;
 @Internal
 public class ExecutionEngineState implements InstrumentationState {
 
+    private final boolean containSkipByOrIncludeBy;
+
     private final Map<String, FetchSourceTask> fetchSourceTaskByPath;
 
     private final Map<String, List<String>> topTaskBySourceName;
@@ -40,15 +42,20 @@ public class ExecutionEngineState implements InstrumentationState {
     private final Map<String, List<String>> queryTaskBySourceName;
 
     private ExecutionEngineState(
+            boolean containSkipByOrIncludeBy,
             Map<String, FetchSourceTask> fetchSourceTaskByPath,
             Map<String, List<String>> topTaskByNode,
             Map<String, List<String>> queryTaskByNode
     ) {
+        this.containSkipByOrIncludeBy = containSkipByOrIncludeBy;
         this.fetchSourceTaskByPath = Collections.unmodifiableMap(fetchSourceTaskByPath);
         this.topTaskBySourceName = Collections.unmodifiableMap(topTaskByNode);
         this.queryTaskBySourceName = Collections.unmodifiableMap(queryTaskByNode);
     }
 
+    public boolean isContainSkipByOrIncludeBy() {
+        return containSkipByOrIncludeBy;
+    }
 
     public Map<String, FetchSourceTask> getFetchSourceTaskByPath() {
         return fetchSourceTaskByPath;
@@ -68,11 +75,23 @@ public class ExecutionEngineState implements InstrumentationState {
 
     public static class Builder {
 
+        private volatile boolean containSkipByOrIncludeBy = false;
+
         private Map<String, FetchSourceTask> fetchSourceTaskByPath = new ConcurrentHashMap<>();
 
         private Map<String, List<String>> topTaskBySourceName = new LinkedHashMap<>();
 
         private Map<String, List<String>> queryTaskBySourceName = new LinkedHashMap<>();
+
+
+        public Builder containSkipByOrIncludeBy() {
+            containSkipByOrIncludeBy = true;
+            return this;
+        }
+
+        public boolean isContainSkipByOrIncludeBy() {
+            return containSkipByOrIncludeBy;
+        }
 
         public Builder fetchSourceTask(String fieldFullPath, FetchSourceTask fetchSourceTask) {
             fetchSourceTaskByPath.put(fieldFullPath, fetchSourceTask);
@@ -107,7 +126,7 @@ public class ExecutionEngineState implements InstrumentationState {
         }
 
         public ExecutionEngineState build() {
-            return new ExecutionEngineState(fetchSourceTaskByPath, topTaskBySourceName, queryTaskBySourceName);
+            return new ExecutionEngineState(containSkipByOrIncludeBy, fetchSourceTaskByPath, topTaskBySourceName, queryTaskBySourceName);
         }
     }
 }
