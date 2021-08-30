@@ -18,23 +18,23 @@ public class ValidationError implements GraphQLError {
     private final String message;
     private final List<SourceLocation> locations = new ArrayList<>();
     private final String description;
-    private final ValidationErrorType validationErrorType;
+    private final ValidationErrorTypeInterface validationErrorType;
     private final List<String> queryPath;
     private final Map<String, Object> extensions;
 
-    public ValidationError(ValidationErrorType validationErrorType) {
+    public ValidationError(ValidationErrorTypeInterface validationErrorType) {
         this(newValidationError()
                 .validationErrorType(validationErrorType));
     }
 
-    public ValidationError(ValidationErrorType validationErrorType, SourceLocation sourceLocation, String description) {
+    public ValidationError(ValidationErrorTypeInterface validationErrorType, SourceLocation sourceLocation, String description) {
         this(newValidationError()
                 .validationErrorType(validationErrorType)
                 .sourceLocation(sourceLocation)
                 .description(description));
     }
 
-    public ValidationError(ValidationErrorType validationErrorType, SourceLocation sourceLocation, String description, List<String> queryPath) {
+    public ValidationError(ValidationErrorTypeInterface validationErrorType, SourceLocation sourceLocation, String description, List<String> queryPath) {
         this(newValidationError()
                 .validationErrorType(validationErrorType)
                 .sourceLocation(sourceLocation)
@@ -42,14 +42,14 @@ public class ValidationError implements GraphQLError {
                 .queryPath(queryPath));
     }
 
-    public ValidationError(ValidationErrorType validationErrorType, List<SourceLocation> sourceLocations, String description) {
+    public ValidationError(ValidationErrorTypeInterface validationErrorType, List<SourceLocation> sourceLocations, String description) {
         this(newValidationError()
                 .validationErrorType(validationErrorType)
                 .sourceLocations(sourceLocations)
                 .description(description));
     }
 
-    public ValidationError(ValidationErrorType validationErrorType, List<SourceLocation> sourceLocations, String description, List<String> queryPath) {
+    public ValidationError(ValidationErrorTypeInterface validationErrorType, List<SourceLocation> sourceLocations, String description, List<String> queryPath) {
         this(newValidationError()
                 .validationErrorType(validationErrorType)
                 .sourceLocations(sourceLocations)
@@ -68,7 +68,7 @@ public class ValidationError implements GraphQLError {
         this.extensions = builder.extensions;
     }
 
-    private String mkMessage(ValidationErrorType validationErrorType, String description, List<String> queryPath) {
+    private String mkMessage(ValidationErrorTypeInterface validationErrorType, String description, List<String> queryPath) {
         return String.format("Validation error of type %s: %s%s", validationErrorType, description, toPath(queryPath));
     }
 
@@ -79,7 +79,7 @@ public class ValidationError implements GraphQLError {
         return String.format(" @ '%s'", String.join("/", queryPath));
     }
 
-    public ValidationErrorType getValidationErrorType() {
+    public ValidationErrorTypeInterface getValidationErrorType() {
         return validationErrorType;
     }
 
@@ -142,11 +142,11 @@ public class ValidationError implements GraphQLError {
         private List<SourceLocation> sourceLocations;
         private Map<String, Object> extensions;
         private String description;
-        private ValidationErrorType validationErrorType;
+        private ValidationErrorTypeInterface validationErrorType;
         private List<String> queryPath;
 
 
-        public Builder validationErrorType(ValidationErrorType validationErrorType) {
+        public Builder validationErrorType(ValidationErrorTypeInterface validationErrorType) {
             this.validationErrorType = validationErrorType;
             return this;
         }
