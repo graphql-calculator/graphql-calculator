@@ -93,7 +93,7 @@ query fetchSourceDemo($userIds: [Int]){
 
 #### **@includeBy**
 
-`directive @includeBy(predicate: String!, dependencySources: String) on FIELD`
+`directive @includeBy(predicate: String!) on FIELD`
 
 参数解释：
 - predicate：判断是否解析该字段的表达式，表达式参数为查询变量；
@@ -276,7 +276,7 @@ query filterItemListByBindingCouponIdAndFilterUnSaleItems ( $couponId: Int,$item
 
 控制流主要为根据条件，判断是否请求某个类型数据、或者请求哪个类型数据。
 
-控制流通过 **@skipBy**进行控制 `directive @skipBy(expression: String!, dependencySources: String) on FIELD`。
+控制流通过 **@skipBy**进行控制 `directive @skipBy(predicate: String!) on FIELD`。
 
 通过 **@skipBy** 可实现类似 `switch-case`的控制流，
 ```
@@ -288,24 +288,17 @@ switch(value):
     case(judgeFunction_2(value)): opration_2;
 
 ``` 
-和if控制流 `if(conditioin){...add return value...}`。
 
 ```graphql
-# 如果用户不在 ab实验实验组区间[0,3]内，则对其查看的页面不展示优惠券、即不请求券数据
-query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
-
-    marketing
-    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
-    {
-        coupon(couponId: $couponId){
-            couponId
-            couponText
-            price
+query skipBy_case01($userId:Int){
+    consumer{
+        userInfo(userId: $userId)
+        # the userInfo field would not be queried if 'userId>100' is true
+        @skipBy(predicate: "userId>100")
+        {
+            userId
+            name
         }
-    }
-
-    toolInfo{
-        abInfo(userId: $userId,abKey:$abKey) @fetchSource(name: "abValue")
     }
 }
 ```
