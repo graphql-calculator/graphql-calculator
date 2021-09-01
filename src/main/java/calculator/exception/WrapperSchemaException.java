@@ -16,11 +16,13 @@
  */
 package calculator.exception;
 
+import calculator.engine.annotation.PublicApi;
 import graphql.GraphQLException;
 
 /**
  * RuntimeException
  */
+@PublicApi
 public class WrapperSchemaException extends GraphQLException {
     public WrapperSchemaException(String message) {
         super(message);

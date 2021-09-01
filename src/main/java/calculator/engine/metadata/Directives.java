@@ -31,6 +31,8 @@ import java.util.Map;
 import static graphql.Scalars.GraphQLBoolean;
 import static graphql.Scalars.GraphQLString;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
+import static graphql.introspection.Introspection.DirectiveLocation.FRAGMENT_SPREAD;
+import static graphql.introspection.Introspection.DirectiveLocation.INLINE_FRAGMENT;
 
 /**
  * The customized directives which to be provided to describe runtime operation, including query execution, type validation.
@@ -50,33 +52,23 @@ public class Directives {
     // directive @skipBy(expression: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
             .name("skipBy")
-            .description("determine whether the field would be skipped by expression, taking argument and dependency source as expression arguments.")
-            .validLocation(FIELD)
+            .description("determine whether the field would be skipped by expression, taking query variable as script arguments.")
+            .validLocations(FIELD, INLINE_FRAGMENT,FRAGMENT_SPREAD)
             .argument(GraphQLArgument
                     .newArgument()
                     .name("predicate")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("dependencySources")
-                    .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     // directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
     public final static GraphQLDirective INCLUDE_BY = GraphQLDirective.newDirective()
             .name("includeBy")
-            .description("determine whether the field would be queried by expression, taking argument and dependency source as expression arguments.")
-            .validLocation(FIELD)
+            .description("determine whether the field would be queried by expression, taking query variable as script arguments.")
+            .validLocations(FIELD, INLINE_FRAGMENT, FRAGMENT_SPREAD)
             .argument(GraphQLArgument
                     .newArgument()
                     .name("predicate")
                     .type(GraphQLNonNull.nonNull(GraphQLString)))
-            .argument(GraphQLArgument
-                    .newArgument()
-                    .name("dependencySources")
-                    .description("the fetched value which the annotated field dependency.")
-                    .type(GraphQLList.list(GraphQLNonNull.nonNull(GraphQLString))))
             .build();
 
     // directive @mock(value: String!) on FIELD

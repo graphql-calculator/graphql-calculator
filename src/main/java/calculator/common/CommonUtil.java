@@ -26,6 +26,7 @@ import graphql.language.Directive;
 import graphql.language.EnumValue;
 import graphql.language.FloatValue;
 import graphql.language.IntValue;
+import graphql.language.NamedNode;
 import graphql.language.StringValue;
 import graphql.language.Value;
 
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static calculator.common.GraphQLUtil.PATH_SEPARATOR;
@@ -188,12 +190,30 @@ public class CommonUtil {
         return Collections.unmodifiableSet(wrapperTypes);
     }
 
+    /**
+     * Determines if the class of specified object represents a wrapper type.
+     */
     public static boolean isWrapperType(Object object) {
         return WRAPPER_TYPES.contains(object.getClass());
     }
 
+    /**
+     * Determines if the class of specified object represents a basic type: primitive type, wrapper type or CharSequence.
+     */
     public static boolean isBasicType(Object object) {
         return object.getClass().isPrimitive() || isWrapperType((object)) || object instanceof CharSequence;
+    }
+
+    /**
+     * Return the first NamedNode which match the provided name.
+     */
+    public static <T extends NamedNode<T>> T findNodeByName(List<T> namedNodes, String name) {
+        for (T namedNode : namedNodes) {
+            if (Objects.equals(namedNode.getName(), name)) {
+                return namedNode;
+            }
+        }
+        return null;
     }
 
 }

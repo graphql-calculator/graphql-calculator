@@ -69,7 +69,7 @@ public class SkipAndIncludeExtendTest {
         assert skipResult.getErrors().isEmpty();
         assert Objects.equals(
                 skipResult.getData().toString(),
-                "{consumer={userInfo=null}}"
+                "{consumer={}}"
         );
     }
 
@@ -99,7 +99,7 @@ public class SkipAndIncludeExtendTest {
         assert executionResult.getErrors().isEmpty();
         assert Objects.equals(
                 executionResult.getData().toString(),
-                "{consumer={userInfo=null}}"
+                "{consumer={}}"
         );
 
         ExecutionInput skipInput = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 1001)).build();
@@ -140,9 +140,12 @@ public class SkipAndIncludeExtendTest {
         ExecutionInput skipInput = ExecutionInput.newExecutionInput(query).variables(Collections.singletonMap("userId", 2)).build();
         ExecutionResult skipResult = graphQLSource.getGraphQL().execute(skipInput);
         assert skipResult.getErrors().isEmpty();
+
+        System.out.println(skipResult.getData().toString());
+
         assert Objects.equals(
                 skipResult.getData().toString(),
-                "{consumer={userInfo={userId=2, name=null}}}"
+                "{consumer={userInfo={userId=2}}}"
         );
     }
 
@@ -188,7 +191,246 @@ public class SkipAndIncludeExtendTest {
         assert skipResult.getErrors().isEmpty();
         assert Objects.equals(
                 skipResult.getData().toString(),
-                "{consumer={userInfo={userId=1, age=10, name=1_name, email=null}}}"
+                "{consumer={userInfo={userId=1, age=10, name=1_name}}}"
         );
     }
+
+    @Test
+    public void skipByTest_inlineFragmentTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_inlineFragmentTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @skipBy(predicate: \"userId>18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "\n" +
+                "        notSkipUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @skipBy(predicate: \"userId<18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19}");
+        assert Objects.equals(data.get("consumer").get("notSkipUserInfo").toString(), "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}");
+    }
+
+
+    @Test
+    public void skipByTest_fragmentSpreadTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_fragmentSpreadTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @skipBy(predicate: \"userId>18\")\n" +
+                "        }\n" +
+                "\n" +
+                "        notSkipUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @skipBy(predicate: \"userId<18\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n" +
+                "\n" +
+                "fragment userinfo on User{\n" +
+                "    age\n" +
+                "    name\n" +
+                "    email\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19}");
+        assert Objects.equals(
+                data.get("consumer").get("notSkipUserInfo").toString(),
+                "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}"
+        );
+    }
+
+
+    @Test
+    public void includeByTest_inlineFragmentTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_inlineFragmentTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @includeBy(predicate: \"userId>18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "\n" +
+                "        notIncludeUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ... @includeBy(predicate: \"userId<18\") {\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}");
+        assert Objects.equals(data.get("consumer").get("notIncludeUserInfo").toString(), "{userId=19}");
+    }
+
+
+    @Test
+    public void includeByTest_fragmentSpreadTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_fragmentSpreadTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @includeBy(predicate: \"userId<18\")\n" +
+                "        }\n" +
+                "\n" +
+                "        includeUserInfo: userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...userinfo @includeBy(predicate: \"userId>18\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n" +
+                "\n" +
+                "fragment userinfo on User{\n" +
+                "    age\n" +
+                "    name\n" +
+                "    email\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19}");
+        assert Objects.equals(
+                data.get("consumer").get("includeUserInfo").toString(),
+                "{userId=19, age=90, name=19_name, email=19dugk@foxmail.com}"
+        );
+    }
+
+
+    @Test
+    public void skipByTest_FragmentWithSkip() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_FragmentWithSkip($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId) {\n" +
+                "            userId\n" +
+                "            ...skipUserInfo\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n" +
+                "\n" +
+                "fragment skipUserInfo on User{\n" +
+                "    email @includeBy(predicate: \"userId<18\")\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        ExecutionResult executionResult = graphQLSource.getGraphQL().execute(input);
+        assert executionResult.getErrors().isEmpty();
+
+        Map<String, Map<String, Object>> data = executionResult.getData();
+        assert Objects.equals(data.get("consumer").get("userInfo").toString(), "{userId=19}");
+    }
+
+    @Test(expected = ClassCastException.class)
+    public void skipByTest_exceptionQueryTest01() {
+        GraphQLSource graphQLSource = GraphQLSourceHolder.getGraphQLByDataFetcherMap(
+                GraphQLSourceHolder.defaultDataFetcherInfo()
+        );
+
+        String query = "" +
+                "query skipByTest_exceptionQueryTest01($userId: Int) {\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId)\n" +
+                "        @skipBy(predicate: \"userId+18\")\n" +
+                "        {\n" +
+                "            userId\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphQLSource.getWrappedSchema(), DefaultConfig.newConfig().build());
+        assert !validateResult.isFailure();
+
+        HashMap<String, Object> variable = new LinkedHashMap<>();
+        variable.put("userId", 19);
+        ExecutionInput input = ExecutionInput.newExecutionInput(query).variables(variable).build();
+        graphQLSource.getGraphQL().execute(input);
+    }
+
 }

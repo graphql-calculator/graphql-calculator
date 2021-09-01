@@ -1,8 +1,8 @@
 
 # 指令定义
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
-directive @skipBy(predicate: String!, dependencySources: [String!]) on FIELD
-directive @includeBy(predicate: String!, dependencySources:[String!]) on FIELD
+directive @skipBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD
+directive @includeBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD
 directive @mock(value: String!) on FIELD
 directive @filter(predicate: String!) on FIELD
 directive @sort(key: String!,reversed: Boolean = false) on FIELD
@@ -17,6 +17,72 @@ enum ParamTransformType{
     LIST_MAP
 }
 
+
+query skipByTest_exceptionQueryTest01($userId: Int) {
+    consumer{
+        userInfo(userId: $userId)
+        @skipBy(predicate: "userId+18")
+        {
+            userId
+        }
+    }
+}
+
+query skipByTest_FragmentWithSkip($userId: Int) {
+    consumer{
+        userInfo(userId: $userId) {
+            userId
+            ...skipUserInfo
+        }
+    }
+}
+
+fragment skipUserInfo on User{
+    email @skipBy(predicate: "userId<18")
+}
+
+query skipByTest_fragmentSpreadTest01($userId: Int) {
+    consumer{
+        userInfo(userId: $userId) {
+            userId
+            ...userinfo @skipBy(predicate: "userId>18")
+        }
+
+        notSkipUserInfo: userInfo(userId: $userId) {
+            userId
+            ...userinfo @skipBy(predicate: "userId<18")
+        }
+    }
+}
+
+# 跟 @skip 和 @include 保持一致，FRAGMENT_DEFINITION 不进行判断
+fragment userinfo on User{
+    age
+    name
+    email
+}
+
+query skipByTest_inlineFragmentTest01($userId: Int) {
+    consumer{
+        userInfo(userId: $userId) {
+            userId
+            ... @skipBy(predicate: "userId>18") {
+                age
+                name
+                email
+            }
+        }
+
+        notSkipUserInfo: userInfo(userId: $userId) {
+            userId
+            ... @skipBy(predicate: "userId<18") {
+                age
+                name
+                email
+            }
+        }
+    }
+}
 
 query distinctSimpleCase_notSetComparator($userIds:[Int]){
     consumer{
@@ -432,22 +498,22 @@ query mapListArgument($itemIds: [Int]){
 
 
 # 如果用户不在 ab实验实验组区间[0,3]内，则对其查看的页面不展示优惠券、即不请求券数据
-query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
-
-    marketing
-    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
-    {
-        coupon(couponId: $couponId){
-            couponId
-            couponText
-            price
-        }
-    }
-
-    toolInfo{
-        abInfo(userId: $userId,abKey:$abKey) @fetchSource(name: "abValue")
-    }
-}
+#query abUserForCouponAcquire($userId: Int, $couponId: Int,$abKey:String){
+#
+#    marketing
+#    @skipBy(predicate: "abValue <= 3",dependencySources: "abValue")
+#    {
+#        coupon(couponId: $couponId){
+#            couponId
+#            couponText
+#            price
+#        }
+#    }
+#
+#    toolInfo{
+#        abInfo(userId: $userId,abKey:$abKey) @fetchSource(name: "abValue")
+#    }
+#}
 
 
 # moc
