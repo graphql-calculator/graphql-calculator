@@ -12,7 +12,7 @@
 
 # 特性
 
-指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用，具体使用方式参考**指令说明**和**使用示例**。
+指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用。计算指令的目的是增强graphql查询的表意能力，因此指令参数只可使用常量字符串，不可使用查询变量，因为变量将使得查询的语义和合法性变得不明确。
 
 - 字段加工：通过表达式对结果字段进行加工处理，可通过多个字段计算出一个字段；
 - 列表处理：通过列表指令可便捷的对结果中的列表字段进行过滤、排序、去重；
