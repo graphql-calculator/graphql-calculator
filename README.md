@@ -23,15 +23,15 @@ The argument of directive must be static string value. query variables can't be 
 
 # Getting Started
 
-#### 1. Adding Dependency
+#### 1. Add dependency
 
 ```
 implementation group: 'com.graphql-java-calculator', name: 'graphql-java-calculator', version: '1.1'
 ```
 
-#### 2. Wrap GraphQL Engine
+#### 2. Wrap graphQL engine
 
-##### 2.1 Make async Fetcher implements `AsyncDataFetcherInterface`
+##### 2.1 Make async DataFetcher implements `AsyncDataFetcherInterface`
 
 If async DataFetcher is used, then make it implements `AsyncDataFetcherInterface`, 
 return the wrapped DataFetcher and the thread pool used in async DataFetcher by override method.
