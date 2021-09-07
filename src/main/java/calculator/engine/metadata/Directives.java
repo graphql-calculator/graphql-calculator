@@ -159,7 +159,7 @@ public class Directives {
     // directive @fetchSource(name: String!, mapper:String) on FIELD
     public final static GraphQLDirective FETCH_SOURCE = GraphQLDirective.newDirective()
             .name("fetchSource")
-            .description("hold the fetched value which can be acquired by calculator directives.")
+            .description("hold the fetched value which can be acquired by calculator directives, the name is unique in query.")
             .validLocation(FIELD)
             .argument(GraphQLArgument
                     .newArgument()

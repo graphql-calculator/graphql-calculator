@@ -81,7 +81,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
      * 2. 该节点所代表的异步任务结束所依赖的父节点列表 topTaskPathList ；
      * 3. topTask节点的父亲节点列表——这些节点失败则topTaskPathList中所有的异步任务都不会执行。
      *
-     * @param isAnnotatedNode   是否是递归调用该方法，kp 是否是被 @fetchSource 注解的节点
+     * @param isAnnotatedNode   是否是递归调用该方法，即是否是被 @fetchSource 注解的节点
      * @param sourceConvert     获取 fetchSource 后进行数据转换的表达式
      * @param visitorEnv        请求变量
      * @param topTaskPathList   @fetchSource 注解的节点完成所依赖的顶层节点。
