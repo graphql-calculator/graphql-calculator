@@ -1,4 +1,4 @@
-# graphql-java-calculator
+# graphql-calculator
 
 ![Build and Publish](https://github.com/dugenkui03/graphql-java-calculator/workflows/Build%20and%20Publish/badge.svg)
 [![Latest Release](https://maven-badges.herokuapp.com/maven-central/com.graphql-java-calculator/graphql-java-calculator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.graphql-java-calculator/graphql-java-calculator)
@@ -23,13 +23,13 @@ The argument of directive must be static string value. query variables can't be 
 
 # Getting Started
 
-#### 1. Adding Dependency
+#### 1. Add dependency
 
 ```
 implementation group: 'com.graphql-java-calculator', name: 'graphql-java-calculator', version: '1.1'
 ```
 
-#### 2. Wrap GraphQL Engine
+#### 2. Wrap graphql engine
 
 ##### 2.1 Make async Fetcher implements `AsyncDataFetcherInterface`
 
