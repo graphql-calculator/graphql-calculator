@@ -1,5 +1,5 @@
 
-# 指令定义
+# the definition of directive
 directive @fetchSource(name: String!, sourceConvert:String) on FIELD
 directive @skipBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD
 directive @includeBy(predicate: String!) on FIELD | INLINE_FRAGMENT | FRAGMENT_SPREAD
