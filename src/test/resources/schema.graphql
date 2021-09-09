@@ -32,6 +32,7 @@ type Consumer{
     isNewUser(redisKey: String, userId: Int): NewUserInfo
 }
 
+# todo firstName lastName
 type User{
     userId: Int
     age: Int
