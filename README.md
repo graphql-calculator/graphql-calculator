@@ -131,6 +131,8 @@ query parseFetchedValueToAnotherFieldArgumentMap($itemIds:[Int]){
 
     consumer{
         userInfoList(userIds: 1)
+        # transform the argument of "userInfoList" named "userIds" according to expression "sellerIdList" and expression argument, 
+        # which mean replace userIds value by source named "sellerIdList"
         @argumentTransform(argumentName: "userIds", 
             operateType: MAP, 
             expression: "sellerIdList", 
