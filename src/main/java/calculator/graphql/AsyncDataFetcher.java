@@ -27,6 +27,10 @@ import java.util.concurrent.ForkJoinPool;
 
 import static graphql.Assert.assertNotNull;
 
+/**
+ * Replace this class with {@link graphql.schema.AsyncDataFetcher}.
+ */
+@Deprecated
 @Internal
 public class AsyncDataFetcher<T> implements DataFetcher<CompletableFuture<T>>, AsyncDataFetcherInterface<T> {
 

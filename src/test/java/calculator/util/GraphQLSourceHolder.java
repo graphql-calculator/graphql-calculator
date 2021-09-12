@@ -19,7 +19,7 @@ package calculator.util;
 import static calculator.engine.service.BusinessServiceClient.batchSellerInfoByIds;
 import static calculator.engine.service.BusinessServiceClient.getSellerInfoById;
 import static calculator.engine.service.ConsumerServiceClient.batchUserInfoByIds;
-import static calculator.graphql.AsyncDataFetcher.async;
+import static graphql.schema.AsyncDataFetcher.async;
 
 import calculator.config.DefaultConfig;
 import calculator.engine.service.CommodityServiceClient;

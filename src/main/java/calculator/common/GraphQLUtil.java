@@ -18,7 +18,11 @@
 package calculator.common;
 
 import calculator.engine.annotation.Internal;
+import calculator.engine.metadata.DataFetcherDefinition;
+import calculator.graphql.AsyncDataFetcherInterface;
 import graphql.analysis.QueryVisitorFieldEnvironment;
+import graphql.schema.AsyncDataFetcher;
+import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLOutputType;
@@ -31,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 
 
 @Internal
@@ -168,6 +173,45 @@ public class GraphQLUtil {
         GraphQLOutputType type = fieldDefinition.getType();
         GraphQLUnmodifiedType unwrapAllType = GraphQLTypeUtil.unwrapAll(type);
         return unwrapAllType instanceof GraphQLScalarType;
+    }
+
+
+    /**
+     * Get the definition information about the dataFetcher.
+     *
+     * @param dataFetcher dataFetcher
+     * @return the definition information about the dataFetcher
+     */
+    public static DataFetcherDefinition getDataFetcherDefinition(DataFetcher<?> dataFetcher) {
+        DataFetcherDefinition.Builder builder = new DataFetcherDefinition.Builder();
+        if (dataFetcher instanceof AsyncDataFetcher) {
+            builder.isGraphqlAsyncFetcher(true);
+            builder.originalFetcher(dataFetcher);
+
+            DataFetcher<?> wrappedDataFetcher = ((AsyncDataFetcher<?>) dataFetcher).getWrappedDataFetcher();
+            builder.wrappedDataFetcher(wrappedDataFetcher);
+            builder.actionFetcher(wrappedDataFetcher);
+
+            builder.executor(((AsyncDataFetcher<?>) dataFetcher).getExecutor());
+            return builder.build();
+        }
+
+        if (dataFetcher instanceof AsyncDataFetcherInterface) {
+            builder.isCalculatorAsyncFetcher(true);
+            builder.originalFetcher(dataFetcher);
+
+            DataFetcher<?> wrappedDataFetcher = ((AsyncDataFetcherInterface<?>) dataFetcher).getWrappedDataFetcher();
+            builder.wrappedDataFetcher(wrappedDataFetcher);
+            builder.actionFetcher(wrappedDataFetcher);
+
+            builder.executor(((AsyncDataFetcherInterface<?>) dataFetcher).getExecutor());
+            return builder.build();
+        }
+
+        return builder.originalFetcher(dataFetcher)
+                .actionFetcher(dataFetcher)
+                .executor(ForkJoinPool.commonPool())
+                .build();
     }
 
 }

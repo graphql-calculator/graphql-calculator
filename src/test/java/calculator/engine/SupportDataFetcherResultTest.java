@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static calculator.util.TestUtil.listsWithSameElements;
-import static calculator.graphql.AsyncDataFetcher.async;
+import static graphql.schema.AsyncDataFetcher.async;
 
 public class SupportDataFetcherResultTest {
 
