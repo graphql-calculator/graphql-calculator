@@ -7,12 +7,13 @@
 
 ----------------------------------------
 
-基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，`graphql-java-calculator`为`graphql`查询提供了数据编排、动态计算和控制流的能力。
+基于[指令机制](https://spec.graphql.org/draft/#sec-Language.Directives)，GraphQL Calculator为`graphql`查询提供了数据编排、动态计算和控制流的能力。
 
 
 # 特性
 
-指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用。计算指令的目的是增强graphql查询的表意能力，因此指令参数只可使用常量字符串，不可使用查询变量，因为变量将使得查询的语义和合法性变得不明确。
+指令名称和语义参考[`java.util.stream.Stream`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Stream.html)，易于理解和使用。
+计算指令的目的是增强graphql查询的表意能力，因此指令表达式只可使用常量字符串，不可使用查询变量，因为变量将使得查询的语义和合法性变得不明确。
 
 - 字段加工：通过表达式对结果字段进行加工处理，可通过多个字段计算出一个字段；
 - 列表处理：通过列表指令可便捷的对结果中的列表字段进行过滤、排序、去重；
@@ -25,6 +26,7 @@
 
 #### 1. 引入依赖
 
+最新版本见[Mvn Repository](https://mvnrepository.com/artifact/com.graphql-java-calculator/graphql-java-calculator)。
 ```
 <dependency>
     <groupId>com.graphql-java-calculator</groupId>
@@ -35,25 +37,21 @@
 
 #### 2. 包装执行引擎
 
-##### 2.1 继承`AsyncDataFetcherInterface`
+##### 2.1 创建`GraphQLSource`
 
-如果项目中使用了异步`DataFetcher`，则使其则继承`AsyncDataFetcherInterface`，
-并在方法实现中返回被包装的`DataFetcher`和使用的线程池。
+通过`DefaultGraphQLSourceBuilder`创建`GraphQLSource`对象，该对象包含`GraphQLSchema`和执行引擎`GraphQL`。
+可使用配置类`Config`指定表达式引擎，默认表达式引擎为[`aviatorscript`](https://github.com/killme2008/aviatorscript)。
 
-##### 2.2 创建`GraphQLSource`
+##### 2.2 执行前校验
 
-使用配置类`Config`创建`GraphQLSource`对象，`GraphQLSource`包含`GraphQLSchema`和`GraphQL`，
-配置类可指定脚本执行引擎、计算指令引擎使用的线程池和对象转换工具。
-
-脚本语法使用了[`aviatorscript`](https://github.com/killme2008/aviatorscript)，aviator是graphql-java-calculator的默认表达行引擎，
-可通过`ScriptEvaluator`和`Config`自定义脚本执行引擎。
-
-##### 2.3 执行前校验
-
-使用`Validator`对计算指令的使用进行语法校验、该校验包含graphql原生语法校验，
+通过`Validator`对使用了计算指令的查询进行校验，该校验包含graphql原生语法校验，
 建议实现`CalculatorDocumentCachedProvider`缓存校验结果。
 
 完整示例参考[`Example`](/src/test/java/calculator/example/Example.java)
+
+**注意**：
+如果项目中使用了自定义的异步`DataFetcher`，则使其则继承`AsyncDataFetcherInterface`、并在接口方法实现中返回被包装的`DataFetcher`和使用的线程池。
+如果使用的是`graphql-java`的`graphql.schema.AsyncDataFetcher`则可忽略该操作。
 
 
 # 指令说明
@@ -170,7 +168,7 @@ comparator为可选参数，当未设置该参数时使用`System.identityHashCo
 
 # 使用示例
 
-以[测试schema](https://github.com/dugenkui03/graphql-java-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
+以[测试schema](https://github.com/graphql-calculator/graphql-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
 对计算指令实现数据编排、结果处理转换和控制流等的能力进行说明。
 
 
@@ -416,4 +414,4 @@ query distinctUserInfoListByAge($userIds:[Int]){
 
 # 交流反馈
 
-欢迎在[issue](https://github.com/dugenkui03/graphql-java-calculator/issues)区对组件问题或期待的新特性进行讨论，欢迎参与项目的建设。
+欢迎在[issue](https://github.com/graphql-calculator/graphql-calculator/issues)区对组件问题或期待的新特性进行讨论，欢迎参与项目的建设。
