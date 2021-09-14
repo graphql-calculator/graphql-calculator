@@ -18,12 +18,13 @@ package calculator.engine;
 
 import calculator.common.CollectionUtil;
 import calculator.common.CommonUtil;
+import calculator.common.GraphQLUtil;
 import calculator.config.Config;
 import calculator.engine.annotation.Internal;
+import calculator.engine.metadata.DataFetcherDefinition;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
 import calculator.engine.script.ScriptEvaluator;
-import calculator.graphql.AsyncDataFetcherInterface;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
 import graphql.com.google.common.collect.ImmutableList;
@@ -83,7 +84,7 @@ import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
-import static calculator.graphql.AsyncDataFetcher.async;
+import static graphql.schema.AsyncDataFetcher.async;
 import static java.util.Comparator.nullsLast;
 import static java.util.stream.Collectors.toList;
 
@@ -424,15 +425,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
 
-
     private DataFetcher<?> wrapFilterDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
-
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
 
         DataFetcher<?> wrappedFetcher = environment -> {
-            Object originalResult = innerDataFetcher.get(environment);
+            Object originalResult = dataFetcherDefinition.getActionFetcher().get(environment);
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
@@ -445,19 +442,18 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, listResult);
         };
 
-        if (isAsyncFetcher) {
-            return async(wrappedFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedFetcher, dataFetcherDefinition.getExecutor());
         }
         return wrappedFetcher;
     }
 
     private DataFetcher<?> wrapSortDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Object originalResult = innerDataFetcher.get(environment);
+            Object originalResult = dataFetcherDefinition.getActionFetcher().get(environment);
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
@@ -471,8 +467,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, listOrArray);
         };
 
-        if (isAsyncFetcher) {
-            return async(wrappedDataFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedDataFetcher, dataFetcherDefinition.getExecutor());
         }
         return wrappedDataFetcher;
     }
@@ -480,12 +476,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private DataFetcher<?> wrapSortByDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
 
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
-            Object originalResult = innerDataFetcher.get(environment);
+            Object originalResult = dataFetcherDefinition.getActionFetcher().get(environment);
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
@@ -498,8 +492,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, listOrArray);
         };
 
-        if (isAsyncFetcher) {
-            return async(wrappedDataFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedDataFetcher, dataFetcherDefinition.getExecutor());
         }
 
         return wrappedDataFetcher;
@@ -507,12 +501,11 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
 
     private DataFetcher<?> wrapDistinctDataFetcher(DataFetcher<?> defaultDF, ValueUnboxer valueUnboxer) {
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
+
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
 
         DataFetcher<?> wrappedFetcher = environment -> {
-            Object originalResult = innerDataFetcher.get(environment);
+            Object originalResult = dataFetcherDefinition.getActionFetcher().get(environment);
             if (originalResult instanceof CompletionStage) {
                 originalResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
             }
@@ -525,8 +518,8 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return wrapResult(originalResult, listResult);
         };
 
-        if (isAsyncFetcher) {
-            return async(wrappedFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedFetcher, dataFetcherDefinition.getExecutor());
         }
         return wrappedFetcher;
     }
@@ -537,8 +530,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                               List<String> dependencySources,
                                               ExecutionEngineState engineState) {
 
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
 
         DataFetcher<?> wrappedDataFetcher = environment -> {
 
@@ -566,8 +558,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
             return scriptEvaluator.evaluate(mapper, expEnv);
         };
 
-        if (isAsyncFetcher || (dependencySources != null && dependencySources.size() > 0)) {
-            return async(wrappedDataFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedDataFetcher, dataFetcherDefinition.getExecutor());
+        }
+
+        // e.g. PropertyDataFetcher with @map, and dependencies is not empty.
+        if (dependencySources != null && dependencySources.size() > 0) {
+            return async(wrappedDataFetcher, executor);
         }
 
         return wrappedDataFetcher;
@@ -579,11 +576,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                             List<String> dependencySources,
                                                             DataFetcher<?> defaultDF,
                                                             ExecutionEngineState engineState) {
-        boolean isAsyncFetcher = defaultDF instanceof AsyncDataFetcherInterface;
-        Executor innerExecutor = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getExecutor() : executor;
-        DataFetcher<?> innerDataFetcher = isAsyncFetcher ? ((AsyncDataFetcherInterface<?>) defaultDF).getWrappedDataFetcher() : defaultDF;
 
-        DataFetcher<?> wrappedFetcher = environment -> {
+        DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(defaultDF);
+
+        DataFetcher<?> wrappedDataFetcher = environment -> {
             Map<String, Object> sourceEnv = new LinkedHashMap<>();
             if (dependencySources != null && !dependencySources.isEmpty()) {
                 for (String dependencySource : dependencySources) {
@@ -600,7 +596,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (Objects.equals(operateType, Directives.ParamTransformType.FILTER.name())) {
                 List<Object> argument = environment.getArgument(argumentName);
                 if (argument == null || argument.isEmpty()) {
-                    return innerDataFetcher.get(environment);
+                    return dataFetcherDefinition.getActionFetcher().get(environment);
                 }
 
                 argument = argument.stream().filter(ele -> {
@@ -615,8 +611,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 newArguments.put(argumentName, argument);
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
-                Object innerResult = innerDataFetcher.get(newEnvironment);
-                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                Object innerResult = dataFetcherDefinition.getActionFetcher().get(newEnvironment);
+                if (innerResult instanceof CompletionStage
+                        && (dataFetcherDefinition.isAsyncFetcher() || (dependencySources != null && dependencySources.size() > 0))
+                ) {
                     return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
                 }
                 return innerResult;
@@ -626,7 +624,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             if (Objects.equals(operateType, Directives.ParamTransformType.LIST_MAP.name())) {
                 List<Object> argument = environment.getArgument(argumentName);
                 if (argument == null || argument.isEmpty()) {
-                    return innerDataFetcher.get(environment);
+                    return dataFetcherDefinition.getActionFetcher().get(environment);
                 }
 
                 argument = argument.stream().map(ele -> {
@@ -641,8 +639,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
 
-                Object innerResult = innerDataFetcher.get(newEnvironment);
-                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                Object innerResult = dataFetcherDefinition.getActionFetcher().get(newEnvironment);
+                if (innerResult instanceof CompletionStage
+                        && (dataFetcherDefinition.isAsyncFetcher() || (dependencySources != null && dependencySources.size() > 0))
+                ) {
                     return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
                 }
                 return innerResult;
@@ -661,8 +661,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(environment).arguments(newArguments).build();
 
-                Object innerResult = innerDataFetcher.get(newEnvironment);
-                if (innerResult instanceof CompletionStage && (isAsyncFetcher || dependencySources != null)) {
+                Object innerResult = dataFetcherDefinition.getActionFetcher().get(newEnvironment);
+                if (innerResult instanceof CompletionStage
+                        && (dataFetcherDefinition.isAsyncFetcher() || (dependencySources != null && dependencySources.size() > 0))
+                ) {
                     return ((CompletionStage<?>) innerResult).toCompletableFuture().join();
                 }
                 return innerResult;
@@ -671,11 +673,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
             throw new RuntimeException("can not invoke here.");
         };
 
-        if (isAsyncFetcher || dependencySources != null) {
-            return async(wrappedFetcher, innerExecutor);
+        if (dataFetcherDefinition.isAsyncFetcher()) {
+            return async(wrappedDataFetcher, dataFetcherDefinition.getExecutor());
         }
 
-        return wrappedFetcher;
+        // e.g. PropertyDataFetcher with @map, and dependencies is not empty.
+        if (dependencySources != null && dependencySources.size() > 0) {
+            return async(wrappedDataFetcher, executor);
+        }
+
+        return wrappedDataFetcher;
     }
 
     private FetchSourceTask getFetchSourceFromState(ExecutionEngineState engineState, String sourceName) {
@@ -833,7 +840,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(SORT.getName(), directive.getName())) {
-                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getDefaultValue();
+                Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getArgumentDefaultValue().getValue();
                 String sortKey = getArgumentFromDirective(directive, "key");
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null ? reversed : defaultReversed.get();
@@ -846,7 +853,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 Boolean reversed = getArgumentFromDirective(directive, "reversed");
                 reversed = reversed != null
                         ? reversed
-                        : (Boolean) SORT_BY.getArgument("reversed").getDefaultValue();
+                        : (Boolean) SORT_BY.getArgument("reversed").getArgumentDefaultValue().getValue();
                 sortByCollectionData(listOrArray, comparator, reversed);
                 continue;
             }
