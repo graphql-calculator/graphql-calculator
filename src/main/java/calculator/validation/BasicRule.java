@@ -354,11 +354,23 @@ public class BasicRule extends AbstractRule {
                 }
 
                 String sourceConvert = getArgumentFromDirective(directive, "sourceConvert");
-                if (sourceConvert != null && !scriptEvaluator.isValidScript(sourceConvert)) {
-                    String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}.", sourceConvert, fieldFullPath);
-                    addValidError(location, errorMsg);
-                }
+                if (sourceConvert != null) {
+                    if (!scriptEvaluator.isValidScript(sourceConvert)) {
+                        String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}.", sourceConvert, fieldFullPath);
+                        addValidError(location, errorMsg);
+                        continue;
+                    }
 
+                    List<String> scriptArgument = scriptEvaluator.getScriptArgument(sourceConvert);
+                    if (scriptArgument != null && !scriptArgument.isEmpty()) {
+                        if (scriptArgument.size() != 1 || !Objects.equals(scriptArgument.get(0), environment.getField().getResultKey())) {
+                            String errorMsg = String.format("only resultKey '%s' can be used for the 'sourceConvert' of @%s on {%s}.",
+                                    environment.getField().getResultKey(), directive.getName(), fieldFullPath);
+                            addValidError(location, errorMsg);
+                            continue;
+                        }
+                    }
+                }
 
                 // 获取其父类节点路径
                 Set<String> parentPathSet = parentPathSet(environment);
