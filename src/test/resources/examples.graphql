@@ -440,6 +440,28 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 }
 
 
+query sourceConvert_case01 ($itemIds: [Int]){
+
+    commodity{
+        itemList(itemIds: $itemIds){
+            itemId
+            sellerId @fetchSource(name: "sellerIds",sourceConvert: "filter(sellerId,seq.gt(3))")
+            name
+            salePrice
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "sellerIds", dependencySources: ["sellerIds"])
+        {
+            userId
+            age
+            name
+        }
+    }
+}
+
 ## 查询某个红包可用的商品集合信息，并过滤掉下架的商品
 query getItemListBindingCouponIdAndFilterUnSaleItems ( $couponId: Int) {
     commodity{

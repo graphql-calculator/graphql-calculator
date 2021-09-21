@@ -45,7 +45,7 @@ public class FetchSourceTask {
 
     private final String mapper;
 
-    private final String mapperKey;
+    private final String resultKey;
 
     private final FetchSourceTask parentTask;
 
@@ -58,7 +58,7 @@ public class FetchSourceTask {
                             boolean isTopTask,
                             CompletableFuture<Object> taskFuture,
                             String mapper,
-                            String mapperKey,
+                            String resultKey,
                             FetchSourceTask parentTask) {
         this.sourceName = sourceName;
         this.isAnnotatedNode = isAnnotatedNode;
@@ -67,7 +67,7 @@ public class FetchSourceTask {
         this.isTopTask = isTopTask;
         this.taskFuture = Objects.requireNonNull(taskFuture);
         this.mapper = mapper;
-        this.mapperKey = mapperKey;
+        this.resultKey = resultKey;
         this.parentTask = parentTask;
     }
 
@@ -99,8 +99,8 @@ public class FetchSourceTask {
         return mapper;
     }
 
-    public String getMapperKey() {
-        return mapperKey;
+    public String getResultKey() {
+        return resultKey;
     }
 
     public FetchSourceTask getParentTask() {
@@ -147,7 +147,7 @@ public class FetchSourceTask {
 
         private String mapper;
 
-        private String mapperKey;
+        private String resultKey;
 
         private FetchSourceTask parentTask;
 
@@ -191,8 +191,8 @@ public class FetchSourceTask {
             return this;
         }
 
-        public Builder mapperKey(String mapperKey) {
-            this.mapperKey = mapperKey;
+        public Builder resultKey(String resultKey) {
+            this.resultKey = resultKey;
             return this;
         }
 
@@ -205,7 +205,7 @@ public class FetchSourceTask {
                     isTopTask,
                     taskFuture,
                     mapper,
-                    mapperKey,
+                    resultKey,
                     parentTask
             );
         }

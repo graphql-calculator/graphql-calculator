@@ -284,7 +284,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), getScriptEnv(result))
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getResultKey(), getScriptEnv(result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
@@ -336,7 +336,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                 } else {
                     try {
                         Object mappedValue = scriptEvaluator.evaluate(
-                                child.getMapper(), Collections.singletonMap(sourceTask.getMapperKey(), listResult)
+                                child.getMapper(), Collections.singletonMap(child.getResultKey(), listResult)
                         );
                         child.getTaskFuture().complete(mappedValue);
                     } catch (Throwable t) {

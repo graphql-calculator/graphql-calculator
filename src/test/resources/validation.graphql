@@ -1,5 +1,26 @@
 
 
+query invalid_sourceConvert ($itemIds: [Int]){
+
+    commodity{
+        itemList(itemIds: $itemIds){
+            itemId
+            sellerId @fetchSource(name: "sellerIds",sourceConvert: "filter(nonExistValue,seq.gt(3))")
+            name
+            salePrice
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "sellerIds", dependencySources: ["sellerIds"])
+        {
+            userId
+            age
+            name
+        }
+    }
+}
 
 
 query validateDistinct_notdefineOnList{

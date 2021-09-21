@@ -110,7 +110,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
                         .isTopTask(true)
                         .taskFuture(new CompletableFuture<>())
                         .mapper(sourceConvert)
-                        .mapperKey(visitorEnv.getField().getResultKey())
+                        .resultKey(visitorEnv.getField().getResultKey())
                         .build();
                 visitorEnv.getTraverserContext().setAccumulate(task);
                 engineStateBuilder.fetchSourceTask(fieldFullPath, task);
@@ -153,6 +153,7 @@ public class ExecutionEngineStateParser implements QueryVisitor {
                     .isInList(true)
                     .isTopTask(false)
                     .taskFuture(new CompletableFuture<>())
+                    .resultKey(visitorEnv.getField().getResultKey())
                     .mapper(sourceConvert)
                     .build();
             visitorEnv.getTraverserContext().setAccumulate(currentTask);

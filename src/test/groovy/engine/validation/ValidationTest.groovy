@@ -408,6 +408,41 @@ class ValidationTest extends Specification {
         validateResult.errors[0].description == "duplicate source name 'uSource' for {consumer.userInfo.userId} and {consumer.userInfo.name}."
     }
 
+    def "invalid sourceConvert"() {
+        given:
+        def query = """
+            query invalid_sourceConvert (\$itemIds: [Int]){
+            
+                commodity{
+                    itemList(itemIds: \$itemIds){
+                        itemId
+                        sellerId @fetchSource(name: "sellerIds",sourceConvert: "filter(nonExistValue,seq.gt(3))")
+                        name
+                        salePrice
+                    }
+                }
+            
+                consumer{
+                    userInfoList(userIds: 1)
+                    @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "sellerIds", dependencySources: ["sellerIds"])
+                    {
+                        userId
+                        age
+                        name
+                    }
+                }
+            }
+        """
+
+        when:
+        def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
+
+        then:
+        validateResult.errors.size() == 1
+        print(validateResult.errors[0].description)
+        validateResult.errors[0].description == "only resultKey 'sellerId' can be used for the 'sourceConvert' of @fetchSource on {commodity.itemList.sellerId}."
+    }
+
 
     def "invalid source name for @fetchSource"() {
         given:

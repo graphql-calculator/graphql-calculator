@@ -87,6 +87,6 @@ public class ExecutionEngineStateParserTest {
         assert bindingItemIdsTask.isListType();
         assert !bindingItemIdsTask.isInList();
         assert bindingItemIdsTask.isTopTask();
-        assert bindingItemIdsTask.getMapperKey().equals("bindingItemIds");
+        assert bindingItemIdsTask.getResultKey().equals("bindingItemIds");
     }
 }
