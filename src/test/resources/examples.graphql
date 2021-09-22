@@ -18,6 +18,28 @@ enum ParamTransformType{
 }
 
 
+
+query nestedFetchSource_case01($itemIds:[Int]){
+    commodity{
+        itemList(itemIds: $itemIds){
+            skuList{
+                itemId
+                skuId
+                sellerId @fetchSource(name:"sellerIds")
+            }
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds",operateType: MAP,expression: "sellerIds",dependencySources: ["sellerIds"])
+        {
+            userId
+            name
+        }
+    }
+}
+
 query skipByTest_exceptionQueryTest01($userId: Int) {
     consumer{
         userInfo(userId: $userId)

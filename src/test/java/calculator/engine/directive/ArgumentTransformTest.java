@@ -367,8 +367,6 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "}";
 
-        System.out.println(query);
-
         ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(),wrapperConfig);
         assert !validateResult.isFailure();
 
@@ -394,6 +392,83 @@ public class ArgumentTransformTest {
         assert Objects.equals(
                 data.get("consumer").get("userInfoList").toString(),
                 "[{userId=4, age=40, name=4_name}, {userId=5, age=50, name=5_name}]"
+        );
+
+    }
+
+
+    @Test
+    public void nestedFetchSource_case01() {
+        String query = "" +
+                "query nestedFetchSource_case01($itemIds:[Int]){\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIds){\n" +
+                "            skuList{\n" +
+                "                itemId\n" +
+                "                skuId\n" +
+                "                sellerId @fetchSource(name:\"sellerIds\")\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "\n" +
+                "    consumer{\n" +
+                "        userInfoList(userIds: 1)\n" +
+                "        @argumentTransform(argumentName: \"userIds\",operateType: MAP,expression: \"sellerIds\",dependencySources: [\"sellerIds\"])\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            name\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("itemIds", Arrays.asList(1, 3, 4));
+        ExecutionInput executionInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(executionInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(
+                data.get("commodity").get("itemList").toString(),
+                "[{skuList=" +
+                        "[{itemId=1, skuId=1, sellerId=1}, " +
+                        "{itemId=2, skuId=1, sellerId=2}, " +
+                        "{itemId=3, skuId=1, sellerId=3}, " +
+                        "{itemId=4, skuId=1, sellerId=4}]}," +
+                        " {skuList=" +
+                        "[{itemId=3, skuId=3, sellerId=3}," +
+                        " {itemId=6, skuId=3, sellerId=6}, " +
+                        "{itemId=9, skuId=3, sellerId=9}," +
+                        " {itemId=12, skuId=3, sellerId=12}]}, " +
+                        "{skuList=[" +
+                        "{itemId=4, skuId=4, sellerId=4}, " +
+                        "{itemId=8, skuId=4, sellerId=8}, " +
+                        "{itemId=12, skuId=4, sellerId=12}," +
+                        " {itemId=16, skuId=4, sellerId=16}]}]"
+        );
+        assert Objects.equals(
+                data.get("consumer").get("userInfoList").toString(),
+                "[{userId=1, name=1_name}," +
+                        " {userId=2, name=2_name}, " +
+                        "{userId=3, name=3_name}," +
+                        " {userId=4, name=4_name}," +
+                        " {userId=3, name=3_name}," +
+                        " {userId=6, name=6_name}, " +
+                        "{userId=9, name=9_name}, " +
+                        "{userId=12, name=12_name}, " +
+                        "{userId=4, name=4_name}," +
+                        " {userId=8, name=8_name}," +
+                        " {userId=12, name=12_name}, " +
+                        "{userId=16, name=16_name}]"
         );
 
     }
