@@ -180,10 +180,6 @@ public class Directives {
 
         private final String name;
 
-        public String getName() {
-            return name;
-        }
-
         ParamTransformType(String name) {
             this.name = name;
         }
@@ -225,6 +221,7 @@ public class Directives {
             .argument(GraphQLArgument
                     .newArgument()
                     .name("operateType")
+                    .defaultValueProgrammatic(ParamTransformType.MAP)
                     .type(GraphQLNonNull.nonNull(ARGUMENT_TRANSFORM_TYPE)))
             .argument(GraphQLArgument
                     .newArgument()

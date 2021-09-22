@@ -409,8 +409,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
             }
 
             if (Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName())) {
-                String argumentName = getArgumentFromDirective(directive, "argumentName");
+                Supplier<Directives.ParamTransformType> defaultOperateType = () -> (Directives.ParamTransformType) ARGUMENT_TRANSFORM
+                        .getArgument("operateType")
+                        .getArgumentDefaultValue()
+                        .getValue();
                 String operateType = getArgumentFromDirective(directive, "operateType");
+                operateType = operateType != null ? operateType : defaultOperateType.get().name();
+
+                String argumentName = getArgumentFromDirective(directive, "argumentName");
                 String expression = getArgumentFromDirective(directive, "expression");
                 List<String> dependencySources = getDependenceSourceFromDirective(directive);
                 dataFetcher = wrapArgumentTransformDataFetcher(

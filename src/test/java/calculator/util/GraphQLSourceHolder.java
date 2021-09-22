@@ -46,12 +46,11 @@ public class GraphQLSourceHolder {
     private static DataFetcher<Map> emptyDataFetcher = environment -> Collections.emptyMap();
 
     private static DataFetcher userDataFetcher = environment -> {
-        Integer userIdNumber = (Integer) environment.getArguments().get("userId");
+        Number userIdNumber = (Number) environment.getArguments().get("userId");
         if (userIdNumber == null) {
             return null;
         }
-
-        return ConsumerServiceClient.getUserInfoById(userIdNumber);
+        return ConsumerServiceClient.getUserInfoById(userIdNumber.intValue());
     };
 
 

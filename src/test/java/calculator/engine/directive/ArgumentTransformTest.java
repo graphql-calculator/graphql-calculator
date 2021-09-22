@@ -473,4 +473,65 @@ public class ArgumentTransformTest {
 
     }
 
+
+    @Test
+    public void defaultOperatorType() {
+        String query = "" +
+                "query defaultOperatorType($itemIds:[Int]){\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIds){\n" +
+                "            itemId\n" +
+                "            sellerId @fetchSource(name: \"sellerIds\")\n" +
+                "        }\n" +
+                "    }\n" +
+                "\n" +
+                "    consumer{\n" +
+                "        userInfoList(userIds: 1)\n" +
+                "        @argumentTransform(argumentName: \"userIds\" ,expression: \"sellerIds\",dependencySources: [\"sellerIds\"])\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            name\n" +
+                "        }\n" +
+                "\n" +
+                "        userInfo(userId: 1)\n" +
+                "        @argumentTransform(argumentName: \"userId\",expression: \"100\")\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            name\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("itemIds", Arrays.asList(1, 3, 4));
+        ExecutionInput executionInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(executionInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(
+                data.get("commodity").get("itemList").toString(),
+                "[{itemId=1, sellerId=2}, {itemId=3, sellerId=4}, {itemId=4, sellerId=5}]"
+        );
+        assert Objects.equals(
+                data.get("consumer").get("userInfoList").toString(),
+                "[{userId=2, name=2_name}, {userId=4, name=4_name}, {userId=5, name=5_name}]"
+        );
+
+        assert Objects.equals(
+                data.get("consumer").get("userInfo").toString(),
+                "{userId=100, name=100_name}"
+        );
+
+    }
+
 }

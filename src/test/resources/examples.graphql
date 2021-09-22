@@ -9,7 +9,7 @@ directive @sort(key: String!,reversed: Boolean = false) on FIELD
 directive @distinct(comparator:String) on FIELD
 directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
 directive @map(mapper:String!, dependencySources:[String!]) on FIELD
-directive @argumentTransform(argumentName:String!, operateType:ParamTransformType, expression:String, dependencySources:[String!]) on FIELD
+directive @argumentTransform(argumentName:String!, operateType:ParamTransformType = MAP, expression:String, dependencySources:[String!]) on FIELD
 #directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) repeatable on FIELD
 enum ParamTransformType{
     MAP
@@ -17,6 +17,32 @@ enum ParamTransformType{
     LIST_MAP
 }
 
+
+
+query defaultOperatorType($itemIds:[Int]){
+    commodity{
+        itemList(itemIds: $itemIds){
+            itemId
+            sellerId @fetchSource(name: "sellerIds")
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        @argumentTransform(argumentName: "userIds" ,expression: "sellerIds",dependencySources: ["sellerIds"])
+        {
+            userId
+            name
+        }
+
+        userInfo(userId: 1)
+        @argumentTransform(argumentName: "userId",expression: "userId*2")
+        {
+            userId
+            name
+        }
+    }
+}
 
 
 query nestedFetchSource_case01($itemIds:[Int]){
