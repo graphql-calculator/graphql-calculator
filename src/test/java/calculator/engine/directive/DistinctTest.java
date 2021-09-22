@@ -120,8 +120,6 @@ public class DistinctTest {
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Object>> data = executionResult.getData();
 
-        System.out.println(data.get("consumer").get("distinctUserInfoList"));
-        System.out.println(data.get("consumer").get("userInfoList"));
 
         assert Objects.equals(
                 data.get("consumer").get("distinctUserInfoList").toString(),
