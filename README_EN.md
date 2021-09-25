@@ -118,7 +118,7 @@ query filterUserByAge($userId:[Int]){
     }
 }
 
-query parseFetchedValueToAnotherFieldArgumentMap($itemIds:[Int]){
+query passFetchedValueToAnotherFieldArgument($itemIds:[Int]){
     commodity{
         itemList(itemIds: $itemIds){
             # save sellerId as List<Long> with unique name "sellerIdList"
