@@ -67,10 +67,10 @@
 `directive @fetchSource(name: String!, sourceConvert:String) on FIELD`
 
 参数解释：
-- name：source的名称，一个查询语句中source名称必须是唯一的；
-- sourceConvert：对字段绑定DataFetcher的获取结果进行转换，所有依赖该source的指令获取的都是转换后的数据。
+- name：source的名称，一个查询语句中source名称是唯一的；
+- sourceConvert：对source原始结果进行转换的表达式，所有依赖该source的指令获取的都是转换后的数据。
 
-@fetchSource是进行数据编排的基础，该指令注解字段的DataFetcher的获取结果、可作为**全局可获取上下文**、在其他字段的计算指令上通过`dependencySources`获取。
+@fetchSource是进行数据编排的基础，该指令注解字段的DataFetcher的请求结果可作为**全局可获取上下文**、在其他计算指令上通过`dependencySources`获取。
 
 如果@fetchSource所注解的字段在列表路径中，则将该字段的集合将作为source的值。如下查询source类型为List<String>，元素值为用户的名称。
 
@@ -128,10 +128,10 @@ enum ParamTransformType{
 ```
 
 参数解释：
-- argumentName：该指令进行转换的参数名称；
-- operateType：操作类型，包括参数整体转换MAP、列表参数过滤FILTER、列表参数元素转换LIST_MAP三种；
-- expression：计算新值、或者对参数进行过滤的表达式，表达式参数为请求变量和source，如果存在同名key则source覆盖请求变量；
-- dependencySources：表达式依赖的source，source如果和参数变量同名、则会覆盖后者。
+- argumentName：要被转换处理的的参数的名称；
+- operateType：操作类型，包括参数整体转换MAP、列表参数过滤FILTER、列表参数元素转换LIST_MAP，默认为MAP；
+- expression：操作表达式，参数为请求变量和source，如果存在同名key则source覆盖请求变量；
+- dependencySources：表达式依赖的source。
 
 对字段参数进行转换、过滤，具体操作有如下三种：
 1. 参数映射(`operateType = Map `)：将表达式结果赋给指定的字段参数，该操作将字段上的所有变量作为表达式参数；
