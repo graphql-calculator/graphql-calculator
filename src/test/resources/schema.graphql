@@ -38,6 +38,7 @@ type User{
     age: Int
     name: String
     email: String
+    clientVersion: String
 }
 
 type NewUserInfo{

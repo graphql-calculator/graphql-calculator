@@ -19,6 +19,20 @@ enum ParamTransformType{
 
 
 
+query repeatableArgumentTest($userId:Int, $clientVersion:String){
+    consumer{
+        userInfo(userId: $userId,clientVersion: $clientVersion)
+        @argumentTransform(argumentName: "userId",expression: "userId*10")
+        @argumentTransform(argumentName: "clientVersion", expression: "clientVersion+'Plus'")
+        {
+            userId
+            name
+            clientVersion
+        }
+    }
+}
+
+
 query defaultOperatorType($itemIds:[Int]){
     commodity{
         itemList(itemIds: $itemIds){
