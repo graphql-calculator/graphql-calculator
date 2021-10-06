@@ -534,4 +534,41 @@ public class ArgumentTransformTest {
 
     }
 
+    @Test
+    public void repeatableArgumentTest() {
+        String query = "" +
+                "query repeatableArgumentTest($userId:Int, $clientVersion:String){\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: $userId,clientVersion: $clientVersion)\n" +
+                "        @argumentTransform(argumentName: \"userId\",expression: \"userId*10\")\n" +
+                "        @argumentTransform(argumentName: \"clientVersion\", expression: \"clientVersion+'Plus'\")\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            name\n" +
+                "            clientVersion\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
+        assert !validateResult.isFailure();
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("userId", 1);
+        variables.put("v1", 1);
+        ExecutionInput executionInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(executionInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(
+                data.toString(), "{consumer={userInfo={userId=10, name=10_name, clientVersion=nullPlus}}}"
+        );
+    }
+
 }

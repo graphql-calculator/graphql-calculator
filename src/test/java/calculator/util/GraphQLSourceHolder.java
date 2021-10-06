@@ -50,14 +50,17 @@ public class GraphQLSourceHolder {
         if (userIdNumber == null) {
             return null;
         }
-        return ConsumerServiceClient.getUserInfoById(userIdNumber.intValue());
+        String clientVersion = (String) environment.getArguments()
+                .getOrDefault("clientVersion", "defaultVersion");
+        return ConsumerServiceClient.getUserInfoById(userIdNumber.intValue(), clientVersion);
     };
 
 
     private static DataFetcher userListDataFetcher = environment -> {
         Map<String, Object> arguments = environment.getArguments();
         List<Integer> ids = (List<Integer>) arguments.get("userIds");
-        return batchUserInfoByIds(ids);
+        String clientVersion = (String) arguments.getOrDefault("clientVersion", "defaultVersion");
+        return batchUserInfoByIds(ids, clientVersion);
     };
 
     private static DataFetcher sellerDataFetcher = environment ->

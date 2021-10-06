@@ -28,12 +28,14 @@ public class ConsumerServiceClient {
         private int age;
         private String name;
         private String email;
+        private String clientVersion;
 
-        public UserInfo(int userId, int age, String name, String email) {
+        public UserInfo(int userId, int age, String name, String email, String clientVersion) {
             this.userId = userId;
             this.age = age;
             this.name = name;
             this.email = email;
+            this.clientVersion = clientVersion;
         }
 
         public int getUserId() {
@@ -69,16 +71,16 @@ public class ConsumerServiceClient {
         }
     }
 
-    public static UserInfo getUserInfoById(int userId) {
+    public static UserInfo getUserInfoById(int userId, String clientVersion) {
         if (userId == 0L) {
             return null;
         }
 
-        return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com");
+        return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com", clientVersion);
     }
 
-    public static List<UserInfo> batchUserInfoByIds(List<Integer> userIdList) {
-        return userIdList.stream().map(ConsumerServiceClient::getUserInfoById).collect(Collectors.toList());
+    public static List<UserInfo> batchUserInfoByIds(List<Integer> userIdList, String clientVersion) {
+        return userIdList.stream().map(userId -> getUserInfoById(userId, clientVersion)).collect(Collectors.toList());
     }
 
 
