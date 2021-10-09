@@ -53,25 +53,24 @@ public class Example {
     }
 
     public static void main(String[] args) {
-
+        
         /**
          * step 1
-         * Make async dataFetcher implements {@link AsyncDataFetcherInterface}
-         *
-         * step 2
          * Create {@link GraphQLSource} by {@link Config}, which including wrapped graphql schema and GraphQL object.
          *
-         * step 3:
+         * step 2:
          * Validate the query: {@code ParseAndValidateResult validateResult = Validator.validateQuery(query, wrappedSchema).}
          * It is recommend to create `PreparsedDocumentProvider` by implementing {@link CalculatorDocumentCachedProvider}.
          */
-
         Config wrapperConfig = DefaultConfig.newConfig().build();
 
         DefaultGraphQLSourceBuilder graphqlSourceBuilder = new DefaultGraphQLSourceBuilder();
         GraphQLSource graphqlSource = graphqlSourceBuilder
                 .wrapperConfig(wrapperConfig)
-                .originalSchema(GraphQLSourceHolder.getDefaultSchema())
+                .originalSchema(
+                        //  create Schema like you always do
+                        GraphQLSourceHolder.getDefaultSchema()
+                )
                 .preparsedDocumentProvider(new DocumentParseAndValidationCache()).build();
 
         String query = ""
