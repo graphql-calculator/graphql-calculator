@@ -39,16 +39,20 @@ public class AviatorScriptEvaluator implements ScriptEvaluator {
     }
 
     @Override
-    public boolean isValidScript(String expression) {
-        if (expression == null || expression.isEmpty()) {
-            return false;
+    public ValidateInfo isValidScript(String expression) {
+        if (expression == null) {
+            return new ValidateInfo(false, "script is null.");
+        }
+
+        if (expression.isEmpty()) {
+            return new ValidateInfo(false, "script is empty.");
         }
 
         try {
             AviatorEvaluator.compile(expression, true);
-            return true;
+            return new ValidateInfo(true);
         } catch (Exception e) {
-            return false;
+            return new ValidateInfo(false, e.getMessage());
         }
     }
 

@@ -17,37 +17,40 @@
 
 package calculator.engine.script;
 
+
 import calculator.engine.annotation.PublicApi;
 
-import java.util.List;
-import java.util.Map;
-
 @PublicApi
-public interface ScriptEvaluator {
+public class ValidateInfo {
+
+    private final boolean isValidScript;
+
+    private final String errorMsg;
+
+    public ValidateInfo(boolean isValidScript) {
+        this(isValidScript, "");
+    }
+
+    public ValidateInfo(boolean isValidScript, String errorMsg) {
+        this.isValidScript = isValidScript;
+        this.errorMsg = errorMsg;
+    }
 
     /**
-     * Execute script with arguments.
+     * Whether the script is valid.
      *
-     * @param script    the expression
-     * @param arguments expression execution arguments
-     * @return the result of execution
-     */
-    Object evaluate(String script, Map<String, Object> arguments);
-
-    /**
-     * Determine whether the script is valid.
-     *
-     * @param script script
      * @return true if the script is valid
      */
-    ValidateInfo isValidScript(String script);
+    public boolean isValidScript() {
+        return isValidScript;
+    }
 
     /**
-     * Return the variable names which the script used.
+     * Returns the detail error message string to explain why the script is invalid.
      *
-     * @param script script
-     * @return variable names
+     * @return error message
      */
-    List<String> getScriptArgument(String script);
-
+    public String getErrorMsg() {
+        return errorMsg;
+    }
 }

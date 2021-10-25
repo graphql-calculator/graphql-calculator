@@ -75,7 +75,11 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @skipBy on {consumer.userInfo}."
+        validateResult.errors[0].description == "invalid expression '12_ab' for @skipBy on {consumer.userInfo}: " +
+                "Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
+                "while parsing expression: `\n" +
+                "12_ab^^^\n" +
+                "`"
     }
 
 
@@ -122,7 +126,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @includeBy on {consumer.userInfo}."
+        validateResult.errors[0].description == "invalid expression '12_ab' for @includeBy on {consumer.userInfo}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
+                "while parsing expression: `\n" +
+                "12_ab^^^\n" +
+                "`"
     }
 
 
@@ -266,7 +273,11 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid comparator '12_ab' for @skipBy on {consumer.userInfoList}."
+
+        validateResult.errors[0].description == "invalid comparator '12_ab' for @skipBy on {consumer.userInfoList}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
+                "while parsing expression: `\n" +
+                "12_ab^^^\n" +
+                "`"
     }
 
     def "invalid location for @sortBy"() {
@@ -313,7 +324,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @argumentTransform on {consumer.userInfoList}."
+        validateResult.errors[0].description == "invalid expression '12_ab' for @argumentTransform on {consumer.userInfoList}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
+                "while parsing expression: `\n" +
+                "12_ab^^^\n" +
+                "`"
     }
 
     def "non-exist argument @argumentTransform"() {
@@ -439,7 +453,6 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        print(validateResult.errors[0].description)
         validateResult.errors[0].description == "only resultKey 'sellerId' can be used for the 'sourceConvert' of @fetchSource on {commodity.itemList.sellerId}."
     }
 
@@ -553,7 +566,6 @@ class ValidationTest extends Specification {
         def validateResult = Validator.validateQuery(query, wrappedSchema, wrapperConfig)
 
         then:
-        println  validateResult.errors[0].description
         validateResult.errors.size() == 1
         validateResult.errors[0].description == "the dependencySources [userId] on {consumer.userInfo} must be different to variable name [userId]."
     }
