@@ -19,6 +19,7 @@ package calculator.validation;
 import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
 import calculator.engine.script.ScriptEvaluator;
+import calculator.engine.script.ValidateInfo;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorFragmentSpreadEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
@@ -124,8 +125,11 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!scriptEvaluator.isValidScript(predicate)) {
-                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}.", predicate, fieldFullPath);
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(predicate);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}: %s",
+                            predicate, fieldFullPath, validateInfo.getErrorMsg()
+                    );
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -145,8 +149,10 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!scriptEvaluator.isValidScript(predicate)) {
-                    String errorMsg = String.format("invalid expression '%s' for @includeBy on {%s}.", predicate, fieldFullPath);
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(predicate);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid expression '%s' for @includeBy on {%s}: %s",
+                            predicate, fieldFullPath, validateInfo.getErrorMsg());
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -178,8 +184,11 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!scriptEvaluator.isValidScript(predicate)) {
-                    String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}.", predicate, fieldFullPath);
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(predicate);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}: %s",
+                            predicate, fieldFullPath, validateInfo.getErrorMsg()
+                    );
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -229,8 +238,11 @@ public class BasicRule extends AbstractRule {
                         directive.getArgument("comparator").getValue()
                 );
 
-                if (!scriptEvaluator.isValidScript(comparator)) {
-                    String errorMsg = String.format("invalid comparator '%s' for @skipBy on {%s}.", comparator, fieldFullPath);
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(comparator);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid comparator '%s' for @skipBy on {%s}: %s",
+                            comparator, fieldFullPath, validateInfo.getErrorMsg()
+                    );
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -260,10 +272,15 @@ public class BasicRule extends AbstractRule {
                         null : (String) parseValue(directive.getArgument("comparator").getValue());
 
 
-                if (comparator != null && !scriptEvaluator.isValidScript(comparator)) {
-                    String errorMsg = String.format("invalid comparator '%s' for @distinct on {%s}.", comparator, fieldFullPath);
-                    addValidError(location, errorMsg);
-                    continue;
+                if (comparator != null) {
+                    ValidateInfo validateInfo = scriptEvaluator.isValidScript(comparator);
+                    if (!validateInfo.isValidScript()) {
+                        String errorMsg = String.format("invalid comparator '%s' for @distinct on {%s}: %s",
+                                comparator, fieldFullPath, validateInfo.getErrorMsg()
+                        );
+                        addValidError(location, errorMsg);
+                        continue;
+                    }
                 }
 
                 GraphQLType innerType = GraphQLTypeUtil.unwrapNonNull(
@@ -287,8 +304,12 @@ public class BasicRule extends AbstractRule {
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
                 String mapper = getArgumentFromDirective(directive, "mapper");
-                if (!scriptEvaluator.isValidScript(mapper)) {
-                    String errorMsg = String.format("invalid mapper '%s' for @map on {%s}.", mapper, fieldFullPath);
+
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(mapper);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid mapper '%s' for @map on {%s}: %s",
+                            mapper, fieldFullPath, validateInfo.getErrorMsg()
+                    );
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -310,8 +331,11 @@ public class BasicRule extends AbstractRule {
                 }
 
                 String expression = getArgumentFromDirective(directive, "expression");
-                if (!scriptEvaluator.isValidScript(expression)) {
-                    String errorMsg = String.format("invalid expression '%s' for @argumentTransform on {%s}.", expression, fieldFullPath);
+                ValidateInfo validateInfo = scriptEvaluator.isValidScript(expression);
+                if (!validateInfo.isValidScript()) {
+                    String errorMsg = String.format("invalid expression '%s' for @argumentTransform on {%s}: %s",
+                            expression, fieldFullPath, validateInfo.getErrorMsg()
+                    );
                     addValidError(location, errorMsg);
                     continue;
                 }
@@ -355,8 +379,11 @@ public class BasicRule extends AbstractRule {
 
                 String sourceConvert = getArgumentFromDirective(directive, "sourceConvert");
                 if (sourceConvert != null) {
-                    if (!scriptEvaluator.isValidScript(sourceConvert)) {
-                        String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}.", sourceConvert, fieldFullPath);
+                    ValidateInfo validateInfo = scriptEvaluator.isValidScript(sourceConvert);
+                    if (!validateInfo.isValidScript()) {
+                        String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}: %s",
+                                sourceConvert, fieldFullPath, validateInfo.getErrorMsg()
+                        );
                         addValidError(location, errorMsg);
                         continue;
                     }
