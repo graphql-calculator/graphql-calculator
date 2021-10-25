@@ -29,7 +29,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static graphql.Scalars.GraphQLBoolean;
+import static graphql.Scalars.GraphQLInt;
 import static graphql.Scalars.GraphQLString;
+import static graphql.introspection.Introspection.DirectiveLocation.ARGUMENT_DEFINITION;
 import static graphql.introspection.Introspection.DirectiveLocation.FIELD;
 import static graphql.introspection.Introspection.DirectiveLocation.FRAGMENT_SPREAD;
 import static graphql.introspection.Introspection.DirectiveLocation.INLINE_FRAGMENT;
@@ -48,6 +50,17 @@ public class Directives {
     public static Map<String, GraphQLDirective> getCalDirectiveByName() {
         return CAL_DIRECTIVE_BY_NAME;
     }
+
+    public final static GraphQLDirective PARTITION = GraphQLDirective.newDirective()
+            .name("partition")
+            .description("TODO...")
+            .validLocations(ARGUMENT_DEFINITION)
+            .argument(GraphQLArgument
+                    .newArgument()
+                    .name("size")
+                    .type(GraphQLNonNull.nonNull(GraphQLInt)))
+            .build();
+
 
     // directive @skipBy(expression: String!, dependencySource: String) on FIELD
     public final static GraphQLDirective SKIP_BY = GraphQLDirective.newDirective()
