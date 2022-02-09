@@ -22,7 +22,6 @@ import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
 import graphql.analysis.QueryTraverser;
-import graphql.language.Definition;
 import graphql.language.Document;
 import graphql.language.OperationDefinition;
 import graphql.language.VariableDefinition;

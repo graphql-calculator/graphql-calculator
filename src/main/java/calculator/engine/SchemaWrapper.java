@@ -19,7 +19,6 @@ package calculator.engine;
 
 import calculator.config.Config;
 import calculator.engine.annotation.Internal;
-import calculator.engine.annotation.PublicApi;
 import calculator.exception.WrapperSchemaException;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
@@ -58,5 +57,10 @@ public class SchemaWrapper {
             String errorMsg = String.format("directive named '%s' is already exist in schema.", duplicateDir);
             throw new WrapperSchemaException(errorMsg);
         }
+
+        // todo
+        //  校验是否有一个字段上的两个参数都使用了@partition
+        //  必须放在list字段参数上
+        //  配置应该是数字常量
     }
 }
