@@ -153,7 +153,7 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "@filter must define on list type, instead {consumer.userInfo}."
+        validateResult.errors[0].description == "@filter must define on list type, instead of {consumer.userInfo}."
     }
 
 

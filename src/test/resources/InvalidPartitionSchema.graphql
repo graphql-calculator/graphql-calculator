@@ -1,0 +1,9 @@
+directive @partition(size: Int!) on ARGUMENT_DEFINITION
+
+type Query {
+
+    singleField(arg: Int): Int
+
+    listFieldX(arg: Int @partition(size:"5")): [Int]
+    listFieldY(arg: Int @partition(size:null)): [Int]
+}

@@ -19,6 +19,8 @@ package calculator.engine;
 
 import calculator.config.Config;
 import calculator.engine.annotation.Internal;
+import calculator.engine.validation.CalculatorSchemaValidationError;
+import calculator.engine.validation.SchemaValidator;
 import calculator.exception.WrapperSchemaException;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
@@ -28,6 +30,7 @@ import java.util.Set;
 
 import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM_TYPE;
 import static calculator.engine.metadata.Directives.getCalDirectiveByName;
+import static calculator.engine.metadata.Directives.getCalQueryDirectiveByName;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -51,16 +54,27 @@ public class SchemaWrapper {
     private static void check(Config config, GraphQLSchema existingSchema) {
         Set<String> schemaDirsName = existingSchema.getDirectives().stream().map(GraphQLDirective::getName).collect(toSet());
 
-        List<String> duplicateDir = getCalDirectiveByName().keySet().stream().filter(schemaDirsName::contains).collect(toList());
+        List<String> duplicateDir = getCalQueryDirectiveByName()
+                .keySet().stream()
+                .filter(schemaDirsName::contains)
+                .collect(toList());
 
         if (!duplicateDir.isEmpty()) {
             String errorMsg = String.format("directive named '%s' is already exist in schema.", duplicateDir);
             throw new WrapperSchemaException(errorMsg);
         }
 
-        // todo
-        //  校验是否有一个字段上的两个参数都使用了@partition
-        //  必须放在list字段参数上
-        //  配置应该是数字常量
+        List<CalculatorSchemaValidationError> schemaValidationErrors = SchemaValidator.validateSchema(config, existingSchema);
+        if (!schemaValidationErrors.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (CalculatorSchemaValidationError schemaValidationError : schemaValidationErrors) {
+                String errorMsg = String.format(
+                        "errorType: %s, location: %s, msg: %s\n",
+                        schemaValidationError.getErrorType(), schemaValidationError.getLocation(), schemaValidationError.getDescription()
+                );
+                sb.append(errorMsg);
+            }
+            throw new WrapperSchemaException(sb.toString());
+        }
     }
 }

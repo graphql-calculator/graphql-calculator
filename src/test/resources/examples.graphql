@@ -10,7 +10,6 @@ directive @distinct(comparator:String) on FIELD
 directive @sortBy(comparator: String!, reversed: Boolean = false) on FIELD
 directive @map(mapper:String!, dependencySources:[String!]) on FIELD
 directive @argumentTransform(argumentName:String!, operateType:ParamTransformType = MAP, expression:String, dependencySources:[String!]) on FIELD
-directive @partition(size: Int!) on ARGUMENT_DEFINITION
 #directive @argumentTransform(argument:String!, operaType:ParamTransformType, expression:String, dependencySource:String) repeatable on FIELD
 enum ParamTransformType{
     MAP

@@ -17,6 +17,7 @@
 
 package calculator.engine;
 
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 
+@Internal
 public class PartitionDataFetcher implements DataFetcher<List<Object>> {
 
     private final int partitionSize;
@@ -104,6 +106,5 @@ public class PartitionDataFetcher implements DataFetcher<List<Object>> {
 
             return TraversalControl.CONTINUE;
         }
-
     };
 }

@@ -47,8 +47,14 @@ public class Directives {
 
     private static final Map<String, GraphQLDirective> CAL_DIRECTIVE_BY_NAME;
 
+    private static final Map<String, GraphQLDirective> CAL_QUERY_DIRECTIVE_BY_NAME;
+
     public static Map<String, GraphQLDirective> getCalDirectiveByName() {
         return CAL_DIRECTIVE_BY_NAME;
+    }
+
+    public static Map<String, GraphQLDirective> getCalQueryDirectiveByName() {
+        return CAL_QUERY_DIRECTIVE_BY_NAME;
     }
 
     // directive @skipBy(expression: String!, dependencySource: String) on FIELD
@@ -239,8 +245,7 @@ public class Directives {
     // directive @partition(size: Int!) on ARGUMENT_DEFINITION
     public final static GraphQLDirective PARTITION = GraphQLDirective.newDirective()
             .name("partition")
-            // todo
-            .description("partition the argument list and invoke dataFetcher")
+            .description("divide argument list into multiple part and invoke DataFetcher.")
             .validLocation(ARGUMENT_DEFINITION)
             .argument(GraphQLArgument
                     .newArgument()
@@ -262,5 +267,20 @@ public class Directives {
         tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
         tmpMap.put(PARTITION.getName(), PARTITION);
         CAL_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
+    }
+
+    static {
+        Map<String, GraphQLDirective> tmpMap = new HashMap<>();
+        tmpMap.put(SKIP_BY.getName(), SKIP_BY);
+        tmpMap.put(INCLUDE_BY.getName(), INCLUDE_BY);
+        tmpMap.put(MOCK.getName(), MOCK);
+        tmpMap.put(FILTER.getName(), FILTER);
+        tmpMap.put(DISTINCT.getName(), DISTINCT);
+        tmpMap.put(SORT.getName(), SORT);
+        tmpMap.put(SORT_BY.getName(), SORT_BY);
+        tmpMap.put(MAP.getName(), MAP);
+        tmpMap.put(FETCH_SOURCE.getName(), FETCH_SOURCE);
+        tmpMap.put(ARGUMENT_TRANSFORM.getName(), ARGUMENT_TRANSFORM);
+        CAL_QUERY_DIRECTIVE_BY_NAME = Collections.unmodifiableMap(tmpMap);
     }
 }
