@@ -128,7 +128,6 @@ public class FilterTest {
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Object>> data = executionResult.getData();
-        System.out.println(data.get("commodity").get("itemList").toString());
         assert Objects.equals(
                 data.get("commodity").get("itemList").toString(),
                 "[{isContainBindingItemIds=true, itemId=9, name=item_name_9, salePrice=91}, {isContainBindingItemIds=true, itemId=10, name=item_name_10, salePrice=101}]"

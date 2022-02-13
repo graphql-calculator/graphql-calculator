@@ -22,9 +22,13 @@ import calculator.engine.annotation.Internal;
 import calculator.engine.validation.CalculatorSchemaValidationError;
 import calculator.engine.validation.SchemaValidator;
 import calculator.exception.WrapperSchemaException;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.SchemaTraverser;
+import graphql.util.TraverserResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -47,8 +51,17 @@ public class SchemaWrapper {
             wrappedSchemaBuilder.additionalDirective(calDirective);
         }
         wrappedSchemaBuilder.additionalType(ARGUMENT_TRANSFORM_TYPE);
+        GraphQLSchema resultSchema = wrappedSchemaBuilder.build();
 
-        return wrappedSchemaBuilder.build();
+        SchemaTraverser schemaTraverser = new SchemaTraverser();
+        GraphQLCodeRegistry.Builder codeRegistry = GraphQLCodeRegistry.newCodeRegistry(resultSchema.getCodeRegistry());
+        TraverserResult traverserResult = schemaTraverser.depthFirstFullSchema(
+                Collections.singletonList(PartitionDataFetcher.TYPE_VISITOR),
+                resultSchema,
+                Collections.singletonMap(GraphQLCodeRegistry.Builder.class, codeRegistry)
+        );
+
+        return resultSchema.transform(builder -> builder.codeRegistry(codeRegistry.build()));
     }
 
     private static void check(Config config, GraphQLSchema existingSchema) {

@@ -19,6 +19,7 @@ package calculator.engine;
 
 import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.Directives;
+import graphql.language.IntValue;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentImpl;
@@ -37,35 +38,37 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 
 @Internal
-public class PartitionDataFetcher implements DataFetcher<List<Object>> {
+public class PartitionDataFetcher implements DataFetcher<Object> {
 
     private final int partitionSize;
 
     private final String argumentName;
 
-    private final DataFetcher<List<Object>> delegate;
+    private final DataFetcher<Object> delegate;
 
-    private PartitionDataFetcher(int partitionSize, String argumentName, DataFetcher<List<Object>> delegate) {
+    private PartitionDataFetcher(int partitionSize, String argumentName, DataFetcher<Object> delegate) {
         this.partitionSize = partitionSize;
         this.argumentName = argumentName;
         this.delegate = delegate;
     }
 
     @Override
-    public List<Object> get(DataFetchingEnvironment environment) throws Exception {
+    public Object get(DataFetchingEnvironment environment) throws Exception {
 
-        List argumentValue = environment.getArgument(argumentName);
+        List<Object> argumentValue = environment.getArgument(argumentName);
         if (argumentValue == null || argumentValue.isEmpty()) {
             return delegate.get(environment);
         }
 
-        List<Object> result = new ArrayList<>();
+        List result = new ArrayList<>();
+        boolean isAsyncResult = false;
         for (int i = 0; i < argumentValue.size(); i += partitionSize) {
-            int toIndex = Math.min(i + partitionSize, partitionSize);
-            List partitionArgumentValue = argumentValue.subList(i, toIndex);
+            int toIndex = Math.min((i + 1) * partitionSize, argumentValue.size());
+            List<Object> partitionArgumentValue = argumentValue.subList(i, toIndex);
 
             Map<String, Object> newArguments = new LinkedHashMap<>(environment.getArguments());
             newArguments.put(argumentName, partitionArgumentValue);
@@ -75,13 +78,44 @@ public class PartitionDataFetcher implements DataFetcher<List<Object>> {
                     .arguments(newArguments)
                     .build();
 
-            List<Object> partitionResult = delegate.get(partitionEnv);
-            if (partitionResult != null) {
-                result.addAll(partitionResult);
+            Object delegateResult = delegate.get(partitionEnv);
+            if (delegateResult instanceof CompletableFuture) {
+                isAsyncResult = true;
+                result.add(delegateResult);
+            } else if (delegateResult instanceof List) {
+                result.addAll((List) delegateResult);
+            } else {
+                // todo debug error
             }
         }
 
-        return result;
+        if(isAsyncResult){
+            return flatFutureList(result);
+        }else{
+            return result;
+        }
+    }
+
+    private CompletableFuture<List<Object>> flatFutureList(List<CompletableFuture<List<Object>>> futureList) {
+        CompletableFuture resultFuture = new CompletableFuture();
+        CompletableFuture<List<Object>>[] arrayOfFutures = futureList.toArray(new CompletableFuture[0]);
+        CompletableFuture
+                .allOf(arrayOfFutures)
+                .whenComplete((ignored, exception) -> {
+                    if (exception != null) {
+                        resultFuture.completeExceptionally(exception);
+                        return;
+                    }
+                    List<Object> results = new ArrayList<>(arrayOfFutures.length);
+                    for (CompletableFuture<List<Object>> future : arrayOfFutures) {
+                        List<Object> joinResult = future.join();
+                        if (joinResult != null || !joinResult.isEmpty()) {
+                            results.addAll(joinResult);
+                        }
+                    }
+                    resultFuture.complete(results);
+                });
+        return resultFuture;
     }
 
     static GraphQLTypeVisitor TYPE_VISITOR = new GraphQLTypeVisitorStub() {
@@ -97,8 +131,10 @@ public class PartitionDataFetcher implements DataFetcher<List<Object>> {
                     GraphQLDirective partitionDirective = argument.getDirective(Directives.PARTITION.getName());
 
                     GraphQLArgument directiveArgument = partitionDirective.getArgument("size");
-                    int partitionSize = (int) directiveArgument.getArgumentValue().getValue();
-                    DataFetcher<?> partition = new PartitionDataFetcher(partitionSize, argument.getName(), originalDataFetcher);
+                    IntValue intValue = (IntValue) directiveArgument.getArgumentValue().getValue();
+                    DataFetcher<?> partition = new PartitionDataFetcher(
+                            intValue.getValue().intValue(), argument.getName(), originalDataFetcher
+                    );
 
                     codeRegistry.dataFetcher(parent, fieldDefinition, partition);
                 }

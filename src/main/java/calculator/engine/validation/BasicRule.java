@@ -94,8 +94,8 @@ public class BasicRule extends AbstractRule {
         GraphQLDirective directive = argument.getDirective(Directives.PARTITION.getName());
         InputValueWithState sizeArgument = directive.getArgument("size").getArgumentValue();
         Object sizeArgumentValue = sizeArgument.getValue();
-        if (!(sizeArgumentValue instanceof IntValue)) {
-            String errorMsg = String.format("the size value of @partition on {%s} must be number.", fieldFullPath);
+        if (!(sizeArgumentValue instanceof IntValue) || ((IntValue) sizeArgumentValue).getValue().intValue() <= 0) {
+            String errorMsg = String.format("the size value of @partition on {%s} must be positive number.", fieldFullPath);
             addValidError(fieldDefinition.getDefinition().getSourceLocation(), errorMsg);
             return TraversalControl.CONTINUE;
         }
