@@ -141,8 +141,6 @@ public class SkipAndIncludeExtendTest {
         ExecutionResult skipResult = graphQLSource.getGraphQL().execute(skipInput);
         assert skipResult.getErrors().isEmpty();
 
-        System.out.println(skipResult.getData().toString());
-
         assert Objects.equals(
                 skipResult.getData().toString(),
                 "{consumer={userInfo={userId=2}}}"

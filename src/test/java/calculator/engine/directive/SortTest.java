@@ -244,7 +244,6 @@ public class SortTest {
         ExecutionResult executionResult = graphQLSource.getGraphQL().execute(query);
         assert executionResult.getErrors().isEmpty();
         Map<String, Map<String, Object>> data = executionResult.getData();
-        System.out.println(data.get("marketing").get("coupon").toString());
         assert Objects.equals(
                 data.get("marketing").get("coupon").toString(),
                 "{bindingItemIds=[1, 3, 5, 7, 9, 2, 4, 6, 8, 10]}"
@@ -359,7 +358,6 @@ public class SortTest {
         ExecutionResult notReversedResult = graphQLSource.getGraphQL().execute(notReversedInput);
         Map<String, Map<String, Object>> notReversedData = notReversedResult.getData();
 
-        System.out.println(notReversedData.get("commodity").get("itemList").toString());
         assert Objects.equals(notReversedData.get("commodity").get("itemList").toString(),
                 "[{itemId=1, name=item_name_1, saleAmount=13}, {itemId=2, name=item_name_2, saleAmount=23}, {itemId=3, name=item_name_3, saleAmount=33}]"
         );

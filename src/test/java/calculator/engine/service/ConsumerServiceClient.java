@@ -18,6 +18,7 @@
 package calculator.engine.service;
 
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -80,6 +81,9 @@ public class ConsumerServiceClient {
     }
 
     public static List<UserInfo> batchUserInfoByIds(List<Integer> userIdList, String clientVersion) {
+        if (userIdList == null || userIdList.isEmpty()) {
+            return Collections.emptyList();
+        }
         return userIdList.stream().map(userId -> getUserInfoById(userId, clientVersion)).collect(Collectors.toList());
     }
 

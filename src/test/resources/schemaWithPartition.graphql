@@ -1,0 +1,17 @@
+
+directive @partition(size: Int!) on ARGUMENT_DEFINITION
+
+type Query {
+    # c端 用户
+    userInfoList(userIds: [Int] @partition(size: 5)): [User]
+}
+
+type User{
+    userId: Int
+    age: Int
+    name: String
+    email: String
+    clientVersion: String
+}
+
+

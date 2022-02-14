@@ -24,6 +24,7 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,14 @@ public class TestUtil {
         InputStreamReader inputReader = new InputStreamReader(inputStream);
         TypeDefinitionRegistry registry = new SchemaParser().parse(inputReader);
         return new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
+    }
+
+    public static GraphQLSchema schemaBySpec(String spec, RuntimeWiring runtimeWiring) {
+        StringReader stringReader = new StringReader(spec);
+        TypeDefinitionRegistry registry = new SchemaParser().parse(stringReader);
+        return new SchemaGenerator().makeExecutableSchema(
+                SchemaGenerator.Options.defaultOptions(), registry, runtimeWiring
+        );
     }
 
     public static Object getFromNestedMap(Map map, String path) {

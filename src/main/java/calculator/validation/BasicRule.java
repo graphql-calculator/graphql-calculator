@@ -170,7 +170,7 @@ public class BasicRule extends AbstractRule {
                         environment.getFieldDefinition().getType()
                 );
                 if (!GraphQLTypeUtil.isList(innerType)) {
-                    String errorMsg = String.format("@filter must define on list type, instead {%s}.", fieldFullPath);
+                    String errorMsg = String.format("@filter must define on list type, instead of {%s}.", fieldFullPath);
                     addValidError(location, errorMsg);
                     continue;
                 }

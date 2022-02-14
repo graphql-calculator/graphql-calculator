@@ -1,6 +1,8 @@
 ## like Any in protobuf
 #scalar Any
 
+#directive @partition(size: Int!) on ARGUMENT_DEFINITION
+
 type Query {
     # c端 用户
     consumer: Consumer
@@ -19,7 +21,7 @@ type Query {
 
     toolInfo: ToolInfo
 
-#    variableBlackhole(anyArgument: Any, anyArrayArgument: [Any]): Blackhole
+    #    variableBlackhole(anyArgument: Any, anyArrayArgument: [Any]): Blackhole
 }
 
 
@@ -28,6 +30,7 @@ type Query {
 type Consumer{
     userInfo(userId: Int,clientVersion:String):User
     userInfoList(userIds: [Int]): [User]
+
     #  用户对于各种业务的新老客，参数格式为： redisKey_{userId}
     isNewUser(redisKey: String, userId: Int): NewUserInfo
 }
