@@ -171,6 +171,16 @@ comparator为可选参数，当未设置该参数时使用`System.identityHashCo
 
 对列表进行排序，参数为查询解析结果：当列表元素为对象类型时、表达式变量为对象对应的`Map`，当元素为基本类型时、表达式变量为key为`ele`、value为元素值。
 不管reversed是否为true，表达式结果为null的元素总是排在列表最后。
+    
+#### **@partition**
+
+`directive @partition(size: Int!) on ARGUMENT_DEFINITION`
+
+参数解释：
+- size：将参数列表按照 size 进行分组调用。
+
+将 @partition 注解的参数按照 size 等分成多组(最后一组个数可能小于 size)，分别去执行该字段的请求逻辑并合并结果。注解的参数为null时则使用原始参数去执行请求。分组的请求是否并行执行取决于原始字段请求逻辑是否是异步执行。
+
 
 # 使用示例
 
@@ -415,6 +425,26 @@ query distinctUserInfoListByAge($userIds:[Int]){
             email
         }
     }
+}
+```
+    
+#### 分组调用
+
+@Partition 是Schema指令，Schema 中使用 @partition 需预先定义。如下示例为请求userInfoList时，将参数按照每5个一组进行分批调用。
+```graphql
+directive @partition(size: Int!) on ARGUMENT_DEFINITION
+
+type Query {
+    # c端 用户
+    userInfoList(userIds: [Int] @partition(size: 5)): [User]
+}
+
+type User{
+    userId: Int
+    age: Int
+    name: String
+    email: String
+    clientVersion: String
 }
 ```
 
