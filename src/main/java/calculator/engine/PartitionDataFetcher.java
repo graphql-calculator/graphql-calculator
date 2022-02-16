@@ -33,6 +33,8 @@ import graphql.schema.GraphQLTypeVisitor;
 import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -43,6 +45,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Internal
 public class PartitionDataFetcher implements DataFetcher<Object> {
+
+    private static final Logger logger = LoggerFactory.getLogger(PartitionDataFetcher.class);
 
     private final int partitionSize;
 
@@ -84,8 +88,10 @@ public class PartitionDataFetcher implements DataFetcher<Object> {
                 result.add(delegateResult);
             } else if (delegateResult instanceof List) {
                 result.addAll((List) delegateResult);
-            } else {
-                // todo debug error
+            } else if (delegateResult != null) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("unexpected result type: {}", delegateResult.getClass().getName());
+                }
             }
         }
 

@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 @Internal
 public class BasicRule extends AbstractRule {
 
+
     private final Config config;
 
     BasicRule(Config config) {
@@ -54,11 +55,7 @@ public class BasicRule extends AbstractRule {
                 .filter(argument -> argument.getDirective(Directives.PARTITION.getName()) != null)
                 .collect(Collectors.toMap(
                         GraphQLArgument::getName,
-                        Function.identity(),
-                        (v1, v2) -> {
-                            // todo debug error message;
-                            return v1;
-                        }
+                        Function.identity()
                 ));
         if (argumentWithPartitionByName.isEmpty()) {
             return TraversalControl.CONTINUE;
