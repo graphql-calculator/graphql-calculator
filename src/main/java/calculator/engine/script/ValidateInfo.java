@@ -53,4 +53,12 @@ public class ValidateInfo {
     public String getErrorMsg() {
         return errorMsg;
     }
+
+    @Override
+    public String toString() {
+        return "ValidateInfo{" +
+                "isValidScript=" + isValidScript +
+                ", errorMsg='" + errorMsg + '\'' +
+                '}';
+    }
 }
