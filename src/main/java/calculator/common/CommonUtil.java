@@ -16,6 +16,7 @@
  */
 package calculator.common;
 
+import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
 import graphql.Assert;
 import graphql.execution.ResultPath;
@@ -214,6 +215,25 @@ public class CommonUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * Convert object to script arguments.
+     *
+     * @param objectMapper objectMapper which used to convert object to script argument
+     * @param object       object
+     * @return script argument
+     */
+    public static Object getScriptEnv(ObjectMapper objectMapper, Object object) {
+        if (object == null) {
+            return null;
+        }
+
+        if (CommonUtil.isBasicType(object)) {
+            return Collections.singletonMap("ele", object);
+        } else {
+            return objectMapper.toSimpleCollection(object);
+        }
     }
 
 }

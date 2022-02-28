@@ -109,7 +109,6 @@ public class DefaultObjectMapper implements ObjectMapper {
 
 
     private Collection<Object> toCollection(Collection<Object> collection) {
-
         List<Object> result = new ArrayList<>(collection.size());
 
         for (Object object : collection) {
@@ -123,12 +122,8 @@ public class DefaultObjectMapper implements ObjectMapper {
         Map<Object, Object> result = new LinkedHashMap<>();
 
         for (Map.Entry<Object, Object> entry : map.entrySet()) {
-            if (!(entry.getKey() instanceof String)) {
-                return map;
-            }
-
-            String fieldName = (String) entry.getKey();
-            result.put(fieldName, toSimpleCollection(entry.getValue()));
+            Object toSimpleCollection = toSimpleCollection(entry.getValue());
+            result.put(entry.getKey(), toSimpleCollection);
         }
         return result;
     }
