@@ -16,6 +16,7 @@
  */
 package calculator.common;
 
+import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
 import graphql.Assert;
 import graphql.execution.ResultPath;
@@ -214,6 +215,18 @@ public class CommonUtil {
             }
         }
         return null;
+    }
+
+    public static Object getScriptEnv(ObjectMapper objectMapper, Object res) {
+        if (res == null) {
+            return null;
+        }
+
+        if (CommonUtil.isBasicType(res)) {
+            return Collections.singletonMap("ele", res);
+        } else {
+            return objectMapper.toSimpleCollection(res);
+        }
     }
 
 }

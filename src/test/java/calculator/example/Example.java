@@ -18,7 +18,6 @@ package calculator.example;
 
 import calculator.config.Config;
 import calculator.config.DefaultConfig;
-import calculator.graphql.AsyncDataFetcherInterface;
 import calculator.graphql.CalculatorDocumentCachedProvider;
 import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
