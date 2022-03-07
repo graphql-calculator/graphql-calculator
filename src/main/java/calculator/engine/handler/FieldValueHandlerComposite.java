@@ -18,6 +18,7 @@
 package calculator.engine.handler;
 
 import calculator.engine.ObjectMapper;
+import calculator.engine.annotation.Internal;
 import calculator.engine.script.ScriptEvaluator;
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
@@ -30,6 +31,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
+@Internal
 public class FieldValueHandlerComposite implements FieldValueHandler {
 
     private final List<FieldValueHandler> fieldValueHandlers = new ArrayList<>();

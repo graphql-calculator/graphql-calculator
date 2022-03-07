@@ -19,6 +19,7 @@ package calculator.engine.handler;
 
 import calculator.common.CollectionUtil;
 import calculator.engine.ObjectMapper;
+import calculator.engine.annotation.Internal;
 import calculator.engine.script.ScriptEvaluator;
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
@@ -34,6 +35,7 @@ import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.common.CommonUtil.getScriptEnv;
 import static calculator.engine.metadata.Directives.FILTER;
 
+@Internal
 public class FilterHandler implements FieldValueHandler{
 
     @Override
@@ -51,10 +53,9 @@ public class FilterHandler implements FieldValueHandler{
         String predicate = getArgumentFromDirective(directive, "predicate");
 
         Predicate<Object> willKeep = ele -> {
-            Map<String, Object> fieldMap = (Map<String, Object>) getScriptEnv(objectMapper, ele);
             Map<String, Object> sourceEnv = new LinkedHashMap<>();
-            fieldMap.putAll(sourceEnv);
-            return (Boolean) scriptEvaluator.evaluate(predicate, fieldMap);
+            sourceEnv.putAll((Map)getScriptEnv(objectMapper, ele));
+            return (Boolean) scriptEvaluator.evaluate(predicate, sourceEnv);
         };
 
         CollectionUtil.filterCollection(result.getData(), willKeep);

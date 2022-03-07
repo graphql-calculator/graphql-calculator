@@ -20,6 +20,7 @@ package calculator.engine.decorator;
 import calculator.common.CommonUtil;
 import calculator.common.GraphQLUtil;
 import calculator.engine.ObjectMapper;
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.DataFetcherDefinition;
 import calculator.engine.metadata.FetchSourceTask;
 import graphql.language.Directive;
@@ -36,6 +37,7 @@ import static calculator.common.CommonUtil.getDependenceSourceFromDirective;
 import static calculator.engine.metadata.Directives.MAP;
 import static graphql.schema.AsyncDataFetcher.async;
 
+@Internal
 public class MapDecorator extends AbstractDecorator {
 
     @Override

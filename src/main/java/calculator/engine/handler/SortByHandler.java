@@ -19,6 +19,7 @@ package calculator.engine.handler;
 
 import calculator.common.CollectionUtil;
 import calculator.engine.ObjectMapper;
+import calculator.engine.annotation.Internal;
 import calculator.engine.script.ScriptEvaluator;
 import graphql.ExecutionResult;
 import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
@@ -35,6 +36,7 @@ import static calculator.common.CommonUtil.getScriptEnv;
 import static calculator.engine.metadata.Directives.SORT_BY;
 import static java.util.Comparator.nullsLast;
 
+@Internal
 public class SortByHandler implements FieldValueHandler {
 
     @Override

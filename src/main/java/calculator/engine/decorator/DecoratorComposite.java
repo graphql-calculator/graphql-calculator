@@ -17,6 +17,7 @@
 
 package calculator.engine.decorator;
 
+import calculator.engine.annotation.Internal;
 import graphql.language.Directive;
 import graphql.schema.DataFetcher;
 
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Internal
 public class DecoratorComposite implements Decorator {
 
     private final List<Decorator> decorators = new ArrayList<>();

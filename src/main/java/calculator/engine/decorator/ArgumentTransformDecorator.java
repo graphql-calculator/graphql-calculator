@@ -61,7 +61,6 @@ public class ArgumentTransformDecorator extends AbstractDecorator {
         String expression = getArgumentFromDirective(directive, "expression");
         List<String> dependencySources = getDependenceSourceFromDirective(directive);
 
-
         DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(environment.getOriginalDataFetcher());
 
         DataFetcher<?> wrappedDataFetcher = fetchingEnvironment -> {

@@ -17,6 +17,7 @@
 
 package calculator.engine.decorator;
 
+import calculator.engine.annotation.Internal;
 import graphql.language.Directive;
 import graphql.schema.DataFetcher;
 
@@ -25,6 +26,7 @@ import java.util.Objects;
 import static calculator.common.CommonUtil.getArgumentFromDirective;
 import static calculator.engine.metadata.Directives.MOCK;
 
+@Internal
 public class MockDecorator implements Decorator {
 
     @Override

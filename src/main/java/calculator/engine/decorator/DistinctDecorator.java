@@ -19,6 +19,7 @@ package calculator.engine.decorator;
 
 import calculator.common.CollectionUtil;
 import calculator.common.GraphQLUtil;
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.DataFetcherDefinition;
 import graphql.language.Directive;
 import graphql.schema.DataFetcher;
@@ -30,6 +31,7 @@ import java.util.concurrent.CompletionStage;
 import static calculator.engine.metadata.Directives.DISTINCT;
 import static graphql.schema.AsyncDataFetcher.async;
 
+@Internal
 public class DistinctDecorator extends AbstractDecorator {
 
     @Override
