@@ -3,7 +3,7 @@
 ![Build and Publish](https://github.com/dugenkui03/graphql-java-calculator/workflows/Build%20and%20Publish/badge.svg)
 [![Latest Release](https://maven-badges.herokuapp.com/maven-central/com.graphql-java-calculator/graphql-java-calculator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.graphql-java-calculator/graphql-java-calculator)
 
-[📖 English Documentation](README_EN.md) | 📖 中文文档 | [介绍ppt](static/Introduction%20to%20GraphQl%20Calculator.pptx) | [**🏆相关奖项🏆**](static/awards_ks.jpg)
+[📖 English Documentation](README_EN.md) | 📖 中文文档 |[**🏆相关奖项**](static/awards_ks.jpg)
 
 ----------------------------------------
 
