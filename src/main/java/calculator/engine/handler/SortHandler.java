@@ -18,17 +18,12 @@
 package calculator.engine.handler;
 
 import calculator.common.CollectionUtil;
-import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
-import calculator.engine.script.ScriptEvaluator;
-import graphql.ExecutionResult;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.language.Directive;
 
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
@@ -45,20 +40,15 @@ public class SortHandler implements FieldValueHandler{
     }
 
     @Override
-    public void transformListResultByDirectives(ExecutionResult result,
-                                                Directive directive,
-                                                InstrumentationFieldCompleteParameters parameters,
-                                                Executor executor,
-                                                ObjectMapper objectMapper,
-                                                ScriptEvaluator scriptEvaluator) {
+    public void transformListResultByDirectives(HandleEnvironment handleEnvironment) {
         Supplier<Boolean> defaultReversed = () -> (Boolean) SORT.getArgument("reversed").getArgumentDefaultValue().getValue();
-        String sortKey = getArgumentFromDirective(directive, "key");
-        Boolean reversed = getArgumentFromDirective(directive, "reversed");
+        String sortKey = getArgumentFromDirective(handleEnvironment.getDirective(), "key");
+        Boolean reversed = getArgumentFromDirective(handleEnvironment.getDirective(), "reversed");
         final boolean finalReversed = reversed != null ? reversed : defaultReversed.get();
 
         Comparator<Object> comparator = Comparator.comparing(
                 ele -> {
-                    Map<String, Comparable<Object>> calMap = (Map<String, Comparable<Object>>) getScriptEnv(objectMapper, ele);
+                    Map<String, Comparable<Object>> calMap = (Map<String, Comparable<Object>>) getScriptEnv(handleEnvironment.getObjectMapper(), ele);
                     return calMap.get(sortKey);
                 },
                 // always nullLast
@@ -72,7 +62,7 @@ public class SortHandler implements FieldValueHandler{
                 )
         );
 
-        CollectionUtil.sortListOrArray(result.getData(), comparator);
+        CollectionUtil.sortListOrArray(handleEnvironment.getResult().getData(), comparator);
     }
 
 }

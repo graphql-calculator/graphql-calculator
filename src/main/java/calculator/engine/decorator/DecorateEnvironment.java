@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 @Internal
-public class WrapperEnvironment {
+public class DecorateEnvironment {
     private final Field field;
     private final DataFetcher<?> originalDataFetcher;
     private final GraphQLFieldDefinition fieldDefinition;
@@ -46,15 +46,15 @@ public class WrapperEnvironment {
     private final ObjectMapper objectMapper;
     private final ScriptEvaluator scriptEvaluator;
 
-    public WrapperEnvironment(Field field,
-                              DataFetcher<?> originalDataFetcher,
-                              GraphQLFieldDefinition fieldDefinition,
-                              Directive directive,
-                              List<GraphQLDirective> directivesOnFieldDefinition,
-                              DataFetchingEnvironment environment,
-                              ExecutionEngineState engineState,
-                              ValueUnboxer valueUnboxer,
-                              Executor executor, ObjectMapper objectMapper, ScriptEvaluator scriptEvaluator
+    public DecorateEnvironment(Field field,
+                               DataFetcher<?> originalDataFetcher,
+                               GraphQLFieldDefinition fieldDefinition,
+                               Directive directive,
+                               List<GraphQLDirective> directivesOnFieldDefinition,
+                               DataFetchingEnvironment environment,
+                               ExecutionEngineState engineState,
+                               ValueUnboxer valueUnboxer,
+                               Executor executor, ObjectMapper objectMapper, ScriptEvaluator scriptEvaluator
     ) {
         this.field = field;
         this.originalDataFetcher = originalDataFetcher;

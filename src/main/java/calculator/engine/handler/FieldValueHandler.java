@@ -17,14 +17,8 @@
 
 package calculator.engine.handler;
 
-import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
-import calculator.engine.script.ScriptEvaluator;
-import graphql.ExecutionResult;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.language.Directive;
-
-import java.util.concurrent.Executor;
 
 
 @Internal
@@ -32,9 +26,6 @@ public interface FieldValueHandler {
 
     boolean supportDirective(Directive directive);
 
-    void transformListResultByDirectives(ExecutionResult result,
-                                         Directive directive,
-                                         InstrumentationFieldCompleteParameters parameters,
-                                         Executor executor,ObjectMapper objectMapper,ScriptEvaluator scriptEvaluator);
+    void transformListResultByDirectives(HandleEnvironment handleEnvironment);
 
 }

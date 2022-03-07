@@ -17,11 +17,7 @@
 
 package calculator.engine.handler;
 
-import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
-import calculator.engine.script.ScriptEvaluator;
-import graphql.ExecutionResult;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.language.Directive;
 
 import java.util.ArrayList;
@@ -29,14 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 
 @Internal
 public class FieldValueHandlerComposite implements FieldValueHandler {
 
     private final List<FieldValueHandler> fieldValueHandlers = new ArrayList<>();
 
-    private final Map<String, FieldValueHandler> HANDLER_CACHE = new ConcurrentHashMap<>(256);
+    private final Map<String, FieldValueHandler> HANDLER_CACHE = new ConcurrentHashMap<>(128);
 
     public void addFieldValueHandler(FieldValueHandler fieldValueHandler) {
         Objects.requireNonNull(fieldValueHandler, "fieldValueHandler can not be null.");
@@ -49,18 +44,9 @@ public class FieldValueHandlerComposite implements FieldValueHandler {
     }
 
     @Override
-    public void transformListResultByDirectives(ExecutionResult result,
-                                                Directive directive,
-                                                InstrumentationFieldCompleteParameters parameters,
-                                                Executor executor,
-                                                ObjectMapper objectMapper,
-                                                ScriptEvaluator scriptEvaluator) {
-
-        FieldValueHandler fieldValueHandler = getFieldValueHandler(directive);
-        fieldValueHandler.transformListResultByDirectives(
-                result, directive, parameters,
-                executor, objectMapper, scriptEvaluator
-        );
+    public void transformListResultByDirectives(HandleEnvironment handleEnvironment) {
+        FieldValueHandler fieldValueHandler = getFieldValueHandler(handleEnvironment.getDirective());
+        fieldValueHandler.transformListResultByDirectives(handleEnvironment);
     }
 
 

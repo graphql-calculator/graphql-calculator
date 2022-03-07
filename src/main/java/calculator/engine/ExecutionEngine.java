@@ -20,9 +20,11 @@ import calculator.common.CollectionUtil;
 import calculator.common.CommonUtil;
 import calculator.config.Config;
 import calculator.engine.annotation.Internal;
+import calculator.engine.decorator.DecorateEnvironment;
 import calculator.engine.handler.DistinctHandler;
 import calculator.engine.handler.FieldValueHandlerComposite;
 import calculator.engine.handler.FilterHandler;
+import calculator.engine.handler.HandleEnvironment;
 import calculator.engine.handler.SortByHandler;
 import calculator.engine.handler.SortHandler;
 import calculator.engine.metadata.FetchSourceTask;
@@ -35,7 +37,6 @@ import calculator.engine.decorator.MockDecorator;
 import calculator.engine.decorator.SortByDecorator;
 import calculator.engine.decorator.SortDecorator;
 import calculator.engine.decorator.DecoratorComposite;
-import calculator.engine.decorator.WrapperEnvironment;
 import graphql.ExecutionResult;
 import graphql.analysis.QueryTraverser;
 import graphql.com.google.common.collect.ImmutableList;
@@ -371,7 +372,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                            InstrumentationFieldFetchParameters parameters) {
         for (Directive directive : directivesOnField) {
             DataFetchingEnvironment fetchingEnvironment = parameters.getEnvironment();
-            WrapperEnvironment wrapperEnvironment = new WrapperEnvironment(
+            DecorateEnvironment wrapperEnvironment = new DecorateEnvironment(
                     fetchingEnvironment.getField(),
                     originalDataFetcher, fetchingEnvironment.getFieldDefinition(),
                     directive, fetchingEnvironment.getFieldDefinition().getDirectives(),
@@ -430,8 +431,13 @@ public class ExecutionEngine extends SimpleInstrumentation {
                                                  List<Directive> directives,
                                                  InstrumentationFieldCompleteParameters parameters) {
         for (Directive directive : directives) {
+
+            HandleEnvironment handleEnvironment = new HandleEnvironment(
+                    directive, result, parameters, executor, objectMapper, scriptEvaluator
+            );
+
             if (fieldValueHandlerComposite.supportDirective(directive)) {
-                fieldValueHandlerComposite.transformListResultByDirectives(result, directive, parameters, executor, objectMapper, scriptEvaluator);
+                fieldValueHandlerComposite.transformListResultByDirectives(handleEnvironment);
             }
         }
     }

@@ -18,17 +18,12 @@
 package calculator.engine.handler;
 
 import calculator.common.CollectionUtil;
-import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
-import calculator.engine.script.ScriptEvaluator;
-import graphql.ExecutionResult;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.language.Directive;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
@@ -44,21 +39,16 @@ public class FilterHandler implements FieldValueHandler{
     }
 
     @Override
-    public void transformListResultByDirectives(ExecutionResult result,
-                                                Directive directive,
-                                                InstrumentationFieldCompleteParameters parameters,
-                                                Executor executor,
-                                                ObjectMapper objectMapper,
-                                                ScriptEvaluator scriptEvaluator) {
-        String predicate = getArgumentFromDirective(directive, "predicate");
+    public void transformListResultByDirectives(HandleEnvironment handleEnvironment) {
+        String predicate = getArgumentFromDirective(handleEnvironment.getDirective(), "predicate");
 
         Predicate<Object> willKeep = ele -> {
             Map<String, Object> sourceEnv = new LinkedHashMap<>();
-            sourceEnv.putAll((Map)getScriptEnv(objectMapper, ele));
-            return (Boolean) scriptEvaluator.evaluate(predicate, sourceEnv);
+            sourceEnv.putAll((Map)getScriptEnv(handleEnvironment.getObjectMapper(), ele));
+            return (Boolean) handleEnvironment.getScriptEvaluator().evaluate(predicate, sourceEnv);
         };
 
-        CollectionUtil.filterCollection(result.getData(), willKeep);
+        CollectionUtil.filterCollection(handleEnvironment.getResult().getData(), willKeep);
     }
 
 }

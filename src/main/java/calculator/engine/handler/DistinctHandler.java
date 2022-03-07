@@ -18,17 +18,12 @@
 package calculator.engine.handler;
 
 import calculator.common.CollectionUtil;
-import calculator.engine.ObjectMapper;
 import calculator.engine.annotation.Internal;
-import calculator.engine.script.ScriptEvaluator;
-import graphql.ExecutionResult;
-import graphql.execution.instrumentation.parameters.InstrumentationFieldCompleteParameters;
 import graphql.language.Directive;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import static calculator.common.CommonUtil.getArgumentFromDirective;
@@ -44,13 +39,8 @@ public class DistinctHandler implements FieldValueHandler {
     }
 
     @Override
-    public void transformListResultByDirectives(ExecutionResult result,
-                                                Directive directive,
-                                                InstrumentationFieldCompleteParameters parameters,
-                                                Executor executor,
-                                                ObjectMapper objectMapper,
-                                                ScriptEvaluator scriptEvaluator) {
-        String comparatorExpression = getArgumentFromDirective(directive, "comparator");
+    public void transformListResultByDirectives(HandleEnvironment handleEnvironment) {
+        String comparatorExpression = getArgumentFromDirective(handleEnvironment.getDirective(), "comparator");
         boolean emptyComparator = comparatorExpression == null;
 
         Function<Object, Integer> comparator = ele -> {
@@ -63,15 +53,15 @@ public class DistinctHandler implements FieldValueHandler {
             }
 
             Map<String, Object> scriptEnv = new LinkedHashMap<>();
-            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(objectMapper,ele);
+            Map<String, Object> calMap = (Map<String, Object>) getScriptEnv(handleEnvironment.getObjectMapper(),ele);
             if (calMap != null) {
                 scriptEnv.putAll(calMap);
             }
-            Object evaluate = scriptEvaluator.evaluate(comparatorExpression, scriptEnv);
+            Object evaluate = handleEnvironment.getScriptEvaluator().evaluate(comparatorExpression, scriptEnv);
             return Objects.hashCode(evaluate);
         };
 
-        CollectionUtil.distinctCollection(result.getData(), comparator);
+        CollectionUtil.distinctCollection(handleEnvironment.getResult().getData(), comparator);
 
     }
 

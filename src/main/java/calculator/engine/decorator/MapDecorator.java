@@ -41,12 +41,12 @@ import static graphql.schema.AsyncDataFetcher.async;
 public class MapDecorator extends AbstractDecorator {
 
     @Override
-    public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
+    public boolean supportDirective(Directive directive, DecorateEnvironment environment) {
         return Objects.equals(MAP.getName(), environment.getDirective().getName());
     }
 
     @Override
-    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, DecorateEnvironment environment) {
         String mapper = getArgumentFromDirective(environment.getDirective(), "mapper");
         List<String> dependencySources = getDependenceSourceFromDirective(environment.getDirective());
 

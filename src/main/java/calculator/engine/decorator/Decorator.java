@@ -28,11 +28,11 @@ public interface Decorator {
     /**
      * Whether this decorator supports the given directive.
      */
-    boolean supportDirective(Directive directive, WrapperEnvironment environment);
+    boolean supportDirective(Directive directive, DecorateEnvironment environment);
 
     /**
      * Decorate the original DataFetcher.
      */
-    DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment);
+    DataFetcher<?> decorate(Directive directive, DecorateEnvironment environment);
 
 }

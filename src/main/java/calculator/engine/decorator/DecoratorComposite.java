@@ -32,7 +32,7 @@ public class DecoratorComposite implements Decorator {
 
     private final List<Decorator> decorators = new ArrayList<>();
 
-    private final Map<String, Decorator> DECORATOR_CACHE = new ConcurrentHashMap<>(256);
+    private final Map<String, Decorator> DECORATOR_CACHE = new ConcurrentHashMap<>(128);
 
     public void addStrategy(Decorator decorator){
         Objects.requireNonNull(decorator, "decorator can not be null.");
@@ -40,19 +40,19 @@ public class DecoratorComposite implements Decorator {
     }
 
     @Override
-    public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
+    public boolean supportDirective(Directive directive, DecorateEnvironment environment) {
         return getDecorator(directive,environment) != null;
     }
 
 
     @SuppressWarnings("ConstantConditions")
-    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, DecorateEnvironment environment) {
         Decorator decorator = getDecorator(directive, environment);
         return decorator.decorate(directive, environment);
     }
 
 
-    private Decorator getDecorator(Directive directive, WrapperEnvironment environment) {
+    private Decorator getDecorator(Directive directive, DecorateEnvironment environment) {
         String directiveName = directive.getName();
         Decorator result = DECORATOR_CACHE.get(directiveName);
         if (result != null) {

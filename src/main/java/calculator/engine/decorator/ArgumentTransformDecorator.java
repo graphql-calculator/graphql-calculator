@@ -44,12 +44,12 @@ import static java.util.stream.Collectors.toList;
 public class ArgumentTransformDecorator extends AbstractDecorator {
 
     @Override
-    public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
+    public boolean supportDirective(Directive directive, DecorateEnvironment environment) {
         return Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName());
     }
 
     @Override
-    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, DecorateEnvironment environment) {
         Supplier<Directives.ParamTransformType> defaultOperateType = () -> (Directives.ParamTransformType) ARGUMENT_TRANSFORM
                 .getArgument("operateType")
                 .getArgumentDefaultValue()

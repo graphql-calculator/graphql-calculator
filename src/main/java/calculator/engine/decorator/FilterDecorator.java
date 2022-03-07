@@ -35,12 +35,12 @@ import static graphql.schema.AsyncDataFetcher.async;
 public class FilterDecorator extends AbstractDecorator {
 
     @Override
-    public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
+    public boolean supportDirective(Directive directive, DecorateEnvironment environment) {
         return Objects.equals(FILTER.getName(), environment.getDirective().getName());
     }
 
     @Override
-    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment wrapperEnvironment) {
+    public DataFetcher<?> decorate(Directive directive, DecorateEnvironment wrapperEnvironment) {
         DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(
                 wrapperEnvironment.getOriginalDataFetcher()
         );

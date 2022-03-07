@@ -30,12 +30,12 @@ import static calculator.engine.metadata.Directives.MOCK;
 public class MockDecorator implements Decorator {
 
     @Override
-    public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
+    public boolean supportDirective(Directive directive, DecorateEnvironment environment) {
         return Objects.equals(MOCK.getName(), environment.getDirective().getName());
     }
 
     @Override
-    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, DecorateEnvironment environment) {
         return ignore -> getArgumentFromDirective(environment.getDirective(), "value");
     }
 }
