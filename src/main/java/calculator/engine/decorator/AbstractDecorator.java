@@ -34,19 +34,13 @@ import static java.util.stream.Collectors.toList;
 public abstract class AbstractDecorator implements Decorator {
 
     protected Object unWrapDataFetcherResult(Object originalResult, ValueUnboxer valueUnboxer) {
-        Object nonFutureResult;
-        if (originalResult instanceof CompletionStage) {
-            nonFutureResult = ((CompletionStage<?>) originalResult).toCompletableFuture().join();
-        } else {
-            nonFutureResult = originalResult;
-        }
+        Object nonFutureResult = originalResult instanceof CompletionStage
+                ? ((CompletionStage<?>) originalResult).toCompletableFuture().join()
+                : originalResult;
 
-        Object fetchData;
-        if (nonFutureResult instanceof DataFetcherResult) {
-            fetchData = ((DataFetcherResult<?>) nonFutureResult).getData();
-        } else {
-            fetchData = nonFutureResult;
-        }
+        Object fetchData = nonFutureResult instanceof DataFetcherResult
+                ? ((DataFetcherResult<?>) nonFutureResult).getData()
+                : nonFutureResult;
 
         return valueUnboxer.unbox(fetchData);
     }
@@ -86,7 +80,6 @@ public abstract class AbstractDecorator implements Decorator {
 
                 if (result == null) {
                     valueTask.getTaskFuture().complete(null);
-                    return;
                 }
             }).join();
 
@@ -107,12 +100,8 @@ public abstract class AbstractDecorator implements Decorator {
                         }
                     }
             ).join();
-
-            if (valueTask.getTaskFuture().isDone()) {
-                return valueTask;
-            }
         }
 
-        throw new RuntimeException("can not invoke here");
+        return valueTask;
     }
 }
