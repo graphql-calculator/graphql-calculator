@@ -38,7 +38,7 @@ public class FilterDecorator extends AbstractDecorator {
     }
 
     @Override
-    public DataFetcher<?> wrap(Directive directive,WrapperEnvironment wrapperEnvironment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment wrapperEnvironment) {
         DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(
                 wrapperEnvironment.getOriginalDataFetcher()
         );

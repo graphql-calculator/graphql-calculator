@@ -33,7 +33,7 @@ public class MockDecorator implements Decorator {
     }
 
     @Override
-    public DataFetcher<?> wrap(Directive directive,WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
         return ignore -> getArgumentFromDirective(environment.getDirective(), "value");
     }
 }

@@ -381,7 +381,7 @@ public class ExecutionEngine extends SimpleInstrumentation {
             );
 
             if (strategyComposite.supportDirective(directive, wrapperEnvironment)) {
-                originalDataFetcher = strategyComposite.wrap(directive, wrapperEnvironment);
+                originalDataFetcher = strategyComposite.decorate(directive, wrapperEnvironment);
             }
         }
 

@@ -18,6 +18,7 @@
 package calculator.engine.decorator;
 
 import calculator.common.GraphQLUtil;
+import calculator.engine.annotation.Internal;
 import calculator.engine.metadata.DataFetcherDefinition;
 import calculator.engine.metadata.Directives;
 import calculator.engine.metadata.FetchSourceTask;
@@ -39,14 +40,16 @@ import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static graphql.schema.AsyncDataFetcher.async;
 import static java.util.stream.Collectors.toList;
 
+@Internal
 public class ArgumentTransformDecorator extends AbstractDecorator {
+
     @Override
     public boolean supportDirective(Directive directive, WrapperEnvironment environment) {
         return Objects.equals(ARGUMENT_TRANSFORM.getName(), directive.getName());
     }
 
     @Override
-    public DataFetcher<?> wrap(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
         Supplier<Directives.ParamTransformType> defaultOperateType = () -> (Directives.ParamTransformType) ARGUMENT_TRANSFORM
                 .getArgument("operateType")
                 .getArgumentDefaultValue()

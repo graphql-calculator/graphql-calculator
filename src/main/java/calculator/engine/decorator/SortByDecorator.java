@@ -37,7 +37,7 @@ public class SortByDecorator extends AbstractDecorator {
     }
 
     @Override
-    public DataFetcher<?> wrap(Directive directive,WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
 
         DataFetcherDefinition dataFetcherDefinition = GraphQLUtil.getDataFetcherDefinition(
                 environment.getOriginalDataFetcher()

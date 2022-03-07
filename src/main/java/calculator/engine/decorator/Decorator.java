@@ -33,6 +33,6 @@ public interface Decorator {
     /**
      * Decorate the original DataFetcher.
      */
-    DataFetcher<?> wrap(Directive directive, WrapperEnvironment environment);
+    DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment);
 
 }

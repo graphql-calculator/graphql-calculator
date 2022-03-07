@@ -44,9 +44,9 @@ public class DecoratorComposite implements Decorator {
 
 
     @SuppressWarnings("ConstantConditions")
-    public DataFetcher<?> wrap(Directive directive, WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
         Decorator decorator = getDecorator(directive, environment);
-        return decorator.wrap(directive, environment);
+        return decorator.decorate(directive, environment);
     }
 
 

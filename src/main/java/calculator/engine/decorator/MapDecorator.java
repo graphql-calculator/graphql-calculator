@@ -44,7 +44,7 @@ public class MapDecorator extends AbstractDecorator {
     }
 
     @Override
-    public DataFetcher<?> wrap(Directive directive,WrapperEnvironment environment) {
+    public DataFetcher<?> decorate(Directive directive, WrapperEnvironment environment) {
         String mapper = getArgumentFromDirective(environment.getDirective(), "mapper");
         List<String> dependencySources = getDependenceSourceFromDirective(environment.getDirective());
 
