@@ -10,9 +10,7 @@
 `GraphQL Calculator`是一款轻量级**查询计算引擎**，为`graphql`查询提供了动态计算的能力。
 
 该组件旨在通过[指令](https://spec.graphql.org/draft/#sec-Language.Directives)和表达式系统，
-通过简单的配置在`graphql`查询中实现常规的加工转换、数据编排和控制流的能力，让客户端从繁杂地基础数据加工处理和编排中解放出来。
-
-![架构](static/architecture.png)
+通过简单的配置在`graphql`查询中实现常规的加工转换、数据编排和控制流的能力，让客户端从繁杂地基础数据加工处理和编排中解放出来，**并且无需重启服务、实现快速响应**。
 
 
 
