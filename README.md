@@ -12,6 +12,11 @@
 该组件旨在通过[指令](https://spec.graphql.org/draft/#sec-Language.Directives)和表达式系统，
 通过简单的配置在`graphql`查询中实现常规的加工转换、数据编排和控制流的能力，让客户端从繁杂地基础数据加工处理和编排中解放出来，**并且无需重启服务、实现快速响应**。
 
+#### 关于 calculator
+- 🎉 该组件被[ GraphQL ](https://graphql.org/code/)官网评估收录
+- ⚙ 不断经由实际线上业务验证，运行高效稳定
+- 👷🏻‍♂️ 作者系 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
+
 
 
 # 特性
