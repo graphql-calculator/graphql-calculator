@@ -185,7 +185,115 @@ comparator为可选参数，当未设置该参数时使用`System.identityHashCo
 以[测试schema](https://github.com/graphql-calculator/graphql-calculator/blob/refactorForSchedule/src/test/resources/schema.graphql)为例，
 对计算指令实现数据编排、结果处理转换和控制流等的能力进行说明。
 
+#### 列表过滤
 
+过滤出在售并且价格小于1000的商品。
+```graphql
+query filterCommodityBySaleAndPrice($ItemIds:[Int]){
+    commodity{
+        filteredItemList: itemList(itemIds: $ItemIds)
+        @filter(predicate: "onSale&&salePrice<1000")
+        {
+            itemId
+            onSale
+            name
+            salePrice
+        }
+    }
+}
+``` 
+    
+对列表进行过滤：只保留可用券的商品。
+1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
+2. 使用 `@filter` 过滤出可使用券的商品。
+```graphql
+query filter_case01{
+
+    # 查询可使用指定券的商品id
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        # 通过 filter 过滤不可用券的商品
+        @filter(predicate: "!isContainBindingItemIds")
+        {
+            # 通过 @map 命令标识该商品是否可使用券
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+            itemId
+            name
+            salePrice
+        }
+    }
+}
+```
+
+#### 列表排序
+
+对列表字段进行排序。例如对商品进行排序：将可用券的商品放在列表前边。
+1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
+2. 使用 `@sortBy`对列表进行排序；
+
+```graphql
+query sortByWithSource_case01{
+    commodity{
+        itemList(itemIds: [9,11,10,12])
+        @sortBy(comparator: "!isContainBindingItemIds")
+        {
+            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
+            itemId
+            name
+            salePrice
+        }
+    }
+
+    marketing{
+        coupon(couponId: 1){
+            bindingItemIds @fetchSource(name: "bindingItemIds")
+        }
+    }
+}
+```
+            
+#### 列表去重
+
+根据年龄对用户列表进行去重，每个年龄只保留一个用户。
+```graphql
+query distinctUserInfoListByAge($userIds:[Int]){
+    consumer{
+        distinctUserInfoList: userInfoList(userIds: $userIds)
+        # 未设置comparator则使用`System.identityHashCode(userInfo)`判断元素是否为相同对象进行去重
+        @distinct(comparator: "age")
+        {
+            userId
+            name
+            age
+            email
+        }
+    }
+}
+```
+            
+#### 数据加工
+    
+将用户详情中的 firstName 和 lastName 拼接成全名，`@map`经常需要与[别名机制](https://graphql.cn/learn/queries/#aliases)一起使用。
+            
+```graphql
+query basicMapValue($userIds:[Int]){
+    userInfoList(userIds:$userIds)
+    {
+        id
+        age
+        firstName
+        lastName
+        fullName: stringHolder @map(mapper: "firstName + lastName")
+    }
+}
+```
+            
 #### 数据编排
 
 数据编排的主要形式为请求a字段时、其请求参数为b字段的结果，或者需要b字段结果对a字段请求参数进行过滤、转换处理。
@@ -349,82 +457,6 @@ query calculateCouponPrice_Case01 ($couponId: Int, $itemIds: [Int]){
 }
 ```
 
-#### 列表排序
-
-对列表字段进行排序。例如对商品进行排序：将可用券的商品放在列表前边。
-1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
-2. 使用 `@sortBy`对列表进行排序；
-
-```graphql
-query sortByWithSource_case01{
-    commodity{
-        itemList(itemIds: [9,11,10,12])
-        @sortBy(comparator: "!isContainBindingItemIds")
-        {
-            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
-            itemId
-            name
-            salePrice
-        }
-    }
-
-    marketing{
-        coupon(couponId: 1){
-            bindingItemIds @fetchSource(name: "bindingItemIds")
-        }
-    }
-}
-```
-
-#### 列表过滤
-
-对列表进行过滤：只保留可用券的商品。
-1. 先通过 `@fetchSource`和`@map` 指令标识商品是否可用指定券；
-2. 使用 `@filter` 过滤出可使用券的商品。
-```graphql
-query filter_case01{
-
-    # 查询可使用指定券的商品id
-    marketing{
-        coupon(couponId: 1){
-            bindingItemIds @fetchSource(name: "bindingItemIds")
-        }
-    }
-
-    commodity{
-        itemList(itemIds: [9,11,10,12])
-        # 通过 filter 过滤不可用券的商品
-        @filter(predicate: "!isContainBindingItemIds")
-        {
-            # 通过 @map 命令标识该商品是否可使用券
-            isContainBindingItemIds:onSale @map(mapper: "listContain(bindingItemIds,itemId)",dependencySources: "bindingItemIds")
-            itemId
-            name
-            salePrice
-        }
-    }
-}
-```
-
-
-#### 列表去重
-
-根据年龄对用户列表进行去重，每个年龄只保留一个用户。
-```graphql
-query distinctUserInfoListByAge($userIds:[Int]){
-    consumer{
-        distinctUserInfoList: userInfoList(userIds: $userIds)
-        # 未设置comparator则使用`System.identityHashCode(userInfo)`判断元素是否为相同对象进行去重
-        @distinct(comparator: "age")
-        {
-            userId
-            name
-            age
-            email
-        }
-    }
-}
-```
     
 #### 分组调用
 
