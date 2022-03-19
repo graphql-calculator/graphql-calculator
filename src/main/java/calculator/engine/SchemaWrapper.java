@@ -82,8 +82,8 @@ public class SchemaWrapper {
             StringBuilder sb = new StringBuilder();
             for (CalculatorSchemaValidationError schemaValidationError : schemaValidationErrors) {
                 String errorMsg = String.format(
-                        "errorType: %s, location: %s, msg: %s\n",
-                        schemaValidationError.getErrorType(), schemaValidationError.getLocation(), schemaValidationError.getDescription()
+                        "errorClassification: %s, location: %s, msg: %s\n",
+                        schemaValidationError.getClassification(), schemaValidationError.getLocation(), schemaValidationError.getDescription()
                 );
                 sb.append(errorMsg);
             }
