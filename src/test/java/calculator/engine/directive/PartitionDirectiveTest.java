@@ -47,7 +47,7 @@ public class PartitionDirectiveTest {
     @Test
     public void partitionMustDefineOnListTypeField() throws Exception {
         expectedException.expect(WrapperSchemaException.class);
-        expectedException.expectMessage("errorType: InvalidAppliedDirectiveArgument, "
+        expectedException.expectMessage("errorClassification: InvalidAppliedDirectiveArgument, "
                 + "location: SourceLocation{line=5, column=5}, "
                 + "msg: @partition must be used on list type field, instead of {Query.singleField}.\n");
 
@@ -68,7 +68,7 @@ public class PartitionDirectiveTest {
     @Test
     public void partitionMustDefineOnListTypeArgument() throws Exception {
         expectedException.expect(WrapperSchemaException.class);
-        expectedException.expectMessage("errorType: InvalidAppliedDirectiveArgument, "
+        expectedException.expectMessage("errorClassification: InvalidAppliedDirectiveArgument, "
                 + "location: SourceLocation{line=7, column=5}, "
                 + "msg: @partition must be used on list type argument, instead of {Query.listField.arg}.\n");
 
@@ -89,7 +89,7 @@ public class PartitionDirectiveTest {
     @Test
     public void moreThanOneArgumentsUsePartitionOnOneField() throws Exception {
         expectedException.expect(WrapperSchemaException.class);
-        expectedException.expectMessage("errorType: InvalidAppliedDirectiveArgument, "
+        expectedException.expectMessage("errorClassification: InvalidAppliedDirectiveArgument, "
                 + "location: SourceLocation{line=7, column=5}, "
                 + "msg: more than one argument on {Query.listField} use @partition.\n");
 
@@ -110,7 +110,7 @@ public class PartitionDirectiveTest {
     @Test
     public void sizeMustBePositiveNumber() throws Exception {
         expectedException.expect(WrapperSchemaException.class);
-        expectedException.expectMessage("errorType: InvalidAppliedDirectiveArgument, "
+        expectedException.expectMessage("errorClassification: InvalidAppliedDirectiveArgument, "
                 + "location: SourceLocation{line=7, column=5}, "
                 + "msg: the size value of @partition on {Query.listField} must be positive number.\n");
 
