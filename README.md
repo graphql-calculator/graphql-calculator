@@ -42,7 +42,7 @@ query basicMapValue($userIds:[Int]){
 }
 
 ```
-_计算指令中的表达式修改即生效，无需重启应用。更多关于数据编排、加工的高级用法，参见 [指令说明](https://github.com/graphql-calculator/graphql-calculator/edit/main/README.md#%E6%8C%87%E4%BB%A4%E8%AF%B4%E6%98%8E) 和 [使用示例](https://github.com/graphql-calculator/graphql-calculator/edit/main/README.md#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B)。_
+_计算指令中的表达式修改即生效，无需重启应用。更多关于数据编排、加工的高级用法，参见 [指令说明](https://github.com/graphql-calculator/graphql-calculator#%E6%8C%87%E4%BB%A4%E8%AF%B4%E6%98%8E) 和 [使用示例](https://github.com/graphql-calculator/graphql-calculator#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B)。_
 
 
 #### 关于 calculator
