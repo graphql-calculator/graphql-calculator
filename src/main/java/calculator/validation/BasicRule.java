@@ -57,6 +57,7 @@ import static calculator.engine.metadata.Directives.MOCK;
 import static calculator.engine.metadata.Directives.SKIP_BY;
 import static calculator.engine.metadata.Directives.SORT;
 import static calculator.engine.metadata.Directives.SORT_BY;
+import static calculator.validation.CalculatorSchemaValidationErrorType.InvalidExpression;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 
@@ -121,7 +122,7 @@ public class BasicRule extends AbstractRule {
 
                 if (predicate == null || predicate.isEmpty()) {
                     String errorMsg = String.format("the expression for @skipBy on {%s} can not be empty.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -130,7 +131,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("invalid expression '%s' for @skipBy on {%s}: %s",
                             predicate, fieldFullPath, validateInfo.getErrorMsg()
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -145,7 +146,7 @@ public class BasicRule extends AbstractRule {
 
                 if (predicate == null || predicate.isEmpty()) {
                     String errorMsg = String.format("the expression for @includeBy on {%s} can not be empty.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -153,7 +154,7 @@ public class BasicRule extends AbstractRule {
                 if (!validateInfo.isValidScript()) {
                     String errorMsg = String.format("invalid expression '%s' for @includeBy on {%s}: %s",
                             predicate, fieldFullPath, validateInfo.getErrorMsg());
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -171,7 +172,7 @@ public class BasicRule extends AbstractRule {
                 );
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     String errorMsg = String.format("@filter must define on list type, instead of {%s}.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(CalculatorSchemaValidationErrorType.InvalidLocation, location, errorMsg);
                     continue;
                 }
 
@@ -180,7 +181,7 @@ public class BasicRule extends AbstractRule {
                 );
                 if (predicate == null || predicate.isEmpty()) {
                     String errorMsg = String.format("the predicate for @filter on {%s} can not be empty.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -189,7 +190,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("invalid predicate '%s' for @filter on {%s}: %s",
                             predicate, fieldFullPath, validateInfo.getErrorMsg()
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -210,7 +211,7 @@ public class BasicRule extends AbstractRule {
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
                     String errorMsg = String.format("@sort must annotated on list type, instead of {%s}.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(CalculatorSchemaValidationErrorType.InvalidLocation, location, errorMsg);
                     continue;
                 }
 
@@ -219,7 +220,7 @@ public class BasicRule extends AbstractRule {
                 );
                 if (key == null || key.isEmpty()) {
                     String errorMsg = String.format("sort key used on {%s} can not be null.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -229,7 +230,7 @@ public class BasicRule extends AbstractRule {
 
                 if (!validKey) {
                     String errorMsg = String.format("non-exist key name '%s' for @sort on {%s}.", key, fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -243,7 +244,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("invalid comparator '%s' for @skipBy on {%s}: %s",
                             comparator, fieldFullPath, validateInfo.getErrorMsg()
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -254,7 +255,7 @@ public class BasicRule extends AbstractRule {
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
                     String errorMsg = String.format("@sortBy must annotated on list type, instead of {%s}.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(CalculatorSchemaValidationErrorType.InvalidLocation, location, errorMsg);
                     continue;
                 }
 
@@ -278,7 +279,7 @@ public class BasicRule extends AbstractRule {
                         String errorMsg = String.format("invalid comparator '%s' for @distinct on {%s}: %s",
                                 comparator, fieldFullPath, validateInfo.getErrorMsg()
                         );
-                        addValidError(location, errorMsg);
+                        addValidError(InvalidExpression, location, errorMsg);
                         continue;
                     }
                 }
@@ -290,7 +291,7 @@ public class BasicRule extends AbstractRule {
                 if (!GraphQLTypeUtil.isList(innerType)) {
                     // 使用'{}'，和 graphql 中的数组表示 '[]' 作区分
                     String errorMsg = String.format("@distinct must annotated on list type, instead of {%s}.", fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(CalculatorSchemaValidationErrorType.InvalidLocation, location, errorMsg);
                     continue;
                 }
 
@@ -310,7 +311,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("invalid mapper '%s' for @map on {%s}: %s",
                             mapper, fieldFullPath, validateInfo.getErrorMsg()
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -326,7 +327,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = format(
                             "@argumentTransform on {%s} use non-exist argument '%s'.", fieldFullPath, argumentName
                     );
-                    addValidError(directive.getSourceLocation(), errorMsg);
+                    addValidError(InvalidExpression, directive.getSourceLocation(), errorMsg);
                     continue;
                 }
 
@@ -336,7 +337,7 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("invalid expression '%s' for @argumentTransform on {%s}: %s",
                             expression, fieldFullPath, validateInfo.getErrorMsg()
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -350,7 +351,7 @@ public class BasicRule extends AbstractRule {
                         && !(innerType instanceof GraphQLList)
                 ) {
                     String errorMsg = String.format("%s operation for @argumentTransform can not used on basic field {%s}.", operateType, fieldFullPath);
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                     continue;
                 }
 
@@ -368,12 +369,12 @@ public class BasicRule extends AbstractRule {
                     String errorMsg = String.format("duplicate source name '%s' for {%s} and {%s}.",
                             sourceName, sourceWithAnnotatedField.get(sourceName), fieldFullPath
                     );
-                    addValidError(location, errorMsg);
+                    addValidError(InvalidExpression, location, errorMsg);
                 } else {
                     sourceWithAnnotatedField.put(sourceName, fieldFullPath);
                     if (!isValidEleName(sourceName)) {
                         String errorMsg = String.format("invalid source name '%s' for {%s}.", sourceName, fieldFullPath);
-                        addValidError(location, errorMsg);
+                        addValidError(InvalidExpression, location, errorMsg);
                     }
                 }
 
@@ -384,7 +385,7 @@ public class BasicRule extends AbstractRule {
                         String errorMsg = String.format("invalid sourceConvert '%s' for @fetchSource on {%s}: %s",
                                 sourceConvert, fieldFullPath, validateInfo.getErrorMsg()
                         );
-                        addValidError(location, errorMsg);
+                        addValidError(InvalidExpression, location, errorMsg);
                         continue;
                     }
 
@@ -393,7 +394,7 @@ public class BasicRule extends AbstractRule {
                         if (scriptArgument.size() != 1 || !Objects.equals(scriptArgument.get(0), environment.getField().getResultKey())) {
                             String errorMsg = String.format("only resultKey '%s' can be used for the 'sourceConvert' of @%s on {%s}.",
                                     environment.getField().getResultKey(), directive.getName(), fieldFullPath);
-                            addValidError(location, errorMsg);
+                            addValidError(InvalidExpression, location, errorMsg);
                             continue;
                         }
                     }
@@ -442,7 +443,7 @@ public class BasicRule extends AbstractRule {
             List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
             if (scriptArgument == null || scriptArgument.size() != 1 || !Objects.equals(scriptArgument.get(0), "ele")) {
                 String errorMsg = String.format("only 'ele' can be used for @%s on leaf field {%s}.", directive.getName(), fieldFullPath);
-                addValidError(field.getSourceLocation(), errorMsg);
+                addValidError(InvalidExpression,field.getSourceLocation(), errorMsg);
                 return false;
             }
         } else {
@@ -455,7 +456,7 @@ public class BasicRule extends AbstractRule {
 
                     if (!validKey) {
                         String errorMsg = String.format("non-exist argument '%s' for @%s on {%s}.", argument, directive.getName(), fieldFullPath);
-                        addValidError(field.getSourceLocation(), errorMsg);
+                        addValidError(InvalidExpression, field.getSourceLocation(), errorMsg);
                         return false;
                     }
                 }

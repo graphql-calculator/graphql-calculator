@@ -42,9 +42,9 @@ public abstract class AbstractRule implements QueryVisitor {
         return errors;
     }
 
-    public void addValidError(SourceLocation location, String errorMsg) {
+    public void addValidError(CalculatorSchemaValidationErrorType errorType, SourceLocation location, String errorMsg) {
         ValidationError error = ValidationError.newValidationError()
-                .validationErrorType(ValidationErrorType.UnknownType)
+                .validationErrorType(errorType)
                 .sourceLocation(location)
                 .description(errorMsg)
                 .build();

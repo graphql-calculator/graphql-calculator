@@ -7,15 +7,48 @@
 
 ----------------------------------------
 
-`GraphQL Calculator`是一款轻量级**查询计算引擎**，为`graphql`查询提供了动态计算的能力。
+`GraphQL Calculator`是一款轻量级 **GraphQL计算引擎**，为 GraphQL 查询提供了动态计算的能力。
 
 该组件旨在通过[指令](https://spec.graphql.org/draft/#sec-Language.Directives)和表达式系统，
-通过简单的配置在`graphql`查询中实现常规的加工转换、数据编排和控制流的能力，让客户端从繁杂地基础数据加工处理和编排中解放出来，**并且无需重启服务、实现快速响应**。
+通过简单的配置在`graphql`查询中实现常规的加工转换、数据编排和控制流的能力，让客户端从繁杂的数据加工和编排中解放出来，**并且无需重启应用、快速响应**。
+
+#### 示例
+
+过滤出成年用户
+```graphql
+query filterUserByAge($userId:[Int]){
+    userInfoList(userIds: $userId)
+    @filter(predicate: "age>=18")
+    {
+        userId
+        age
+        firstName
+        lastName
+    }
+}
+```
+
+计算用户全名
+``` graphql
+query basicMapValue($userIds:[Int]){
+    userInfoList(userIds:$userIds)
+    {
+        id
+        age
+        firstName
+        lastName
+        fullName: stringHolder @map(mapper: "firstName + lastName")
+    }
+}
+
+```
+_计算指令中的表达式修改即生效，无需重启应用。更多关于数据编排、加工的高级用法，参见 [指令说明](#%E6%8C%87%E4%BB%A4%E8%AF%B4%E6%98%8E) 和 [使用示例](#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B)。_
+
 
 #### 关于 calculator
 - 🎉 该组件被[ GraphQL ](https://graphql.org/code/)官网评估收录
-- ⚙ 不断经由实际线上业务验证，运行高效稳定
-- 👷🏻‍♂️ 作者系 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
+- ⚙ 持续经线上业务验证，运行高效稳定
+- 👷🏻‍♂️ 作者是 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
 
 
 
@@ -485,4 +518,4 @@ type User{
 
 # 交流反馈
 
-欢迎在[issue](https://github.com/graphql-calculator/graphql-calculator/issues)区对组件问题或期待的新特性进行讨论，欢迎参与项目的建设。
+关于该组件的使用、包括在 graphql-java 和 spring-graphql 中落地，欢迎在 [issue](https://github.com/graphql-calculator/graphql-calculator/issues) 区交流，或者加微信讨论、微信 dugenkui。

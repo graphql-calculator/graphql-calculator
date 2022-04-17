@@ -42,6 +42,7 @@ import static calculator.engine.metadata.Directives.ARGUMENT_TRANSFORM;
 import static calculator.engine.metadata.Directives.INCLUDE_BY;
 import static calculator.engine.metadata.Directives.MAP;
 import static calculator.engine.metadata.Directives.SKIP_BY;
+import static calculator.validation.CalculatorSchemaValidationErrorType.InvalidDependenceSource;
 import static java.lang.String.format;
 
 
@@ -232,15 +233,15 @@ public class SourceRule extends AbstractRule {
      *
      * @param fieldFullPath fieldFullPath
      * @param directive directive
-     * @param dependencySources dependencySources
+     * @param dependenceSources dependencySources
      *
      * @return true if all dependency sources exist, otherwise false.
      */
-    private boolean validateSourceExist(String fieldFullPath, Directive directive, List<String> dependencySources) {
+    private boolean validateSourceExist(String fieldFullPath, Directive directive, List<String> dependenceSources) {
         // 依赖的source必须存在。
-        if (!sourceWithAnnotatedField.keySet().containsAll(dependencySources)) {
+        if (!sourceWithAnnotatedField.keySet().containsAll(dependenceSources)) {
 
-            List<String> unExistSource = dependencySources.stream()
+            List<String> unExistSource = dependenceSources.stream()
                     .filter(sourceName -> !sourceWithAnnotatedField.containsKey(sourceName))
                     .collect(Collectors.toList());
 
@@ -248,10 +249,10 @@ public class SourceRule extends AbstractRule {
             String errorMsg = format(
                     "the fetchSource %s used by @%s on {%s} do not exist.", unExistSource, directive.getName(), fieldFullPath
             );
-            addValidError(directive.getSourceLocation(), errorMsg);
+            addValidError(InvalidDependenceSource, directive.getSourceLocation(), errorMsg);
             return false;
         }
-        unusedSource.removeAll(dependencySources);
+        unusedSource.removeAll(dependenceSources);
         return true;
     }
 
@@ -276,7 +277,7 @@ public class SourceRule extends AbstractRule {
             String errorMsg = format(
                     "the fetchSource %s do not used by @%s on {%s}.", unUsedSource, directive.getName(), fieldFullPath
             );
-            addValidError(directive.getSourceLocation(), errorMsg);
+            addValidError(InvalidDependenceSource,directive.getSourceLocation(), errorMsg);
             return false;
         }
 
@@ -297,7 +298,7 @@ public class SourceRule extends AbstractRule {
                     "the dependencySources %s on {%s} must be different to variable name %s.",
                     sourcesWithSameArgumentName, fieldFullPath, variableNames
             );
-            addValidError(directive.getSourceLocation(), errorMsg);
+            addValidError(InvalidDependenceSource, directive.getSourceLocation(), errorMsg);
             return false;
         }
 
@@ -339,7 +340,7 @@ public class SourceRule extends AbstractRule {
                     String errorMsg = format(
                             "there is a circular dependency path %s.", tmpTraversedPath
                     );
-                    addValidError(sourceLocation, errorMsg);
+                    addValidError(InvalidDependenceSource, sourceLocation, errorMsg);
                     return true;
                 }
                 if (fieldWithAncestorPath.get(toPath).contains(fromPath)) {
@@ -348,7 +349,7 @@ public class SourceRule extends AbstractRule {
                                     "and they are in the dependency path %s.",
                             toPath, fromPath, tmpTraversedPath
                     );
-                    addValidError(sourceLocation, errorMsg);
+                    addValidError(InvalidDependenceSource, sourceLocation, errorMsg);
                     return true;
                 }
             }
@@ -365,7 +366,7 @@ public class SourceRule extends AbstractRule {
                         fieldFullByTopTaskPath.get(topTaskPath), fieldFullPath, topTaskPath, traversedPath
                 );
 
-                addValidError(sourceLocation, errorMsg);
+                addValidError(InvalidDependenceSource, sourceLocation, errorMsg);
                 return true;
             }
 
