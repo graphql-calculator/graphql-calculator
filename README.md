@@ -47,8 +47,8 @@ _计算指令中的表达式修改即生效，无需重启应用。更多关于�
 
 #### 关于 calculator
 - 🎉 该组件被[ GraphQL ](https://graphql.org/code/)官网评估收录
-- ⚙ 不断经由实际线上业务验证，运行高效稳定
-- 👷🏻‍♂️ 作者系 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
+- ⚙ 持续经线上业务验证，运行高效稳定
+- 👷🏻‍♂️ 作者是 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
 
 
 
@@ -518,4 +518,4 @@ type User{
 
 # 交流反馈
 
-欢迎在[issue](https://github.com/graphql-calculator/graphql-calculator/issues)区对组件问题或期待的新特性进行讨论，欢迎参与项目的建设。
+关于该组件的使用、包括在 graphql-java 和 spring-graphql 中落地，欢迎在 [issue](https://github.com/graphql-calculator/graphql-calculator/issues) 区交流，或者加微信讨论、微信 dugenkui。
