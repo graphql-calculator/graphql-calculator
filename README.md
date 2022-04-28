@@ -49,7 +49,7 @@ _计算指令中的表达式修改即生效，无需重启应用。更多关于�
 - 🎉 该组件被[ GraphQL ](https://graphql.org/code/)官网评估收录
 - ⚙ 持续经线上业务验证，运行高效稳定
 - 👷🏻‍♂️ 作者是 [GraphQL Java](https://github.com/graphql-java/graphql-java/graphs/contributors?from=2020-03-31&to=2022-03-12&type=c) 源码活跃贡献者和深度使用用户
-
+- 🐛 完善的正确性测试，包括正例、反例、前置校验及预期输出
 
 
 # 特性
