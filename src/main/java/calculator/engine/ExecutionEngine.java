@@ -64,6 +64,8 @@ import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,6 +84,8 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 
 @Internal
 public class ExecutionEngine extends SimpleInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionEngine.class);
 
     private final Executor executor;
 
@@ -277,10 +281,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getResultKey(), getScriptEnv(objectMapper,result))
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getResultKey(), getScriptEnv(objectMapper, result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("evaluate throw Throwable, sourceTask.getMapper() is {}, resultKey = {},  result is {}.",
+                                            sourceTask.getMapper(), sourceTask.getResultKey(), result, t);
+                                }
                                 sourceTask.getTaskFuture().completeExceptionally(t);
                             }
                         }
@@ -333,6 +341,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         );
                         child.getTaskFuture().complete(mappedValue);
                     } catch (Throwable t) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("evaluate throw Throwable, sourceTask.getMapper() is {}, resultKey = {},  listResult is {}.",
+                                    sourceTask.getMapper(), sourceTask.getResultKey(), listResult, t);
+                        }
                         child.getTaskFuture().completeExceptionally(t);
                     }
                 }

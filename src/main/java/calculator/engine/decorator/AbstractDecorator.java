@@ -33,6 +33,8 @@ import static java.util.stream.Collectors.toList;
 @Internal
 public abstract class AbstractDecorator implements Decorator {
 
+    private static final Object DUMMY_VALUE = new Object();
+
     protected Object unWrapDataFetcherResult(Object originalResult, ValueUnboxer valueUnboxer) {
         Object nonFutureResult = originalResult instanceof CompletionStage
                 ? ((CompletionStage<?>) originalResult).toCompletableFuture().join()
@@ -72,15 +74,15 @@ public abstract class AbstractDecorator implements Decorator {
         FetchSourceTask valueTask = topTaskList.get(topTaskList.size() - 1);
 
         for (CompletableFuture<Object> queryTask : queryTaskList) {
-            queryTask.whenComplete((result, ex) -> {
+            queryTask.handle((result, ex) -> {
                 if (ex != null) {
                     valueTask.getTaskFuture().completeExceptionally(ex);
-                    return;
                 }
 
                 if (result == null) {
                     valueTask.getTaskFuture().complete(null);
                 }
+                return DUMMY_VALUE;
             }).join();
 
             if (valueTask.getTaskFuture().isDone()) {
@@ -89,17 +91,21 @@ public abstract class AbstractDecorator implements Decorator {
         }
 
         for (FetchSourceTask taskInValuePath : topTaskList) {
-            taskInValuePath.getTaskFuture().whenComplete((result, ex) -> {
+            taskInValuePath.getTaskFuture().handle((result, ex) -> {
                         if (ex != null) {
                             valueTask.getTaskFuture().completeExceptionally(ex);
-                            return;
                         }
 
                         if (result == null) {
                             valueTask.getTaskFuture().complete(null);
                         }
+                        return DUMMY_VALUE;
                     }
             ).join();
+
+            if (valueTask.getTaskFuture().isDone()) {
+                return valueTask;
+            }
         }
 
         return valueTask;
