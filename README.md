@@ -166,7 +166,7 @@ enum ParamTransformType{
 参数解释：
 - argumentName：要被转换处理的的参数的名称；
 - operateType：操作类型，包括参数整体转换MAP、列表参数过滤FILTER、列表参数元素转换LIST_MAP，默认为MAP；
-- expression：操作表达式，参数为请求变量和source，如果存在同名key则source覆盖请求变量；
+- expression：操作表达式，表达式变量为graphql请求变量和source，若表达式变量存在同名key则source覆盖graphql请求变量；
 - dependencySources：表达式依赖的source。
 
 对字段参数进行转换、过滤，具体操作有如下三种：
@@ -174,7 +174,7 @@ enum ParamTransformType{
 2. 列表参数过滤(`operateType = FILTER`)：过滤列表类型参数中的元素，该操作将字段上的所有变量和<"ele",元素值>作为表达式参数；
 3. 列表参数映射(`operateType = LIST_MAP`)：使用表达式对列表参数中的每个元素进行转换，该操作将字段上的所有变量和<"ele",元素值>作为表达式参数。
 
-若依赖全局可获取上下文，则表达式变量中会加上一个key为source名称、值为source的键值对。
+若`@argumentTransform`依赖source、即dependencySources有值，则表达式变量会加上一个"key为source名称、值为source"的键值对。source注解的字段解析时**抛异常**或解析为null，则表达式参数中source对应的值为null。
 
 #### **@filter**
 

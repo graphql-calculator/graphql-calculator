@@ -111,6 +111,15 @@ public class GraphQLSourceHolder {
         return TestUtil.schemaByInputFile("schemaWithPartition.graphql", runtimeWiring.build());
     }
 
+    public static GraphQLSchema configGraphQLSchema(String schemaPath,Map<String, Map<String, DataFetcher>> dataFetcherConfig) {
+        RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherConfig.entrySet()) {
+            TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
+            runtimeWiring.type(typeWiring);
+        }
+        return TestUtil.schemaByInputFile(schemaPath, runtimeWiring.build());
+    }
+
     public static GraphQLSource getGraphQLByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
         return getGraphQLByDataFetcherMap(dataFetcherInfoMap, DefaultConfig.newConfig().build());
     }
