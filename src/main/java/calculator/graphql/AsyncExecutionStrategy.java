@@ -20,8 +20,6 @@ package calculator.graphql;
 import calculator.engine.annotation.Internal;
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
-import graphql.GraphQLError;
-import graphql.GraphQLException;
 import graphql.execution.AbortExecutionException;
 import graphql.execution.AbstractAsyncExecutionStrategy;
 import graphql.execution.Async;
@@ -142,7 +140,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
         Instrumentation instrumentation = executionContext.getInstrumentation();
 
         InstrumentationContext<ExecutionResult> completeListCtx = instrumentation.beginFieldListComplete(
-                instrumentationParams
+                instrumentationParams, executionContext.getInstrumentationState()
         );
 
         List<FieldValueInfo> fieldValueInfos = new ArrayList<>(size.orElse(1));

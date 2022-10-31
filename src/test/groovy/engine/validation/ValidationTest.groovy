@@ -75,11 +75,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @skipBy on {consumer.userInfo}: " +
-                "Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
-                "while parsing expression: `\n" +
-                "12_ab^^^\n" +
-                "`"
+        validateResult.errors[0].description == '''invalid expression '12_ab' for @skipBy on {consumer.userInfo}: Syntax error: unexpect token '12', maybe forget to insert ';' to complete last expression  at 5, lineNumber: 1, token : [type='Number',lexeme='12',index=0],
+while parsing expression: `
+12_ab^^^
+`'''
     }
 
 
@@ -126,10 +125,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @includeBy on {consumer.userInfo}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
-                "while parsing expression: `\n" +
-                "12_ab^^^\n" +
-                "`"
+        validateResult.errors[0].description == '''invalid expression '12_ab' for @includeBy on {consumer.userInfo}: Syntax error: unexpect token '12', maybe forget to insert ';' to complete last expression  at 5, lineNumber: 1, token : [type='Number',lexeme='12',index=0],
+while parsing expression: `
+12_ab^^^
+`'''
     }
 
 
@@ -273,11 +272,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-
-        validateResult.errors[0].description == "invalid comparator '12_ab' for @skipBy on {consumer.userInfoList}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
-                "while parsing expression: `\n" +
-                "12_ab^^^\n" +
-                "`"
+        validateResult.errors[0].description == '''invalid comparator '12_ab' for @skipBy on {consumer.userInfoList}: Syntax error: unexpect token '12', maybe forget to insert ';' to complete last expression  at 5, lineNumber: 1, token : [type='Number',lexeme='12',index=0],
+while parsing expression: `
+12_ab^^^
+`'''
     }
 
     def "invalid location for @sortBy"() {
@@ -324,10 +322,10 @@ class ValidationTest extends Specification {
 
         then:
         validateResult.errors.size() == 1
-        validateResult.errors[0].description == "invalid expression '12_ab' for @argumentTransform on {consumer.userInfoList}: Syntax error: unexpect token '_ab', maybe forget to insert ';' to complete last expression  at 2, lineNumber: 1, token : [type='variable',lexeme='_ab',index=2],\n" +
-                "while parsing expression: `\n" +
-                "12_ab^^^\n" +
-                "`"
+        validateResult.errors[0].description == '''invalid expression '12_ab' for @argumentTransform on {consumer.userInfoList}: Syntax error: unexpect token '12', maybe forget to insert ';' to complete last expression  at 5, lineNumber: 1, token : [type='Number',lexeme='12',index=0],
+while parsing expression: `
+12_ab^^^
+`'''
     }
 
     def "non-exist argument @argumentTransform"() {

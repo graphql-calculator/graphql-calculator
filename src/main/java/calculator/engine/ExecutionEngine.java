@@ -139,9 +139,16 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     // ============================================== alter InstrumentationState for engine  ================================================
     @Override
-    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
+        if (!(state instanceof ExecutionEngineState)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("state should be ExecutionEngineState, instead of {}", state == null ? null : state.getClass().getName());
+            }
+            return super.beginFieldFetch(parameters, state);
+        }
+
         return saveFetchedValueContext(
-                parameters.getInstrumentationState(),
+                (ExecutionEngineState) state,
                 parameters.getExecutionStepInfo().getPath(),
                 parameters.getEnvironment().getField().getResultKey()
         );
@@ -265,7 +272,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
         return new InstrumentationContext<Object>() {
-
             @Override
             public void onDispatched(CompletableFuture<Object> future) {
                 String fieldFullPath = fieldPath(resultPath);
