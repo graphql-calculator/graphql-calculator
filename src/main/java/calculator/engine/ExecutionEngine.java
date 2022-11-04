@@ -64,6 +64,8 @@ import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,6 +84,8 @@ import static calculator.engine.metadata.Directives.SKIP_BY;
 
 @Internal
 public class ExecutionEngine extends SimpleInstrumentation {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionEngine.class);
 
     private final Executor executor;
 
@@ -135,25 +139,39 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     // ============================================== alter InstrumentationState for engine  ================================================
     @Override
-    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters) {
+    public InstrumentationContext<Object> beginFieldFetch(InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
+        if (!(state instanceof ExecutionEngineState)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("state should be ExecutionEngineState, instead of {}", state == null ? null : state.getClass().getName());
+            }
+            return super.beginFieldFetch(parameters, state);
+        }
+
         return saveFetchedValueContext(
-                parameters.getInstrumentationState(),
+                (ExecutionEngineState) state,
                 parameters.getExecutionStepInfo().getPath(),
                 parameters.getEnvironment().getField().getResultKey()
         );
     }
 
     @Override
-    public ExecutionContext instrumentExecutionContext(ExecutionContext executionContext, InstrumentationExecutionParameters parameters) {
-        ExecutionEngineState engineState = parameters.getInstrumentationState();
+    public ExecutionContext instrumentExecutionContext(ExecutionContext executionContext, InstrumentationExecutionParameters parameters, InstrumentationState state) {
+        if (!(state instanceof ExecutionEngineState)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("state should be ExecutionEngineState, instead of {}", state == null ? null : state.getClass().getName());
+            }
+            return super.instrumentExecutionContext(executionContext, parameters, state);
+        }
+
+        ExecutionEngineState engineState = (ExecutionEngineState) state;
         if (!engineState.isContainSkipByOrIncludeBy()) {
-            return super.instrumentExecutionContext(executionContext, parameters);
+            return super.instrumentExecutionContext(executionContext, parameters, state);
         }
 
         Document document = executionContext.getDocument();
         OperationDefinition operationDefinition = (OperationDefinition) document.getDefinitions().get(0);
 
-        Map<String, FragmentDefinition> transformedFragmentByName = transformFragmentByName(executionContext.getFragmentsByName(), executionContext.getVariables());
+        Map<String, FragmentDefinition> transformedFragmentByName = transformFragmentByName(executionContext.getFragmentsByName(), executionContext.getCoercedVariables().toMap());
         SelectionSet transformedSelectionSet = transformSelectionForSkipAndInclude(
                 operationDefinition.getSelectionSet(), executionContext.getVariables()
         );
@@ -254,7 +272,6 @@ public class ExecutionEngine extends SimpleInstrumentation {
 
     private InstrumentationContext<Object> saveFetchedValueContext(ExecutionEngineState engineState, ResultPath resultPath, String resultKey) {
         return new InstrumentationContext<Object>() {
-
             @Override
             public void onDispatched(CompletableFuture<Object> future) {
                 String fieldFullPath = fieldPath(resultPath);
@@ -277,10 +294,14 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         } else {
                             try {
                                 Object mappedValue = scriptEvaluator.evaluate(
-                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getResultKey(), getScriptEnv(objectMapper,result))
+                                        sourceTask.getMapper(), Collections.singletonMap(sourceTask.getResultKey(), getScriptEnv(objectMapper, result))
                                 );
                                 sourceTask.getTaskFuture().complete(mappedValue);
                             } catch (Throwable t) {
+                                if (logger.isDebugEnabled()) {
+                                    logger.debug("evaluate throw Throwable, sourceTask.getMapper() is {}, resultKey = {},  result is {}.",
+                                            sourceTask.getMapper(), sourceTask.getResultKey(), result, t);
+                                }
                                 sourceTask.getTaskFuture().completeExceptionally(t);
                             }
                         }
@@ -333,6 +354,10 @@ public class ExecutionEngine extends SimpleInstrumentation {
                         );
                         child.getTaskFuture().complete(mappedValue);
                     } catch (Throwable t) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("evaluate throw Throwable, sourceTask.getMapper() is {}, resultKey = {},  listResult is {}.",
+                                    sourceTask.getMapper(), sourceTask.getResultKey(), listResult, t);
+                        }
                         child.getTaskFuture().completeExceptionally(t);
                     }
                 }
@@ -363,21 +388,30 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     @Override
-    public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters) {
+    public DataFetcher<?> instrumentDataFetcher(DataFetcher<?> dataFetcher, InstrumentationFieldFetchParameters parameters, InstrumentationState state) {
+        if (!(state instanceof ExecutionEngineState)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("state should be ExecutionEngineState, instead of {}", state == null ? null : state.getClass().getName());
+            }
+            return super.instrumentDataFetcher(dataFetcher, parameters, state);
+        }
+
         List<Directive> directives = parameters.getEnvironment().getField().getDirectives();
-        return wrapDataFetcher(dataFetcher, directives, parameters);
+        return wrapDataFetcher(dataFetcher, directives, parameters, (ExecutionEngineState)state);
     }
 
-    private DataFetcher<?> wrapDataFetcher(DataFetcher<?> originalDataFetcher, List<Directive> directivesOnField,
-                                           InstrumentationFieldFetchParameters parameters) {
+    private DataFetcher<?> wrapDataFetcher(DataFetcher<?> originalDataFetcher,
+                                           List<Directive> directivesOnField,
+                                           InstrumentationFieldFetchParameters parameters,
+                                           ExecutionEngineState instrumentationState) {
         for (Directive directive : directivesOnField) {
             DataFetchingEnvironment fetchingEnvironment = parameters.getEnvironment();
             DecorateEnvironment wrapperEnvironment = new DecorateEnvironment(
                     fetchingEnvironment.getField(),
                     originalDataFetcher, fetchingEnvironment.getFieldDefinition(),
                     directive, fetchingEnvironment.getFieldDefinition().getDirectives(),
-                    fetchingEnvironment, parameters.getInstrumentationState(), parameters.getExecutionContext().getValueUnboxer(),
-                    executor,objectMapper,scriptEvaluator
+                    fetchingEnvironment, instrumentationState, parameters.getExecutionContext().getValueUnboxer(),
+                    executor, objectMapper, scriptEvaluator
 
             );
 
@@ -390,14 +424,20 @@ public class ExecutionEngine extends SimpleInstrumentation {
     }
 
     @Override
-    public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters) {
-        return new InstrumentationContext<ExecutionResult>() {
+    public InstrumentationContext<ExecutionResult> beginFieldListComplete(InstrumentationFieldCompleteParameters parameters, InstrumentationState state) {
+        if (!(state instanceof ExecutionEngineState)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("state should be ExecutionEngineState, instead of {}", state == null ? null : state.getClass().getName());
+            }
+            return super.beginFieldListComplete(parameters, state);
+        }
 
+        return new InstrumentationContext<ExecutionResult>() {
             @Override
             public void onDispatched(CompletableFuture<ExecutionResult> result) {
                 String fieldFullPath = fieldPath(parameters.getExecutionStrategyParameters().getPath());
                 FetchSourceTask fetchSourceTask = parseFetchSourceTask(
-                        parameters.getInstrumentationState(), fieldFullPath
+                        (ExecutionEngineState)state, fieldFullPath
                 );
                 if (fetchSourceTask == null) {
                     return;

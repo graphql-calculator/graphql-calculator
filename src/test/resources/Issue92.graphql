@@ -1,0 +1,35 @@
+
+type Query {
+
+    countrys(coutryIds: [Int]): [Country]
+
+    capital(capitalIds: [Int]): [Capital]
+}
+
+type Country{
+    countryId: Int
+    countryName: String
+    capital: Capital
+}
+
+type Capital{
+    capitalId: Int
+    capitalName: String
+}
+
+#query queryCapitalByCountryIds($coutryIds:[Int]){
+#    countrys (coutryIds: $coutryIds){
+#        capital{
+#            capitalId @fetchSource(name:"capitalIdList")
+#            capitalName
+#        }
+#    }
+#
+#    capital (capitalIds: 1)
+#    @argumentTransform(argumentName:"capitalIds",operateType:MAP,expression:"capitalIdList",dependencySources:"capitalIdList")
+#    {
+#        capitalId
+#        capitalName
+#    }
+#}
+
