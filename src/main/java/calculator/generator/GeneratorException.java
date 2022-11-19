@@ -15,8 +15,24 @@
  * limitations under the License.
  */
 
-package calculator.devtools;
+package calculator.generator;
 
-/**
- * tools for using graphql java.
- */
+import java.util.ArrayList;
+import java.util.List;
+
+public class GeneratorException extends Exception {
+
+    private final List<String> errors = new ArrayList<>();
+
+    public GeneratorException(List<String> errors) {
+        this.errors.addAll(errors);
+    }
+
+    public GeneratorException(String error) {
+        this.errors.add(error);
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
+}

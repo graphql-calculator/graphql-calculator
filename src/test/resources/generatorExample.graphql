@@ -1,0 +1,16 @@
+query nestedFetchSource_case01($itemIds:[Int]){
+    commodityAlias: commodity{
+        itemList(itemIds: $itemIds){
+            skuList{
+                itemId
+            }
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        {
+            name
+        }
+    }
+}
