@@ -111,7 +111,7 @@ public class CodeGenerator {
             //        return objectMapper;
             // }
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\t,public %s get%s() {\n",fieldsEntry.getValue(),fieldsEntry.getKey()));
+                sb.append(String.format("\t,public %s get() {\n",fieldsEntry.getValue(),fieldsEntry.getKey()));
             }
 
         }
