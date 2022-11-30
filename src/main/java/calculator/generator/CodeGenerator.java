@@ -21,6 +21,7 @@ package calculator.generator;
 import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
+import graphql.language.Definition;
 import graphql.language.Document;
 import graphql.language.Field;
 import graphql.language.FragmentSpread;
@@ -44,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * NotNull信息也需要打印。
@@ -95,27 +97,44 @@ public class CodeGenerator {
      * @return
      */
     private static String classInfoDesc(Map<String, Map<String, String>> classInfo) {
-        if (classInfo == null || classInfo.isEmpty()){
+        if (classInfo == null || classInfo.isEmpty()) {
             return "";
         }
 
         StringBuffer sb = new StringBuffer();
         for (Map.Entry<String, Map<String, String>> clzInfo : classInfo.entrySet()) {
-            sb.append(String.format("public class %s {\n",clzInfo.getKey()));
+            sb.append(String.format("public class %s {\n", clzInfo.getKey()));
             // field definition
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\t,private %s %s;\n",fieldsEntry.getValue(),fieldsEntry.getKey()));
+                sb.append(String.format("\tprivate %s %s;\n", fieldsEntry.getValue(), fieldsEntry.getKey()));
             }
             // getter and setter
             // public ObjectMapper getObjectMapper() {
             //        return objectMapper;
             // }
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\t,public %s get() {\n",fieldsEntry.getValue(),fieldsEntry.getKey()));
+                sb.append(String.format("\tpublic %s get%s() {\n", fieldsEntry.getValue(), upperFirstCharactor(fieldsEntry.getKey())));
+                sb.append(String.format("\t\treturn %s\n", fieldsEntry.getKey()));
+                sb.append(String.format("\t}\n"));
             }
 
+            // public void setXxxx(ClassType xxx) {
+            //      this.xxx = xxx;
+            // }
+            for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
+                sb.append(String.format("\tpublic void set%s(%s %s) {\n",upperFirstCharactor(fieldsEntry.getKey()), fieldsEntry.getValue(),fieldsEntry.getKey()));
+                sb.append(String.format("\t\tthis.%s = %s;\n", fieldsEntry.getKey(), fieldsEntry.getKey()));
+                sb.append(String.format("\t}\n"));
+            }
+
+            sb.append("}\n");
         }
 
+        return sb.toString();
+    }
+
+    private static String upperFirstCharactor(String key) {
+        return key.substring(0, 1).toUpperCase() + (key.length() > 1 ? key.substring(1) : "");
     }
 
 
@@ -141,13 +160,13 @@ public class CodeGenerator {
         // <typeName,<fieldName,fieldType>>
         Map<String, Map<String, String>> result = new LinkedHashMap<>();
         for (Selection selection : rootDefinition.getSelectionSet().getSelections()) {
-            parseSelections(selection, graphQLSchema, "Query", result);
+            parseSelections(queryDocument, selection, graphQLSchema, "Query", result);
         }
 
         return result;
     }
 
-    private static void parseSelections(Selection selection , GraphQLSchema graphQLSchema, String typeName, Map<String, Map<String, String>> result) {
+    private static void parseSelections(Document queryDocument, Selection selection, GraphQLSchema graphQLSchema, String typeName, Map<String, Map<String, String>> result) {
         if (selection instanceof Field) {
             Field field =  (Field)selection;
 
@@ -167,14 +186,21 @@ public class CodeGenerator {
             SelectionSet selectionSet = field.getSelectionSet();
             if (selectionSet != null && selectionSet.getSelections() != null) {
                 for (Selection sel : selectionSet.getSelections()) {
-                    parseSelections(sel, graphQLSchema, parseTypeDesc(metaType), result);
+                    parseSelections(queryDocument, sel, graphQLSchema, parseTypeDesc(metaType), result);
                 }
             }
 
         } else if (selection instanceof FragmentSpread) {
-            // todo
+            System.out.println("FragmentSpread");
+            String fragmentName = ((FragmentSpread) selection).getName();
+
+//            List<Definition> collect = queryDocument.getDefinitions().stream()
+//                    .filter(s -> s.getClass() == FragmentSpread.class && Objects.equals(((FragmentSpread) s).getName(), fragmentName))
+//                    .collect(Collectors.toList());
+
         } else if (selection instanceof InlineFragment) {
             // todo
+            System.out.println("InlineFragment");
         }
     }
 

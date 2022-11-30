@@ -10,7 +10,21 @@ query nestedFetchSource_case01($itemIds:[Int]){
     consumer{
         userInfoList(userIds: 1)
         {
-            name
+            userId
+            ...userInfoFragment
         }
     }
+}
+
+fragment userInfoFragment on User{
+    age
+    name
+    email
+}
+
+fragment userInfoFragment on User{
+    userId
+    age
+    name
+    email
 }

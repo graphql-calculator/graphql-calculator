@@ -39,12 +39,20 @@ public class CodeGeneratorTest {
                 "    consumer{\n" +
                 "        userInfoList(userIds: 1)\n" +
                 "        {\n" +
-                "            name\n" +
+                "            userId\n" +
+                "            ...userInfoFragment\n" +
                 "        }\n" +
                 "    }\n" +
+                "}\n" +
+                "\n" +
+                "fragment userInfoFragment on User{\n" +
+                "    age\n" +
+                "    name\n" +
+                "    email\n" +
                 "}";
         try {
-            CodeGenerator.generator(query,graphQLSchema);
+            String generator = CodeGenerator.generator(query, graphQLSchema);
+            System.out.println(generator);
         } catch (GeneratorException e) {
 
         }
