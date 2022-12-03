@@ -22,9 +22,25 @@ fragment userInfoFragment on User{
     email
 }
 
-fragment userInfoFragment on User{
-    userId
-    age
-    name
-    email
+
+query nestedFetchSource_case02($itemIds:[Int]){
+    commodityAlias: commodity{
+        itemList(itemIds: $itemIds){
+            skuList{
+                itemId
+            }
+        }
+    }
+
+    consumer{
+        userInfoList(userIds: 1)
+        {
+            userId
+            ...{
+                age
+                name
+                email
+            }
+        }
+    }
 }

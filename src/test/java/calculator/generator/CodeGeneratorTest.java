@@ -41,6 +41,7 @@ public class CodeGeneratorTest {
                 "        {\n" +
                 "            userId\n" +
                 "            ...userInfoFragment\n" +
+                "...userInfoFragmentX"+
                 "        }\n" +
                 "    }\n" +
                 "}\n" +
@@ -49,12 +50,51 @@ public class CodeGeneratorTest {
                 "    age\n" +
                 "    name\n" +
                 "    email\n" +
-                "}";
+                "}"
+       + "fragment userInfoFragmentX on User{\n" +
+                "    age\n" +
+                "    name\n" +
+                "    email\n" +
+                "}"
+                ;
         try {
             String generator = CodeGenerator.generator(query, graphQLSchema);
             System.out.println(generator);
         } catch (GeneratorException e) {
+            e.printStackTrace();
+        }
+    }
 
+
+    @Test
+    public void TestGenerator2(){
+        String query  = "query nestedFetchSource_case02($itemIds:[Int]){\n" +
+                "    commodityAlias: commodity{\n" +
+                "        itemList(itemIds: $itemIds){\n" +
+                "            skuList{\n" +
+                "                itemId\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "\n" +
+                "    consumer{\n" +
+                "        userInfoList(userIds: 1)\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            ...{\n" +
+                "                age\n" +
+                "                name\n" +
+                "                email\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}"
+                ;
+        try {
+            String generator = CodeGenerator.generator(query, graphQLSchema);
+            System.out.println(generator);
+        } catch (GeneratorException e) {
+            e.printStackTrace();
         }
     }
 

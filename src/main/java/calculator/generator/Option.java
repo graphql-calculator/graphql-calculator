@@ -17,12 +17,17 @@
 
 package calculator.generator;
 
-public class GeneratorOption {
+public class Option {
+    // 生成的代码类型
     private LanguageType languageType;
+    // 默认的root类名称
     private String defaultRootClassName;
+    // 是否生成注释
     private boolean willComment;
     // 使用 getter lombok
     private boolean lombokMode;
+    // 是否使用基本类型（not 包装类型
+    private boolean primitiveType;
 }
 
 enum LanguageType{

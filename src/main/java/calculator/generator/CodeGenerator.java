@@ -18,12 +18,14 @@
 package calculator.generator;
 
 
+import calculator.engine.PartitionDataFetcher;
 import graphql.ExecutionInput;
 import graphql.ParseAndValidate;
 import graphql.ParseAndValidateResult;
 import graphql.language.Definition;
 import graphql.language.Document;
 import graphql.language.Field;
+import graphql.language.FragmentDefinition;
 import graphql.language.FragmentSpread;
 import graphql.language.InlineFragment;
 import graphql.language.OperationDefinition;
@@ -39,12 +41,15 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.validation.ValidationError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -60,6 +65,7 @@ import java.util.stream.Collectors;
  */
 public class CodeGenerator {
 
+    private static final Logger logger = LoggerFactory.getLogger(CodeGenerator.class);
 
 
     // --------------- String + GraphQLSchema
@@ -106,31 +112,39 @@ public class CodeGenerator {
             sb.append(String.format("public class %s {\n", clzInfo.getKey()));
             // field definition
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\tprivate %s %s;\n", fieldsEntry.getValue(), fieldsEntry.getKey()));
+                sb.append(String.format("\tprivate %s %s;\n", xxxType(fieldsEntry.getValue()), fieldsEntry.getKey()));
             }
+            sb.append("\n");
             // getter and setter
             // public ObjectMapper getObjectMapper() {
             //        return objectMapper;
             // }
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\tpublic %s get%s() {\n", fieldsEntry.getValue(), upperFirstCharactor(fieldsEntry.getKey())));
-                sb.append(String.format("\t\treturn %s\n", fieldsEntry.getKey()));
-                sb.append(String.format("\t}\n"));
+                sb.append(String.format("\tpublic %s get%s() {\n", xxxType(fieldsEntry.getValue()), upperFirstCharactor(fieldsEntry.getKey())));
+                sb.append(String.format("\t\treturn %s;\n", fieldsEntry.getKey()));
+                sb.append("\t}\n\n");
             }
 
             // public void setXxxx(ClassType xxx) {
             //      this.xxx = xxx;
             // }
             for (Map.Entry<String, String> fieldsEntry : clzInfo.getValue().entrySet()) {
-                sb.append(String.format("\tpublic void set%s(%s %s) {\n",upperFirstCharactor(fieldsEntry.getKey()), fieldsEntry.getValue(),fieldsEntry.getKey()));
+                sb.append(String.format("\tpublic void set%s(%s %s) {\n",upperFirstCharactor(fieldsEntry.getKey()), xxxType(fieldsEntry.getValue()),fieldsEntry.getKey()));
                 sb.append(String.format("\t\tthis.%s = %s;\n", fieldsEntry.getKey(), fieldsEntry.getKey()));
-                sb.append(String.format("\t}\n"));
+                sb.append("\t}\n\n");
             }
 
             sb.append("}\n");
         }
 
         return sb.toString();
+    }
+
+    private static String xxxType(String originalType) {
+        if ("Int".equals(originalType)) {
+            return "Integer";
+        }
+        return originalType;
     }
 
     private static String upperFirstCharactor(String key) {
@@ -157,16 +171,32 @@ public class CodeGenerator {
             rootClassName = "GenerateRootClassName";
         }
 
+        Map<String, FragmentDefinition> fragmentDefByName = parseFragmentDef(queryDocument);
+
         // <typeName,<fieldName,fieldType>>
         Map<String, Map<String, String>> result = new LinkedHashMap<>();
         for (Selection selection : rootDefinition.getSelectionSet().getSelections()) {
-            parseSelections(queryDocument, selection, graphQLSchema, "Query", result);
+            parseSelections(fragmentDefByName, selection, graphQLSchema, "Query", result);
         }
 
         return result;
     }
 
-    private static void parseSelections(Document queryDocument, Selection selection, GraphQLSchema graphQLSchema, String typeName, Map<String, Map<String, String>> result) {
+    private static Map<String, FragmentDefinition> parseFragmentDef(Document queryDocument) {
+        return queryDocument.getDefinitions().stream()
+                .filter(def -> def instanceof FragmentDefinition)
+                .map(def -> (FragmentDefinition) def)
+                .collect(Collectors.toMap(
+                        FragmentDefinition::getName,
+                        Function.identity(),
+                        (x, y) -> {
+                            logger.warn("duplicate FragmentDefinition:\n"+x.toString()+"\n"+y.toString()+"\n return first value");
+                            return x;
+                        }
+                ));
+    }
+
+    private static void parseSelections(Map<String, FragmentDefinition> fragmentDefByName, Selection selection, GraphQLSchema graphQLSchema, String typeName, Map<String, Map<String, String>> result) {
         if (selection instanceof Field) {
             Field field =  (Field)selection;
 
@@ -186,21 +216,39 @@ public class CodeGenerator {
             SelectionSet selectionSet = field.getSelectionSet();
             if (selectionSet != null && selectionSet.getSelections() != null) {
                 for (Selection sel : selectionSet.getSelections()) {
-                    parseSelections(queryDocument, sel, graphQLSchema, parseTypeDesc(metaType), result);
+                    parseSelections(fragmentDefByName, sel, graphQLSchema, parseTypeDesc(metaType), result);
                 }
             }
 
         } else if (selection instanceof FragmentSpread) {
-            System.out.println("FragmentSpread");
             String fragmentName = ((FragmentSpread) selection).getName();
+
+            FragmentDefinition fragmentDefinition = fragmentDefByName.get(fragmentName);
+            if (fragmentDefinition ==null){
+                logger.warn("FragmentDefinition named "+fragmentName+" can not find");
+                return;
+            }
+
+            SelectionSet selectionSet = fragmentDefinition.getSelectionSet();
+            if (selectionSet != null && selectionSet.getSelections() != null) {
+                for (Selection sel : selectionSet.getSelections()) {
+                    parseSelections(fragmentDefByName, sel, graphQLSchema, typeName, result);
+                }
+            }
+
+            System.out.println(fragmentName);
 
 //            List<Definition> collect = queryDocument.getDefinitions().stream()
 //                    .filter(s -> s.getClass() == FragmentSpread.class && Objects.equals(((FragmentSpread) s).getName(), fragmentName))
 //                    .collect(Collectors.toList());
 
         } else if (selection instanceof InlineFragment) {
-            // todo
-            System.out.println("InlineFragment");
+            SelectionSet selectionSet = ((InlineFragment) selection).getSelectionSet();
+            if (selectionSet != null && selectionSet.getSelections() != null) {
+                for (Selection sel : selectionSet.getSelections()) {
+                    parseSelections(fragmentDefByName, sel, graphQLSchema, typeName, result);
+                }
+            }
         }
     }
 
