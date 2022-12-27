@@ -322,6 +322,9 @@ public class BasicRule extends AbstractRule {
             } else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
                 String argumentName = getArgumentFromDirective(directive, "argumentName");
+                if (null != argumentName && argumentName.contains(".")) {
+                    argumentName = argumentName.substring(0,argumentName.indexOf("."));
+                }
                 // argument必须存在
                 if (!argumentsOnField.contains(argumentName)) {
                     String errorMsg = format(

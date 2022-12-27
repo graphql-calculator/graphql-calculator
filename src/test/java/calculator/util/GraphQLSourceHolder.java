@@ -63,6 +63,15 @@ public class GraphQLSourceHolder {
         return batchUserInfoByIds(ids, clientVersion);
     };
 
+
+    private static DataFetcher userInfoListQueryDataFetcher = environment -> {
+        Map<String, Object> arguments = environment.getArguments();
+        Map<Object, Object> userInfoListQuery = (Map<Object, Object>) arguments.get("userInfoListQuery");
+        String clientVersion = (String) arguments.getOrDefault("clientVersion", "defaultVersion");
+        return batchUserInfoByIds((List<Integer>) userInfoListQuery.get("userIds"), clientVersion);
+    };
+
+
     private static DataFetcher sellerDataFetcher = environment ->
             getSellerInfoById(((Number) environment.getArguments().get("sellerId")).longValue());
 
@@ -166,6 +175,7 @@ public class GraphQLSourceHolder {
         Map<String, DataFetcher> consumerFieldFetchers = new HashMap<>();
         consumerFieldFetchers.put("userInfo", async(userDataFetcher));
         consumerFieldFetchers.put("userInfoList", async(userListDataFetcher));
+        consumerFieldFetchers.put("userInfoListQuery", async(userInfoListQueryDataFetcher));
         dataFetcherInfo.put("Consumer", consumerFieldFetchers);
 
         Map<String, DataFetcher> businessFieldFetchers = new HashMap<>();

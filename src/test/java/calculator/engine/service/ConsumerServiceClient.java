@@ -136,4 +136,16 @@ public class ConsumerServiceClient {
 
         return new NewUserInfo(Integer.parseInt(split[2]), split[0] + "_" + split[1], Integer.parseInt(split[2]) % 2 == 0);
     }
+
+    public static class UserInfoListQuery {
+        List<Integer> userIdList;
+
+        public List<Integer> getUserIdList() {
+            return userIdList;
+        }
+
+        public void setUserIdList(List<Integer> userIdList) {
+            this.userIdList = userIdList;
+        }
+    }
 }
