@@ -39,7 +39,7 @@ public class DataFetcherDefinition {
 
     /**
      * If {@link #isAsyncFetcher}  is true, {@code actionFetcher} and {@code wrappedDataFetcher} are the same DataFetcher.
-     *
+     * <p>
      * Otherwise, {@code actionFetcher} and {@code originalFetcher} are the same DataFetcher.
      */
     private final DataFetcher<?> actionFetcher;
@@ -148,7 +148,7 @@ public class DataFetcherDefinition {
 
         public DataFetcherDefinition build() {
             return new DataFetcherDefinition(
-                    isAsyncFetcher, isGraphqlAsyncFetcher, isCalculatorAsyncFetcher,
+                    (isGraphqlAsyncFetcher || isCalculatorAsyncFetcher), isGraphqlAsyncFetcher, isCalculatorAsyncFetcher,
                     originalFetcher, wrappedDataFetcher, actionFetcher, executor
             );
         }
