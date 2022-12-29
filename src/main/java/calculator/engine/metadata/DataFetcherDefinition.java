@@ -120,7 +120,7 @@ public class DataFetcherDefinition {
         }
 
         public Builder isCalculatorAsyncFetcher(boolean isCalculatorAsyncFetcher) {
-            this.isCalculatorAsyncFetcher = true;
+            this.isAsyncFetcher = true;
             this.isCalculatorAsyncFetcher = isCalculatorAsyncFetcher;
             return this;
         }
