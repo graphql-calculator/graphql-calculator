@@ -148,7 +148,7 @@ public class DataFetcherDefinition {
 
         public DataFetcherDefinition build() {
             return new DataFetcherDefinition(
-                    (isGraphqlAsyncFetcher || isCalculatorAsyncFetcher), isGraphqlAsyncFetcher, isCalculatorAsyncFetcher,
+                    isAsyncFetcher, isGraphqlAsyncFetcher, isCalculatorAsyncFetcher,
                     originalFetcher, wrappedDataFetcher, actionFetcher, executor
             );
         }
