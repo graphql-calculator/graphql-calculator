@@ -137,11 +137,12 @@ public class ArgumentTransformDecorator extends AbstractDecorator {
 
                 Map<String, Object> transformEnv = new LinkedHashMap<>(fetchingEnvironment.getVariables());
                 transformEnv.putAll(sourceEnv);
+                transformEnv.put("arg", fetchingEnvironment.getArguments());
                 Object newParam = environment.getScriptEvaluator().evaluate(expression, transformEnv);
 
+
                 Map<String, Object> newArguments = new LinkedHashMap<>(fetchingEnvironment.getArguments());
-                newArguments.put("_param_value", newParam);
-                environment.getScriptEvaluator().evaluate(argumentName + "=_param_value", newArguments);
+                newArguments.put(argumentName, newParam);
 
                 DataFetchingEnvironment newEnvironment = DataFetchingEnvironmentImpl
                         .newDataFetchingEnvironment(fetchingEnvironment).arguments(newArguments).build();

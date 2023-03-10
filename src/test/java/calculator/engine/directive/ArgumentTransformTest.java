@@ -414,8 +414,8 @@ public class ArgumentTransformTest {
                 "    }\n" +
                 "\n" +
                 "    consumer{\n" +
-                "        userInfoListQuery(userInfoListQuery:{userIds: 1})\n" +
-                "        @argumentTransform(argumentName: \"userInfoListQuery.userIds\",operateType: MAP,expression: \"sellerIds\", dependencySources: [\"sellerIds\"])\n" +
+                "        userInfoListQuery(userInfoListQuery:{userIds: [1]})\n" +
+                "        @argumentTransform(argumentName: \"userInfoListQuery\",operateType: MAP,expression: \"#arg.userInfoListQuery.userIds=sellerIds;#arg.userInfoListQuery.limit=10;#arg.userInfoListQuery\", dependencySources: [\"sellerIds\"])\n" +
                 "        {\n" +
                 "            userId\n" +
                 "            age\n" +
