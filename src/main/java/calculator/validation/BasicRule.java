@@ -136,8 +136,8 @@ public class BasicRule extends AbstractRule {
                 }
 
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, INCLUDE_BY.getName())) {
                 String predicate = (String) parseValue(
@@ -194,7 +194,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExpressionArgumentExist(environment.getField(), directive, predicate, fieldFullPath, environment)) {
+                if (!validateExpressionArgumentExist(environment.getField(), directive, predicate, fieldFullPath,environment)) {
                     continue;
                 }
 
@@ -259,13 +259,13 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                if (!validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath, environment)) {
+                if (!validateExpressionArgumentExist(environment.getField(), directive, comparator, fieldFullPath,environment)) {
                     continue;
                 }
 
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, DISTINCT.getName())) {
 
@@ -300,7 +300,7 @@ public class BasicRule extends AbstractRule {
                     continue;
                 }
 
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, MAP.getName())) {
 
@@ -316,8 +316,8 @@ public class BasicRule extends AbstractRule {
                 }
 
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, ARGUMENT_TRANSFORM.getName())) {
 
@@ -356,8 +356,8 @@ public class BasicRule extends AbstractRule {
                 }
 
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet(environment));
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet(environment));
 
             } else if (Objects.equals(directiveName, FETCH_SOURCE.getName())) {
                 String sourceName = (String) parseValue(
@@ -403,8 +403,8 @@ public class BasicRule extends AbstractRule {
                 // 获取其父类节点路径
                 Set<String> parentPathSet = parentPathSet(environment);
                 checkAndSetFieldWithTopTask(fieldFullPath, directive, environment);
-                checkAndSetSourceUsedByFieldInfo(fieldFullPath, directive);
-                fieldWithAncestorPath.put(fieldFullPath, parentPathSet);
+                checkAndSetSourceUsedByFieldInfo(fieldFullPath,directive);
+                fieldWithAncestorPath.put(fieldFullPath,parentPathSet);
             }
         }
     }
@@ -421,7 +421,7 @@ public class BasicRule extends AbstractRule {
 
     //    <fieldFullPath, List<sourceName>>
     //    private final Map<String, List<String>> sourceUsedByField = new LinkedHashMap<>();
-    private void checkAndSetSourceUsedByFieldInfo(String fieldFullPath, Directive directive) {
+    private void checkAndSetSourceUsedByFieldInfo(String fieldFullPath,Directive directive) {
         Argument sourceArgument = directive.getArgument("dependencySources");
 
         if (sourceArgument != null && sourceArgument.getValue() != null) {
@@ -443,7 +443,7 @@ public class BasicRule extends AbstractRule {
             List<String> scriptArgument = scriptEvaluator.getScriptArgument(expression);
             if (scriptArgument == null || scriptArgument.size() != 1 || !Objects.equals(scriptArgument.get(0), "ele")) {
                 String errorMsg = String.format("only 'ele' can be used for @%s on leaf field {%s}.", directive.getName(), fieldFullPath);
-                addValidError(InvalidExpression, field.getSourceLocation(), errorMsg);
+                addValidError(InvalidExpression,field.getSourceLocation(), errorMsg);
                 return false;
             }
         } else {
