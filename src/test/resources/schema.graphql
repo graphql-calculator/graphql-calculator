@@ -30,9 +30,15 @@ type Query {
 type Consumer{
     userInfo(userId: Int,clientVersion:String):User
     userInfoList(userIds: [Int]): [User]
-
+    # 对象参数
+    userInfoListQuery(userInfoListQuery: UserInfoListQuery): [User]
     #  用户对于各种业务的新老客，参数格式为： redisKey_{userId}
     isNewUser(redisKey: String, userId: Int): NewUserInfo
+}
+
+input UserInfoListQuery{
+    userIds: [Int]
+    limit:Int
 }
 
 # todo firstName lastName
@@ -57,6 +63,8 @@ type Business{
     sellerInfo (sellerId: Int): SellerInfo
     sellerInfoList(sellerIds: [Int]): [SellerInfo]
 }
+
+
 
 type SellerInfo{
     sellerId: Int

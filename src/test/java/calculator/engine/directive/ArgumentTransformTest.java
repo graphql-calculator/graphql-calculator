@@ -105,6 +105,7 @@ public class ArgumentTransformTest {
         );
     }
 
+
     @Test
     public void filterItemListByBindingCouponIdAndFilterUnSaleItems() {
         String query = ""
@@ -342,6 +343,8 @@ public class ArgumentTransformTest {
         );
     }
 
+
+
     @Test
     public void sourceConvert_case01() {
         String query = "" +
@@ -391,6 +394,60 @@ public class ArgumentTransformTest {
 
         assert Objects.equals(
                 data.get("consumer").get("userInfoList").toString(),
+                "[{userId=4, age=40, name=4_name}, {userId=5, age=50, name=5_name}]"
+        );
+
+    }
+
+    @Test
+    public void objectArgumentTransform_case01() {
+        String query = "" +
+                "query objectArgumentTransform_case01 ($itemIds: [Int]){\n" +
+                "\n" +
+                "    commodity{\n" +
+                "        itemList(itemIds: $itemIds){\n" +
+                "            itemId\n" +
+                "            sellerId @fetchSource(name: \"sellerIds\",sourceConvert: \"filter(sellerId,seq.gt(3))\")\n" +
+                "            name\n" +
+                "            salePrice\n" +
+                "        }\n" +
+                "    }\n" +
+                "\n" +
+                "    consumer{\n" +
+                "        userInfoListQuery(userInfoListQuery:{userIds: [1]})\n" +
+                "        @argumentTransform(argumentName: \"userInfoListQuery\",operateType: MAP,expression: \"#arg.userInfoListQuery.userIds=sellerIds;#arg.userInfoListQuery.limit=10;#arg.userInfoListQuery\", dependencySources: [\"sellerIds\"])\n" +
+                "        {\n" +
+                "            userId\n" +
+                "            age\n" +
+                "            name\n" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(),wrapperConfig);
+        assert !validateResult.isFailure();
+
+
+        HashMap<String, Object> variables = new LinkedHashMap<>();
+        variables.put("itemIds", Arrays.asList(2, 3, 4));
+        ExecutionInput executionInput = ExecutionInput
+                .newExecutionInput(query)
+                .variables(variables)
+                .build();
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(executionInput);
+
+        assert executionResult != null;
+        assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Object>> data = executionResult.getData();
+
+        assert Objects.equals(
+                data.get("commodity").get("itemList").toString(),
+                "[{itemId=2, sellerId=3, name=item_name_2, salePrice=21}, {itemId=3, sellerId=4, name=item_name_3, salePrice=31}, "
+                        + "{itemId=4, sellerId=5, name=item_name_4, salePrice=41}]"
+        );
+
+        assert Objects.equals(
+                data.get("consumer").get("userInfoListQuery").toString(),
                 "[{userId=4, age=40, name=4_name}, {userId=5, age=50, name=5_name}]"
         );
 
