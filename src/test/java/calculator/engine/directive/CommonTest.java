@@ -41,8 +41,10 @@ import java.util.Objects;
 public class CommonTest {
 
     private static final GraphQLSchema originalSchema = GraphQLSourceHolder.getDefaultSchema();
+
     private static final Config wrapperConfig = DefaultConfig.newConfig().scriptEvaluator(AviatorScriptEvaluator.getDefaultInstance()).build();
     private static final GraphQLSource graphqlSource = new DefaultGraphQLSourceBuilder().wrapperConfig(wrapperConfig).originalSchema(originalSchema).build();
+
 
     @Test
     public void mockTest() {
@@ -159,5 +161,28 @@ public class CommonTest {
         assert executionResult.getErrors() == null || executionResult.getErrors().isEmpty();
         Map<String, Map<String, List>> data = executionResult.getData();
         assert data.get("commodity").get("itemList").isEmpty();
+    }
+
+
+    @Test
+    public void mathType() {
+        String query = "" +
+                "query mathType{\n" +
+                "    consumer{\n" +
+                "        userInfo(userId: 1){\n" +
+                "            userId\n" +
+                "            email @map(mapper:\"'Test'\")\n" +
+                "            account" +
+                "            hair" +
+                "        }\n" +
+                "    }\n" +
+                "}";
+        ParseAndValidateResult validateResult = Validator.validateQuery(query, graphqlSource.getWrappedSchema(), wrapperConfig);
+        assert !validateResult.isFailure();
+
+        ExecutionResult executionResult = graphqlSource.getGraphQL().execute(query);
+        assert executionResult.getErrors().isEmpty();
+        Map<String, Map<String, Map<String, Object>>> data = executionResult.getData();
+        assert Objects.equals(data.get("consumer").get("userInfo").get("email"), "Test");
     }
 }
