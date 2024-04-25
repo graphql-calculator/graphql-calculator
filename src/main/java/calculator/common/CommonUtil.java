@@ -31,12 +31,9 @@ import graphql.language.NamedNode;
 import graphql.language.StringValue;
 import graphql.language.Value;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.*;
 
 import static calculator.common.GraphQLUtil.PATH_SEPARATOR;
 
@@ -91,7 +88,7 @@ public class CommonUtil {
      *
      * @param directive    dir
      * @param argumentName argument name
-     * @param <T> the type of argument value
+     * @param <T>          the type of argument value
      * @return the argument value
      */
     public static <T> T getArgumentFromDirective(Directive directive, String argumentName) {
@@ -191,6 +188,23 @@ public class CommonUtil {
         return Collections.unmodifiableSet(wrapperTypes);
     }
 
+    private static final Set<Class<?>> MATH_TYPES = createMathTypes();
+
+    private static Set<Class<?>> createMathTypes() {
+        Set<Class<?>> wrapperTypes = new LinkedHashSet<>(2);
+        wrapperTypes.add(BigDecimal.class);
+        wrapperTypes.add(BigInteger.class);
+        return Collections.unmodifiableSet(wrapperTypes);
+    }
+
+    /**
+     * Determines if the class of specified object represents a math type.
+     */
+    public static boolean isMathType(Object object) {
+        return MATH_TYPES.contains(object.getClass());
+    }
+
+
     /**
      * Determines if the class of specified object represents a wrapper type.
      */
@@ -202,7 +216,7 @@ public class CommonUtil {
      * Determines if the class of specified object represents a basic type: primitive type, wrapper type or CharSequence.
      */
     public static boolean isBasicType(Object object) {
-        return object.getClass().isPrimitive() || isWrapperType((object)) || object instanceof CharSequence;
+        return object.getClass().isPrimitive() || isWrapperType((object)) || isMathType(object) || object instanceof CharSequence;
     }
 
     /**

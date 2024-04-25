@@ -18,6 +18,8 @@
 package calculator.engine.service;
 
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,12 +33,17 @@ public class ConsumerServiceClient {
         private String email;
         private String clientVersion;
 
-        public UserInfo(int userId, int age, String name, String email, String clientVersion) {
+        private BigDecimal account;
+        private BigInteger hair;
+
+        public UserInfo(int userId, int age, String name, String email, String clientVersion, BigDecimal account, BigInteger hair) {
             this.userId = userId;
             this.age = age;
             this.name = name;
             this.email = email;
             this.clientVersion = clientVersion;
+            this.account = account;
+            this.hair = hair;
         }
 
         public int getUserId() {
@@ -77,7 +84,7 @@ public class ConsumerServiceClient {
             return null;
         }
 
-        return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com", clientVersion);
+        return new UserInfo(userId, userId * 10 % 100, userId + "_name", userId + "dugk@foxmail.com", clientVersion,new BigDecimal(10090.99),new BigInteger("1929292929292992"));
     }
 
     public static List<UserInfo> batchUserInfoByIds(List<Integer> userIdList, String clientVersion) {
