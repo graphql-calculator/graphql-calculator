@@ -114,7 +114,7 @@ public class ArgumentTransformDecorator extends AbstractDecorator {
                 argument = argument.stream().map(ele -> {
                     Map<String, Object> transformEnv = new LinkedHashMap<>(fetchingEnvironment.getVariables());
                     transformEnv.put("ele", ele);
-                    transformEnv.put("source", fetchingEnvironment.getSource());
+                    transformEnv.put("parent", fetchingEnvironment.getSource());
                     transformEnv.putAll(sourceEnv);
                     return environment.getScriptEvaluator().evaluate(expression, transformEnv);
                 }).collect(toList());
@@ -139,7 +139,7 @@ public class ArgumentTransformDecorator extends AbstractDecorator {
                 Map<String, Object> transformEnv = new LinkedHashMap<>(fetchingEnvironment.getVariables());
                 transformEnv.putAll(sourceEnv);
                 transformEnv.put("arg", fetchingEnvironment.getArguments());
-                transformEnv.put("source", fetchingEnvironment.getSource());
+                transformEnv.put("parent", fetchingEnvironment.getSource());
                 Object newParam = environment.getScriptEvaluator().evaluate(expression, transformEnv);
 
 
