@@ -30,6 +30,7 @@ import calculator.graphql.DefaultGraphQLSourceBuilder;
 import calculator.graphql.GraphQLSource;
 import graphql.ExecutionInput;
 import graphql.execution.preparsed.PreparsedDocumentEntry;
+import graphql.scalars.ExtendedScalars;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
@@ -102,8 +103,11 @@ public class GraphQLSourceHolder {
         return MarketingServiceClient.batchCouponInfoByIds(ids);
     };
 
+
     public static GraphQLSchema getDefaultSchema() {
         RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigDecimal);
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigInteger);
         for (Map.Entry<String, Map<String, DataFetcher>> entry : defaultDataFetcherInfo().entrySet()) {
             TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
             runtimeWiring.type(typeWiring);
@@ -113,6 +117,8 @@ public class GraphQLSourceHolder {
 
     public static GraphQLSchema getSchemaWithPartition() {
         RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigDecimal);
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigInteger);
         TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring("Query").dataFetchers(
                 Collections.singletonMap("userInfoList", async(userListDataFetcher))
         );
@@ -122,6 +128,8 @@ public class GraphQLSourceHolder {
 
     public static GraphQLSchema configGraphQLSchema(String schemaPath,Map<String, Map<String, DataFetcher>> dataFetcherConfig) {
         RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigDecimal);
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigInteger);
         for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherConfig.entrySet()) {
             TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
             runtimeWiring.type(typeWiring);
@@ -154,6 +162,8 @@ public class GraphQLSourceHolder {
 
     public static GraphQLSchema getSchemaByDataFetcherMap(Map<String, Map<String, DataFetcher>> dataFetcherInfoMap) {
         RuntimeWiring.Builder runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigDecimal);
+        runtimeWiring.scalar(ExtendedScalars.GraphQLBigInteger);
         for (Map.Entry<String, Map<String, DataFetcher>> entry : dataFetcherInfoMap.entrySet()) {
             TypeRuntimeWiring.Builder typeWiring = TypeRuntimeWiring.newTypeWiring(entry.getKey()).dataFetchers(entry.getValue());
             runtimeWiring.type(typeWiring);
