@@ -1,16 +1,3 @@
-# 招募共同维护者（wx:dugenkui)
-因为工作原因，短时间内无精力维护该项目，欢迎有兴趣和经验的研发共同维护负责该项目。
-
-### 需要做的事情
-- 跟版更新`graphql-java`
-- 按照你的理解迭代该项目
-
-### 希望你
-- 希望你的代码足够健壮，每个更新都有丰富的单元测试（正例、反例、边界case）
-- 在工作中有对该项目或者`graphql-java`的应用
-- 可选：有参与其他github开源项目的经验
-
-
 # graphql-calculator
 
 ![Build and Publish](https://github.com/dugenkui03/graphql-java-calculator/workflows/Build%20and%20Publish/badge.svg)
