@@ -5,8 +5,8 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'com.graphql-java-calculator'
-version = '1.0.5-SNAPSHOT'
+group = 'com.luckincoffee'
+version = '3.1.0'
 
 repositories {
     mavenCentral()
@@ -17,6 +17,7 @@ apply plugin: 'groovy'
 
 dependencies {
     compile group: 'com.graphql-java', name: 'graphql-java', version: '19.2'
+    compile group: 'com.graphql-java', name: 'graphql-java-extended-scalars', version: '19.1'
     compile group: 'com.googlecode.aviator', name: 'aviator', version: '5.3.3'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -41,13 +42,14 @@ compileJava {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifactId = 'graphql-java-calculator'
+            artifactId = 'lk-graphql-java-calculator'
             from components.java
 
             pom {
-                name = 'graphql-java-calculator'
-                description = 'graphql-java-calculator'
-                url = 'https://github.com/dugenkui03/graphql-java-calculator'
+                name = 'lk-graphql-java-calculator'
+                description = 'lk-graphql-java-calculator'
+                version = '2.0.5-SNAPSHOT'
+                url = 'https://github.com/wsamuel/graphql-calculator/'
 
                 licenses {
                     license {
@@ -63,9 +65,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection = 'scm:git:https://github.com/dugenkui03/graphql-java-calculator.git'
-                    developerConnection = 'scm:git:https://github.com/dugenkui03/graphql-java-calculator.git'
-                    url = 'https://github.com/dugenkui03/graphql-java-calculator'
+                    connection = 'scm:git:https://github.com/wsamuel/graphql-calculator.git'
+                    developerConnection = 'scm:git:https://github.com/wsamuel/graphql-calculator.git'
+                    url = 'https://github.com/wsamuel/graphql-calculator'
                 }
             }
         }
@@ -78,8 +80,8 @@ publishing {
             def releaseUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
             url = version.endsWith('SNAPSHOT') ? snapshotUrl : releaseUrl
             credentials {
-                username =  'username'
-                password = 'password'
+                username =  'G4yJGto6'
+                password = '4V7qoF0akBafGny9IBYJOkvx3Ez0QfyTYEMaZjayw+K4'
             }
         }
     }
