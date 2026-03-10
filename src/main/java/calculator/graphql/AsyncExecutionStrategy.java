@@ -101,7 +101,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
         CompletableFuture<ExecutionResult> overallResult = new CompletableFuture<>();
         executionStrategyCtx.onDispatched(overallResult);
 
-        Async.each(futures).whenComplete((completeValueInfos, throwable) -> {
+        Async.each(futures, f -> f).whenComplete((completeValueInfos, throwable) -> {
             BiConsumer<List<ExecutionResult>, Throwable> handleResultsConsumer = handleResults(executionContext, resolvedFields, overallResult);
             if (throwable != null) {
                 handleResultsConsumer.accept(null, throwable.getCause());
@@ -109,7 +109,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
             }
             List<CompletableFuture<ExecutionResult>> executionResultFuture = map(completeValueInfos, FieldValueInfo::getFieldValue);
             executionStrategyCtx.onFieldValuesInfo(completeValueInfos);
-            Async.each(executionResultFuture).whenComplete(handleResultsConsumer);
+            Async.each(executionResultFuture, f -> f).whenComplete(handleResultsConsumer);
         }).exceptionally((ex) -> {
             // if there are any issues with combining/handling the field results,
             // complete the future at all costs and bubble up any thrown exception so
@@ -148,7 +148,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
         for (Object item : iterableValues) {
             ResultPath indexedPath = parameters.getPath().segment(index);
 
-            ExecutionStepInfo stepInfoForListElement = executionStepInfoFactory.newExecutionStepInfoForListElement(executionStepInfo, index);
+            ExecutionStepInfo stepInfoForListElement = executionStepInfoFactory.newExecutionStepInfoForListElement(executionStepInfo, indexedPath);
 
             NonNullableFieldValidator nonNullableFieldValidator = new NonNullableFieldValidator(executionContext, stepInfoForListElement);
 
@@ -158,9 +158,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
             ExecutionStrategyParameters newParameters = parameters.transform(builder ->
                     builder.executionStepInfo(stepInfoForListElement)
                             .nonNullFieldValidator(nonNullableFieldValidator)
-                            .listSize(size.orElse(-1)) // -1 signals that we don't know the size
                             .localContext(value.getLocalContext())
-                            .currentListIndex(finalIndex)
                             .path(indexedPath)
                             .source(value.getFetchedValue())
             );
@@ -169,7 +167,7 @@ public class AsyncExecutionStrategy extends AbstractAsyncExecutionStrategy {
         }
 
         // 将列表元素对应的异步任务 List<CompletableFuture<Object>> 转换成所有元素结果集合对应的异步任务 CompletableFuture<List<Object>>
-        CompletableFuture<List<ExecutionResult>> resultsFuture = Async.each(fieldValueInfos, (item, i) -> item.getFieldValue());
+        CompletableFuture<List<ExecutionResult>> resultsFuture = Async.each(fieldValueInfos, item -> item.getFieldValue());
 
         CompletableFuture<ExecutionResult> overallResult = new CompletableFuture<>();
         completeListCtx.onDispatched(overallResult);

@@ -1,7 +1,6 @@
 plugins {
     id 'java'
     id 'java-library'
-    id 'maven'
     id 'maven-publish'
 }
 
@@ -16,26 +15,30 @@ repositories {
 apply plugin: 'groovy'
 
 dependencies {
-    compile group: 'com.graphql-java', name: 'graphql-java', version: '19.2'
-    compile group: 'com.googlecode.aviator', name: 'aviator', version: '5.3.3'
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
-    testImplementation 'org.codehaus.groovy:groovy-all:2.5.13'
+    implementation group: 'com.graphql-java', name: 'graphql-java', version: '21.5'
+    implementation group: 'com.googlecode.aviator', name: 'aviator', version: '5.3.3'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
+    testImplementation 'org.apache.groovy:groovy-all:4.0.15'
+    testImplementation 'ch.qos.logback:logback-classic:1.4.14'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
     withJavadocJar()
     withSourcesJar()
 }
 
 javadoc {
     options.encoding = 'UTF-8'
-}
-
-compileJava {
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
 }
 
 publishing {
@@ -80,62 +83,6 @@ publishing {
             credentials {
                 username =  'username'
                 password = 'password'
-            }
-        }
-    }
-}
-
-apply plugin: 'signing'
-
-artifacts {
-    archives javadocJar, sourcesJar
-}
-
-//signing {
-//    sign configurations.archives
-//}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: 'userName', password: 'password')
-            }
-
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: 'userName', password: 'password')
-            }
-
-            pom.project {
-                name 'graphql-java-calculator'
-                packaging 'jar'
-                // optionally artifactId can be defined here
-                artifactId = 'graphql-java-calculator'
-                description 'graphql-java-calculator'
-                url = 'https://github.com/dugenkui03/graphql-java-calculator'
-
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-
-                scm {
-                    connection = 'scm:git:https://github.com/dugenkui03/graphql-java-calculator.git'
-                    developerConnection = 'scm:git:https://github.com/dugenkui03/graphql-java-calculator.git'
-                    url = 'https://github.com/dugenkui03/graphql-java-calculator'
-                }
-
-                developers {
-                    developer {
-                        id = 'dugenkui'
-                        name = 'dugenkui'
-                        email = 'dugk@foxmail.com'
-                    }
-                }
             }
         }
     }
